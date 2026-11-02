@@ -8,6 +8,13 @@
       "when": 1790916606140,
       "tag": "0000_even_cyclops",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1793592643678,
+      "tag": "0001_spotify_snapshots",
+      "breakpoints": true
     }
   ]
 }
