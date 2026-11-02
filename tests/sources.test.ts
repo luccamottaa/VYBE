@@ -34,3 +34,22 @@ test('streams: normaliza histórico em lista, mapa e pares', () => {
   assert.deepEqual(normalizeHistory({ history: { '2026-11-01': 5 } }), [{ date: '2026-11-01', streams: 5 }]);
   assert.deepEqual(normalizeHistory({ data: [[1761955200, 7]] }), [{ date: '2025-11-01', streams: 7 }]);
 });
+
+test('streams: sem caminho do histórico configurado, gasta só 1 chamada do RapidAPI', async () => {
+  const { trackStreams } = await import('../api-proxy/lib/streams.js');
+  const calls: string[] = [];
+  const orig = globalThis.fetch;
+  globalThis.fetch = (async (url: string) => {
+    calls.push(String(url));
+    return new Response(JSON.stringify({ streams: '110962032' }), { status: 200 });
+  }) as typeof fetch;
+  try {
+    const r = await trackStreams({ id: '2sFepQNyl1WjpROruP8bJ0' }, { RAPIDAPI_KEY: 'x' });
+    assert.equal(r.status, 200);
+    assert.equal(r.body.total, 110962032);
+    assert.equal(calls.length, 1);
+    assert.match(calls[0], /\/v1\/spotify\/tracks\/2sFepQNyl1WjpROruP8bJ0\/streams\/current$/);
+  } finally {
+    globalThis.fetch = orig;
+  }
+});
