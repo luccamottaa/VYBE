@@ -1,6 +1,0 @@
-# vybe-api na Cloudflare: histórico completo de charts (kworb) + busca oficial do Spotify.
-# Deploy pela GitHub Action .github/workflows/worker.yml (segredos no repositório).
-name = "vybe-api"
-main = "src/index.js"
-compatibility_date = "2026-10-01"
-workers_dev = true

@@ -44,19 +44,16 @@ node scripts/pages/collect.ts data-store          # coleta local
 VITE_STATIC=1 pnpm exec vite build -c vite.pages.config.ts
 ```
 
-## vybe-api (Cloudflare Worker)
+## vybe-api (Vercel)
 
-`worker/` publica a API usada pelo site: histórico completo de charts do Spotify (kworb) e busca oficial do Spotify.
-A Action `.github/workflows/worker.yml` publica a cada push na `main` (pastas `worker/` e `api-proxy/lib/`) e grava o
-endereço em `data/api.json`, que o site lê. Segredos do repositório:
+`api-proxy/` é o projeto `vybe-api` na Vercel (https://vybe-api-taupe.vercel.app), usado pelo site:
 
-| Segredo | Onde pegar |
-|---|---|
-| `CLOUDFLARE_API_TOKEN` | dash.cloudflare.com → My Profile → API Tokens → Create Token → modelo **Edit Cloudflare Workers** |
-| `CLOUDFLARE_ACCOUNT_ID` | dash.cloudflare.com → Workers & Pages (barra lateral, "Account ID") |
-| `SPOTIFY_CLIENT_ID` / `SPOTIFY_CLIENT_SECRET` | developer.spotify.com/dashboard → Create app (Web API) → Settings. Dono precisa de Premium. |
+- `GET /api/track?id=<spotifyId>` ou `?name=&artist=`: histórico completo da música nos charts do Spotify (kworb), desde a 1ª entrada.
+- `GET /api/spotify/search?q=&type=track|artist&offset=`: busca oficial do Spotify (10 por página).
+- `GET /api/health`: diz se a busca do Spotify está configurada.
 
-Sem o Worker, o site usa a cópia na Vercel (`api-proxy/`, só histórico por id do Spotify).
+Variáveis de ambiente na Vercel (projeto `vybe-api` → Settings → Environment Variables): `SPOTIFY_CLIENT_ID` e
+`SPOTIFY_CLIENT_SECRET`, do app em developer.spotify.com/dashboard (dono com Premium). Sem elas, só o histórico por id funciona.
 
 ## Desenvolvimento
 
