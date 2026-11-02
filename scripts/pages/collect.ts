@@ -87,7 +87,7 @@ function upsert(h: History, date: string, rows: { id: string; rank: number; stre
 async function collectApple(country: string) {
   const latestPath = `apple/${country}/latest.json`;
   try {
-    const { date, updated, tracks } = await fetchAppleChart(country);
+    const { date, updated, tracks } = await fetchAppleChart(country, 3); // sem pressa aqui: até 3 tentativas
     const history = (await readJson<History>(`apple/${country}/history.json`)) ?? { dates: [], ranks: {} };
     const { previous, prevDate } = upsert(history, date, tracks, false);
     await writeJson(`apple/${country}/history.json`, history);

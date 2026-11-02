@@ -113,13 +113,29 @@ export async function fromJson(): Promise<Omit<SpotifyChart, 'fetched' | 'stale'
   const r = await fetch(BASE, { headers: { 'User-Agent': UA, Accept: 'application/json' }, signal: AbortSignal.timeout(12000) });
   if (!r.ok) throw new Error(`JSON público respondeu ${r.status}`);
   const data = (await r.json()) as any;
-  const views: any[] = Array.isArray(data?.chartEntryViewResponses) ? data.chartEntryViewResponses : [];
-  const alias = (v: any) => String(v?.displayChart?.chartMetadata?.alias ?? '');
+
+  // O formato não é documentado e já mudou: procura qualquer lista de charts com `entries`
+  // e identifica o Global de faixas por alias, uri, título ou dimensões.
+  const lists: any[][] = [data?.chartEntryViewResponses, data?.charts, ...Object.values(data ?? {})].filter(
+    (v): v is any[] => Array.isArray(v) && v.some((x) => x && typeof x === 'object' && Array.isArray(x.entries)),
+  );
+  const views: any[] = lists[0] ?? [];
+  const meta = (v: any) => v?.displayChart?.chartMetadata ?? v?.chartMetadata ?? v ?? {};
+  const describe = (v: any) => {
+    const m = meta(v);
+    return [m.alias, m.uri, m.readableTitle, m.title, m.dimensions && JSON.stringify(m.dimensions)].filter(Boolean).join(' ').toLowerCase();
+  };
+  const isTracks = (d: string) => !/artist|album|podcast|show/.test(d);
   const view =
-    views.find((v) => alias(v) === 'regional-global-daily') ??
-    views.find((v) => alias(v) === 'regional-global-weekly') ??
-    views.find((v) => alias(v).startsWith('regional-global'));
-  if (!view) throw new Error('JSON público sem chart Global');
+    views.find((v) => /global/.test(describe(v)) && /daily/.test(describe(v)) && isTracks(describe(v))) ??
+    views.find((v) => /global/.test(describe(v)) && /weekly/.test(describe(v)) && isTracks(describe(v))) ??
+    views.find((v) => /global/.test(describe(v)) && isTracks(describe(v)));
+  if (!view) {
+    // Diagnóstico pro relatório da coleta: mostra o formato que veio de verdade.
+    const keys = Object.keys(data ?? {}).slice(0, 12).join(',');
+    const seen = views.slice(0, 10).map((v) => describe(v).slice(0, 80) || Object.keys(v ?? {}).join('/')).join(' | ');
+    throw new Error(`JSON público sem chart Global (chaves: ${keys || 'nenhuma'}; charts: ${seen || 'nenhum'})`.slice(0, 900));
+  }
 
   const entries: SpotifyEntry[] = (Array.isArray(view.entries) ? view.entries : [])
     .map((e: any) => {
@@ -140,8 +156,9 @@ export async function fromJson(): Promise<Omit<SpotifyChart, 'fetched' | 'stale'
     .filter((e: SpotifyEntry) => e.rank > 0 && e.trackName);
   if (!entries.length) throw new Error('JSON público veio sem faixas');
 
-  const chart = alias(view);
-  const date = String(view.displayChart?.date ?? '').slice(0, 10) || new Date().toISOString().slice(0, 10);
+  // Chave canônica, pra o histórico e os rótulos não dependerem de como o Spotify escreve o alias.
+  const chart = /daily/.test(describe(view)) ? 'regional-global-daily' : 'regional-global-weekly';
+  const date = String(view.displayChart?.date ?? view.date ?? '').slice(0, 10) || new Date().toISOString().slice(0, 10);
   return { chart, label: spotifyLabels[chart] ?? 'Top Global', date, source: 'json', entries };
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */

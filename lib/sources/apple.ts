@@ -35,9 +35,18 @@ export function normalize(feed: any): AppleTrack[] {
 }
 
 /** Busca o feed e devolve a data da parada (AAAA-MM-DD), o carimbo da Apple e as faixas. */
-export async function fetchAppleChart(country: string) {
-  const response = await fetch(appleFeedUrl(country), { signal: AbortSignal.timeout(12000) });
-  if (!response.ok) throw new Error(`Apple respondeu ${response.status}`);
+export async function fetchAppleChart(country: string, attempts = 1) {
+  let response: Response | undefined;
+  for (let i = 1; ; i++) {
+    try {
+      response = await fetch(appleFeedUrl(country), { signal: AbortSignal.timeout(i === 1 ? 12000 : 25000) });
+      if (response.ok || i >= attempts) break;
+    } catch (e) {
+      if (i >= attempts) throw e;
+    }
+    await new Promise((r) => setTimeout(r, 2000 * i));
+  }
+  if (!response?.ok) throw new Error(`Apple respondeu ${response?.status}`);
   const { feed } = (await response.json()) as { feed: any };
   const tracks = normalize(feed);
   const updated = String(feed.updated);
