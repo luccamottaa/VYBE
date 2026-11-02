@@ -26,6 +26,8 @@ export interface SpotifyChart {
   fetched: number;
   source: 'csv' | 'json';
   entries: SpotifyEntry[];
+  /** Diagnóstico: amostra crua de uma entrada do JSON público. */
+  sample?: string;
   stale: boolean;
   historyAvailable: boolean;
 }
@@ -159,7 +161,10 @@ export async function fromJson(): Promise<Omit<SpotifyChart, 'fetched' | 'stale'
   // Chave canônica, pra o histórico e os rótulos não dependerem de como o Spotify escreve o alias.
   const chart = /daily/.test(describe(view)) ? 'regional-global-daily' : 'regional-global-weekly';
   const date = String(view.displayChart?.date ?? view.date ?? '').slice(0, 10) || new Date().toISOString().slice(0, 10);
-  return { chart, label: spotifyLabels[chart] ?? 'Top Global', date, source: 'json', entries };
+  // Amostra crua da 1ª faixa (sem a parte de metadados), pra diagnosticar campos que mudarem de nome.
+  const first = Array.isArray(view.entries) ? view.entries[0] : null;
+  const sample = first ? JSON.stringify({ ...first, trackMetadata: Object.keys(first.trackMetadata ?? {}) }).slice(0, 1500) : undefined;
+  return { chart, label: spotifyLabels[chart] ?? 'Top Global', date, source: 'json', entries, sample };
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 

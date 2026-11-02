@@ -129,9 +129,12 @@ async function collectSpotify() {
   upsert(history, result.date, result.entries.map((e) => ({ id: e.spotifyId, rank: e.rank, streams: e.streams })), true);
   await writeJson(path, history);
   await writeJson('spotify/latest.json', { ...result, fetched: Date.now(), stale: false, historyAvailable: true });
-  return `spotify ok (${result.chart} ${result.date}, via ${result.source})`;
+  return `spotify ok (${result.chart} ${result.date}, via ${result.source})${result.sample ? ` amostra: ${result.sample}` : ''}`;
 }
 
-const report = [...(await Promise.all(countries.map(collectApple))), await collectSpotify()];
+// Um país por vez: em paralelo a Apple às vezes segura uma das respostas até estourar o tempo.
+const report: string[] = [];
+for (const c of countries) report.push(await collectApple(c));
+report.push(await collectSpotify());
 await writeJson('meta.json', { ran: new Date().toISOString(), report });
 for (const line of report) console.log(line.includes('ERRO') ? `::warning::${line}` : line);
