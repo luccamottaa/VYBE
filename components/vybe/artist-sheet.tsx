@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Disc3, ExternalLink, Radar } from 'lucide-react';
+import { Disc3, ExternalLink, Library, Radar } from 'lucide-react';
+import { albumsByArtist, albumTypeLabel, type Album } from '@/lib/albums';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { artistHits, loadAllCharts } from '@/lib/all-charts';
 import { buildDeepLink } from '@/lib/deep-link';
@@ -15,7 +16,9 @@ import { Cover, CrossBadges } from './ui';
 
 type Charted = Awaited<ReturnType<typeof artistHits>>[number];
 
-export function ArtistSheet({ artist, onClose, onSong }: { artist: Artist | null; onClose: () => void; onSong: (s: Song) => void }) {
+export function ArtistSheet({ artist, onClose, onSong, onAlbum }: { artist: Artist | null; onClose: () => void; onSong: (s: Song) => void; onAlbum?: (a: Album) => void }) {
+  const [albums, setAlbums] = useState<Album[] | null>(null);
+  const [albumType, setAlbumType] = useState<'all' | 'album' | 'single'>('all');
   const [charted, setCharted] = useState<Charted[]>([]);
   const [catalog, setCatalog] = useState<Song[]>([]);
   const [loading, setLoading] = useState(false);
@@ -27,6 +30,11 @@ export function ArtistSheet({ artist, onClose, onSong }: { artist: Artist | null
     const c = new AbortController();
     setCharted([]);
     setCatalog([]);
+    setAlbums(null);
+    setAlbumType('all');
+    albumsByArtist(artist, c.signal)
+      .then((a) => !c.signal.aborted && setAlbums(a))
+      .catch(() => !c.signal.aborted && setAlbums([]));
     setCatalogError('');
     setFilter('');
     setLoading(true);
@@ -117,6 +125,41 @@ export function ArtistSheet({ artist, onClose, onSong }: { artist: Artist | null
                 <p className="text-xs text-slate-400">{loading ? 'Procurando nos charts…' : 'Nenhuma música desse artista nos charts acompanhados agora.'}</p>
               )}
             </section>
+
+            {(albums === null || albums.length > 0) && (
+              <section>
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <h3 className="flex items-center gap-1.5 text-sm font-bold text-white">
+                    <Library className="h-4 w-4 text-cyan-400" /> Discografia {albums && <span className="text-xs font-medium text-slate-500">{albums.length}</span>}
+                  </h3>
+                  {albums && albums.length > 4 && (
+                    <div className="flex rounded-lg border border-slate-800 bg-slate-950/70 p-0.5">
+                      {([['all', 'Tudo'], ['album', 'Álbuns'], ['single', 'Singles e EPs']] as const).map(([id, label]) => (
+                        <button key={id} onClick={() => setAlbumType(id)} className={`rounded-md px-2 py-0.5 text-[10px] transition-all ${albumType === id ? 'bg-cyan-500 font-bold text-[#020617]' : 'text-slate-400 hover:text-white'}`}>
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
+                  {albums === null
+                    ? Array.from({ length: 4 }, (_, i) => <div key={i} className="h-44 w-32 shrink-0 animate-pulse rounded-2xl bg-slate-800/50" />)
+                    : albums
+                        .filter((a) => albumType === 'all' || (albumType === 'album' ? albumTypeLabel(a) === 'Álbum' || albumTypeLabel(a) === 'Coletânea' : albumTypeLabel(a) === 'Single' || albumTypeLabel(a) === 'EP'))
+                        .map((a) => (
+                          <button key={a.key} onClick={() => onAlbum?.(a)} className="group w-32 shrink-0 snap-start text-left">
+                            <Cover src={a.artwork ? artwork(a.artwork, 300) : ''} alt="" className="aspect-square w-full rounded-2xl transition-transform group-hover:-translate-y-0.5 group-hover:border-cyan-500/40" />
+                            <p className="mt-1.5 truncate text-xs font-bold text-white group-hover:text-cyan-300">{a.name}</p>
+                            <p className="truncate text-[10px] text-slate-500">
+                              {albumTypeLabel(a)}
+                              {a.releaseDate && ` · ${a.releaseDate.slice(0, 4)}`}
+                            </p>
+                          </button>
+                        ))}
+                </div>
+              </section>
+            )}
 
             <section>
               <h3 className="mb-2 flex items-center gap-1.5 text-sm font-bold text-white">

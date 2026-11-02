@@ -11,6 +11,7 @@ import { artwork, fmtCompact, fmtFull, shortDate } from '@/lib/vybe';
 import { buildDeepLink } from '@/lib/deep-link';
 import { FollowButton } from './follow-button';
 import { PreviewButton } from './preview';
+import { albumFrom, type Album } from '@/lib/albums';
 import { ShareButton } from './share-button';
 import { SpotifyAllTime } from './spotify-all-time';
 import { StreamCount } from './stream-count';
@@ -22,7 +23,17 @@ const colors: Record<string, string> = {
   'sp:global': '#10b981', 'sp:br': '#22c55e', 'sp:us': '#14b8a6', 'sp:kr': '#06b6d4', 'sp:jp': '#84cc16', 'sp:gb': '#2dd4bf',
 };
 
-export function SongSheet({ song, onClose, onArtist }: { song: Song | null; onClose: () => void; onArtist: (name: string, artistId?: string) => void }) {
+export function SongSheet({
+  song,
+  onClose,
+  onArtist,
+  onAlbum,
+}: {
+  song: Song | null;
+  onClose: () => void;
+  onArtist: (name: string, artistId?: string) => void;
+  onAlbum?: (a: Album) => void;
+}) {
   const [full, setFull] = useState<Song | null>(null);
   const [hits, setHits] = useState<ChartHit[]>([]);
   const [series, setSeries] = useState<[string, Point[]][]>([]);
@@ -50,7 +61,7 @@ export function SongSheet({ song, onClose, onArtist }: { song: Song | null; onCl
         try {
           const found = await searchCatalogSongs(`${s.name} ${s.artist.split(/,|&/)[0]}`, undefined, 5);
           const same = found.find((x) => x.key === s.key);
-          if (same) Object.assign(s, { preview: same.preview, appleUrl: s.appleUrl ?? same.appleUrl, album: s.album ?? same.album, releaseDate: s.releaseDate ?? same.releaseDate, artistId: s.artistId ?? same.artistId, artwork: s.artwork ?? same.artwork });
+          if (same) Object.assign(s, { preview: same.preview, appleUrl: s.appleUrl ?? same.appleUrl, album: s.album ?? same.album, albumId: s.albumId ?? same.albumId, releaseDate: s.releaseDate ?? same.releaseDate, artistId: s.artistId ?? same.artistId, artwork: s.artwork ?? same.artwork });
         } catch {
           /* sem prévia, tudo bem */
         }
@@ -111,7 +122,16 @@ export function SongSheet({ song, onClose, onArtist }: { song: Song | null; onCl
                 </button>
                 {(full.album || full.releaseDate) && (
                   <p className="mt-1 truncate text-xs text-slate-500">
-                    {full.album}
+                    {full.album && onAlbum ? (
+                      <button
+                        onClick={() => onAlbum(albumFrom({ name: full.album!, artist: full.artist, artwork: full.artwork, appleId: full.albumId }))}
+                        className="font-semibold text-slate-300 underline decoration-slate-600 underline-offset-2 hover:text-cyan-300"
+                      >
+                        💿 {full.album}
+                      </button>
+                    ) : (
+                      full.album
+                    )}
                     {full.album && full.releaseDate && ' · '}
                     {full.releaseDate && shortDate(`${full.releaseDate}T00:00:00Z`)}
                   </p>

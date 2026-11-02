@@ -29,7 +29,7 @@ test('gera página por música e artista, sitemap e robots', () => {
 
 test('deep link aceita só valores válidos', () => {
   assert.deepEqual(readDeepLink('?fonte=spotify&mercado=BR&aba=destaques&musica=Pós'), {
-    fonte: 'spotify', pais: undefined, mercado: 'br', aba: 'destaques', buscar: undefined, musica: 'Pós', artista: undefined, spotify: undefined, apple: undefined,
+    fonte: 'spotify', pais: undefined, mercado: 'br', aba: 'destaques', buscar: undefined, musica: 'Pós', album: undefined, tipo: undefined, artista: undefined, spotify: undefined, apple: undefined,
   });
   const bad = readDeepLink('?fonte=tidal&aba=admin&pais=<x>&spotify=../../etc');
   assert.equal(bad.fonte, undefined);

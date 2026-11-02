@@ -31,6 +31,8 @@ import { GlobalSearch } from '@/components/vybe/global-search';
 import { SongSheet } from '@/components/vybe/song-sheet';
 import { ArtistSheet } from '@/components/vybe/artist-sheet';
 import { SearchResults } from '@/components/vybe/search-results';
+import { AlbumSheet } from '@/components/vybe/album-sheet';
+import { albumFrom, type Album } from '@/lib/albums';
 import { Highlights } from '@/components/vybe/highlights';
 import { Following } from '@/components/vybe/following';
 import { PwaBar } from '@/components/vybe/pwa';
@@ -41,9 +43,10 @@ import { runAlertCheck, useAlerts } from '@/lib/alerts-store';
 import { readDeepLink, type DeepLink } from '@/lib/deep-link';
 import { useFollows } from '@/lib/follow';
 import { songFrom, type Artist, type Song } from '@/lib/search';
-import { getAppleChart, getSpotifyChart, isStatic, spotifyMarkets } from '@/lib/data-source';
+import { getAppleAlbumChart, getAppleChart, getSpotifyChart, isStatic, spotifyMarkets } from '@/lib/data-source';
 import { Cover, CrossBadges, MetricCard, Movement, Panel, PanelTitle } from '@/components/vybe/ui';
 import {
+  appleAlbumView,
   appleView,
   artwork,
   daysSince,
@@ -93,8 +96,10 @@ function Dashboard() {
   const [song, setSong] = useState<Song | null>(() =>
     link.musica ? songFrom({ name: link.musica, artist: link.artista ?? '', spotifyId: link.spotify, appleId: link.apple }) : null,
   );
-  const [artist, setArtist] = useState<Artist | null>(() => (!link.musica && link.artista ? { name: link.artista } : null));
+  const [artist, setArtist] = useState<Artist | null>(() => (!link.musica && !link.album && link.artista ? { name: link.artista } : null));
   const [allQuery, setAllQuery] = useState<string | null>(link.buscar ?? null);
+  const [kind, setKind] = useState<'songs' | 'albums'>(link.tipo === 'albuns' && isStatic ? 'albums' : 'songs');
+  const [album, setAlbum] = useState<Album | null>(() => (link.album ? albumFrom({ name: link.album, artist: link.artista ?? '' }) : null));
   const [compact, setCompact] = useState(false);
   const [safe, setSafe] = useState(false);
   const follows = useFollows();
@@ -110,7 +115,9 @@ function Dashboard() {
         const next =
           source === 'spotify'
             ? spotifyView(await getSpotifyChart(spotifyMarket, signal))
-            : appleView(await getAppleChart(country, signal), country);
+            : kind === 'albums'
+              ? appleAlbumView(await getAppleAlbumChart(country, signal), country)
+              : appleView(await getAppleChart(country, signal), country);
         setView(next);
       } catch (e) {
         if ((e as Error).name !== 'AbortError') {
@@ -121,7 +128,7 @@ function Dashboard() {
         if (!signal?.aborted) setLoading(false);
       }
     },
-    [source, country, spotifyMarket],
+    [source, country, spotifyMarket, kind],
   );
 
   useEffect(() => {
@@ -165,11 +172,14 @@ function Dashboard() {
     if (source === 'spotify') {
       p.set('fonte', 'spotify');
       if (spotifyMarket !== 'global') p.set('mercado', spotifyMarket);
-    } else if (country !== 'br') p.set('pais', country);
+    } else {
+      if (country !== 'br') p.set('pais', country);
+      if (kind === 'albums') p.set('tipo', 'albuns');
+    }
     const qs = p.toString();
     const url = `${location.pathname}${qs ? `?${qs}` : ''}${location.hash}`;
     if (url !== `${location.pathname}${location.search}${location.hash}`) history.replaceState(null, '', url);
-  }, [tab, source, country, spotifyMarket]);
+  }, [tab, source, country, spotifyMarket, kind]);
 
   // Alertas de quem você segue: compara os charts com a última foto (follow novo só ganha a foto base).
   useEffect(() => {
@@ -201,6 +211,11 @@ function Dashboard() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
+  // linha do ranking: no Top álbuns abre o álbum; senão, a trajetória da música
+  const albumsView = !!view?.albums;
+  const openTrack = (t: ViewTrack) =>
+    albumsView ? setAlbum(albumFrom({ name: t.name, artist: t.artistName, artwork: t.artworkUrl100, appleId: t.id, appleUrl: t.url, releaseDate: t.releaseDate, genre: t.genre })) : setSelected(t);
+
   const spotify = useMemo(() => (view?.source === 'spotify' ? spotifySummary(view) : null), [view]);
   // Spotify sem login não manda streams: aí os blocos de artistas/lançamentos substituem os de streams.
   const streamMode = !!spotify?.hasStreams;
@@ -222,7 +237,7 @@ function Dashboard() {
     const q = query.trim().toLocaleLowerCase();
     return view?.tracks.filter((t) => !q || `${t.name} ${t.artistName}`.toLocaleLowerCase().includes(q)) ?? [];
   }, [view, query]);
-  const hitsFor = (t: ViewTrack) => cross.get(matchKey(t.name, t.artistName)) ?? [];
+  const hitsFor = (t: ViewTrack) => (view?.albums ? [] : (cross.get(matchKey(t.name, t.artistName)) ?? []));
 
   const top = view?.tracks[0];
   const market = markets[country];
@@ -293,6 +308,7 @@ function Dashboard() {
               onSong={setSong}
               onArtist={setArtist}
               onAll={setAllQuery}
+              onAlbum={setAlbum}
             />
             {isSpotify && spotifyMarkets.length < 2 ? (
               <span className={`${compact ? 'max-sm:hidden ' : ''}flex h-9 shrink-0 items-center rounded-xl border border-slate-700/60 bg-slate-800/60 px-3 text-xs text-slate-300`} title="Nesta versão o Spotify só tem o Global">
@@ -340,6 +356,20 @@ function Dashboard() {
           <>
             {view?.stale && <Notice>A fonte não respondeu. Exibindo o último ranking salvo, de {shortDate(view.updated)}.</Notice>}
             {view && !view.historyAvailable && !view.stale && <Notice>Histórico indisponível agora. O ranking abre normal, mas este registro não foi salvo.</Notice>}
+
+            {!isSpotify && isStatic && (
+              <div className="flex items-center gap-3">
+                <Segmented
+                  value={kind}
+                  onChange={setKind}
+                  options={[
+                    ['songs', 'Músicas'],
+                    ['albums', 'Álbuns'],
+                  ]}
+                />
+                <span className="text-xs text-slate-500">{kind === 'albums' ? 'Top 100 álbuns mais tocados na Apple Music' : 'Top 100 músicas mais tocadas na Apple Music'}</span>
+              </div>
+            )}
 
             {/* Hero: #1 */}
             <section className="theme-dark relative overflow-hidden rounded-3xl border border-slate-800/80 bg-gradient-to-br from-slate-900 via-[#0a1430] to-slate-950 p-6 text-slate-100 shadow-2xl lg:p-8">
@@ -394,8 +424,8 @@ function Dashboard() {
                       <Play className="h-4 w-4 fill-[#020617]" /> Ouvir no {isSpotify ? 'Spotify' : 'Apple Music'}
                     </a>
                     <button
-                      onClick={() => setSelected(top)}
-                      aria-label={`Ver trajetória de ${top.name}`}
+                      onClick={() => openTrack(top)}
+                      aria-label={`${albumsView ? 'Abrir o álbum' : 'Ver trajetória de'} ${top.name}`}
                       className="rounded-xl border border-slate-700/80 bg-slate-800/80 p-3 text-slate-300 transition-all hover:bg-slate-700/80"
                     >
                       <ArrowUpRight className="h-4 w-4" />
@@ -432,7 +462,7 @@ function Dashboard() {
                     value={apple ? apple.artistCount : '—'}
                     icon={<Users className="h-4 w-4" />}
                     tone="blue"
-                    badge={apple?.topArtists[0] ? `${apple.topArtists[0].count} faixas` : undefined}
+                    badge={apple?.topArtists[0] ? `${apple.topArtists[0].count} ${albumsView ? "álbuns" : "faixas"}` : undefined}
                     note={apple?.topArtists[0] ? `${apple.topArtists[0].artist} lidera` : undefined}
                   />
                   <MetricCard
@@ -494,7 +524,7 @@ function Dashboard() {
                   </>
                 ) : (
                   <>
-                    <PanelTitle icon={<BarChart3 className="h-4 w-4 text-cyan-400" />} title={`Quem domina o Top ${view?.tracks.length || 100}`} hint="Faixas por artista, contando colaborações para cada nome" />
+                    <PanelTitle icon={<BarChart3 className="h-4 w-4 text-cyan-400" />} title={`Quem domina o Top ${view?.tracks.length || 100}`} hint={`${albumsView ? "Álbuns" : "Faixas"} por artista, contando colaborações para cada nome`} />
                     <div className="h-72 w-full">
                       {apple?.topArtists.length ? (
                         <ResponsiveContainer width="100%" height="100%">
@@ -507,7 +537,7 @@ function Dashboard() {
                             </defs>
                             <XAxis type="number" allowDecimals={false} stroke="#475569" fontSize={11} tickLine={false} axisLine={false} />
                             <YAxis type="category" dataKey="artist" width={130} stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
-                            <Tooltip cursor={{ fill: 'rgba(6,182,212,0.06)' }} formatter={(v) => [v, 'Faixas']} contentStyle={tooltipStyle} />
+                            <Tooltip cursor={{ fill: 'rgba(6,182,212,0.06)' }} formatter={(v) => [v, albumsView ? "Álbuns" : "Faixas"]} contentStyle={tooltipStyle} />
                             <Bar dataKey="count" fill="url(#barGlow)" radius={[0, 6, 6, 0]} barSize={18} />
                           </BarChart>
                         </ResponsiveContainer>
@@ -528,7 +558,7 @@ function Dashboard() {
                     {(climbers.length ? climbers : view?.tracks ?? []).slice(0, 5).map((t) => (
                       <button
                         key={t.id}
-                        onClick={() => setSelected(t)}
+                        onClick={() => openTrack(t)}
                         className="group flex w-full items-center justify-between gap-2 rounded-2xl border border-slate-800/50 bg-slate-950/40 p-3 text-left transition-all hover:border-slate-700/80"
                       >
                         <div className="flex min-w-0 items-center gap-3">
@@ -554,7 +584,7 @@ function Dashboard() {
                       {spotify?.veterans.length ? (
                         <div className="grid grid-cols-2 gap-2">
                           {spotify.veterans.map((t) => (
-                            <button key={t.id} onClick={() => setSelected(t)} className="rounded-xl border border-slate-800/60 bg-slate-950/50 p-2.5 text-left hover:border-slate-700">
+                            <button key={t.id} onClick={() => openTrack(t)} className="rounded-xl border border-slate-800/60 bg-slate-950/50 p-2.5 text-left hover:border-slate-700">
                               <span className="block truncate text-[10px] text-slate-400">{t.name}</span>
                               <strong className="text-sm font-black text-white">{t.days}</strong> <span className="text-[10px] text-slate-500">{tenure(t.days ?? 0, weekly).split(' ')[1]}</span>
                             </button>
@@ -591,7 +621,7 @@ function Dashboard() {
                         recentReleases.length ? (
                           <div className="grid grid-cols-2 gap-2">
                             {recentReleases.map((t) => (
-                              <button key={t.id} onClick={() => setSelected(t)} className="rounded-xl border border-slate-800/60 bg-slate-950/50 p-2.5 text-left hover:border-slate-700">
+                              <button key={t.id} onClick={() => openTrack(t)} className="rounded-xl border border-slate-800/60 bg-slate-950/50 p-2.5 text-left hover:border-slate-700">
                                 <span className="block truncate text-[10px] text-slate-400">{t.name}</span>
                                 <strong className="text-sm font-black text-white">#{t.rank}</strong>{' '}
                                 <span className="text-[10px] text-slate-500">{shortDate(`${t.releaseDate}T00:00:00Z`)}</span>
@@ -638,7 +668,7 @@ function Dashboard() {
                     return (
                       <li key={t.id}>
                         <button
-                          onClick={() => setSelected(t)}
+                          onClick={() => openTrack(t)}
                           className="group flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-800/30 sm:gap-4 sm:px-6"
                         >
                           <span className={`w-8 shrink-0 text-center text-sm font-black tabular-nums ${t.rank <= 3 ? 'text-cyan-400' : 'text-slate-500'}`}>
@@ -707,7 +737,30 @@ function Dashboard() {
           setSong(songFrom({ name: t.name, artist: t.artistName, artwork: t.artworkUrl100, ...(isSpotify ? { spotifyId: t.id } : { appleId: t.id }) }));
         }}
       />
-      <SongSheet song={song} onClose={() => setSong(null)} onArtist={(name, artistId) => { setSong(null); setArtist({ name, artistId }); }} />
+      <SongSheet
+        song={song}
+        onClose={() => setSong(null)}
+        onArtist={(name, artistId) => {
+          setSong(null);
+          setArtist({ name, artistId });
+        }}
+        onAlbum={(a) => {
+          setSong(null);
+          setAlbum(a);
+        }}
+      />
+      <AlbumSheet
+        album={album}
+        onClose={() => setAlbum(null)}
+        onSong={(s) => {
+          setAlbum(null);
+          setSong(s);
+        }}
+        onArtist={(name) => {
+          setAlbum(null);
+          setArtist({ name });
+        }}
+      />
       <SearchResults
         query={allQuery}
         onClose={() => setAllQuery(null)}
@@ -719,8 +772,23 @@ function Dashboard() {
           setAllQuery(null);
           setArtist(a);
         }}
+        onAlbum={(a) => {
+          setAllQuery(null);
+          setAlbum(a);
+        }}
       />
-      <ArtistSheet artist={artist} onClose={() => setArtist(null)} onSong={(s) => { setArtist(null); setSong(s); }} />
+      <ArtistSheet
+        artist={artist}
+        onClose={() => setArtist(null)}
+        onSong={(s) => {
+          setArtist(null);
+          setSong(s);
+        }}
+        onAlbum={(a) => {
+          setArtist(null);
+          setAlbum(a);
+        }}
+      />
       <PwaBar />
     </div>
   );

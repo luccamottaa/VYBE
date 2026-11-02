@@ -22,6 +22,12 @@ async function getJson<T>(url: string, signal?: AbortSignal): Promise<T> {
 export const getAppleChart = (country: string, signal?: AbortSignal) =>
   getJson<Chart & { days: number }>(isStatic ? `${base}data/apple/${country}/latest.json` : `/api/chart?country=${country}`, signal);
 
+/** Top 100 álbuns da Apple (só no Pages). */
+export const getAppleAlbumChart = (country: string, signal?: AbortSignal) => {
+  if (!isStatic) return Promise.reject(new Error('Top álbuns disponível na versão do GitHub Pages'));
+  return getJson<Chart & { days: number }>(`${base}data/apple-albums/${country}/latest.json`, signal);
+};
+
 /** Mercados do Spotify: no Pages, Global + 5 países (kworb); no Cloudflare, só o Global. */
 export const spotifyMarkets = isStatic ? ['global', 'br', 'us', 'kr', 'jp', 'gb'] : ['global'];
 
@@ -68,6 +74,10 @@ function pick(h: StaticHistory, id: string): Point[] {
 export async function getAppleHistory(country: string, id: string, signal?: AbortSignal): Promise<Point[]> {
   if (isStatic) return pick(await staticHistory(`apple/${country}/history.json`, signal), id);
   return (await getJson<{ points: Point[] }>(`/api/history?country=${country}&id=${id}`, signal)).points;
+}
+
+export async function getAppleAlbumHistory(country: string, id: string, signal?: AbortSignal): Promise<Point[]> {
+  return pick(await staticHistory(`apple-albums/${country}/history.json`, signal), id);
 }
 
 export async function getSpotifyHistory(chart: string, id: string, signal?: AbortSignal): Promise<Point[]> {

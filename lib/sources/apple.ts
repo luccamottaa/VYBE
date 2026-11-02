@@ -14,7 +14,8 @@ export type AppleTrack = {
   artistUrl?: string;
 };
 
-export const appleFeedUrl = (country: string) => `https://rss.marketingtools.apple.com/api/v2/${country}/music/most-played/100/songs.json`;
+export type AppleKind = 'songs' | 'albums';
+export const appleFeedUrl = (country: string, kind: AppleKind = 'songs') => `https://rss.marketingtools.apple.com/api/v2/${country}/music/most-played/100/${kind}.json`;
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- payload externo, validado campo a campo */
 export function normalize(feed: any): AppleTrack[] {
@@ -35,11 +36,11 @@ export function normalize(feed: any): AppleTrack[] {
 }
 
 /** Busca o feed e devolve a data da parada (AAAA-MM-DD), o carimbo da Apple e as faixas. */
-export async function fetchAppleChart(country: string, attempts = 1) {
+export async function fetchAppleChart(country: string, attempts = 1, kind: AppleKind = 'songs') {
   let response: Response | undefined;
   for (let i = 1; ; i++) {
     try {
-      response = await fetch(appleFeedUrl(country), { signal: AbortSignal.timeout(i === 1 ? 12000 : 25000) });
+      response = await fetch(appleFeedUrl(country, kind), { signal: AbortSignal.timeout(i === 1 ? 12000 : 25000) });
       if (response.ok || i >= attempts) break;
     } catch (e) {
       if (i >= attempts) throw e;

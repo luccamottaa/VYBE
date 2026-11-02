@@ -6,7 +6,9 @@ export type DeepLink = {
   aba?: 'charts' | 'destaques' | 'seguindo' | 'fontes';
   buscar?: string;
   musica?: string;
+  album?: string;
   artista?: string;
+  tipo?: 'musicas' | 'albuns';
   spotify?: string; // id da faixa no Spotify
   apple?: string; // id da faixa na Apple
 };
@@ -27,6 +29,8 @@ export function readDeepLink(search: string): DeepLink {
     aba: tabs.includes(aba as (typeof tabs)[number]) ? (aba as DeepLink['aba']) : undefined,
     buscar: get('buscar'),
     musica: get('musica'),
+    album: get('album'),
+    tipo: get('tipo') === 'albuns' ? 'albuns' : undefined,
     artista: get('artista'),
     spotify: id(get('spotify')),
     apple: id(get('apple')),

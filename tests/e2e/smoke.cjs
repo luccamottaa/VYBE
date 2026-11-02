@@ -49,6 +49,15 @@ async function step(label, fn) {
           await page.getByRole('tab', { name: 'Spotify' }).click();
           await page.getByText('Top 200', { exact: false }).first().waitFor({ timeout: 15000 });
         });
+        await step('Top álbuns abre e o painel do álbum carrega', async () => {
+          await page.goto(`${base}?tipo=albuns`, { waitUntil: 'networkidle' });
+          await page.getByText('Top 100 Álbuns', { exact: false }).first().waitFor({ timeout: 15000 });
+          await page.locator('ol > li button').first().click();
+          await page.getByRole('heading', { name: 'Faixas' }).waitFor();
+          await shot('album');
+          await page.keyboard.press('Escape');
+          await page.goto(base, { waitUntil: 'networkidle' });
+        });
         await step('aba Destaques', async () => {
           await page.getByRole('tab', { name: 'Destaques' }).click();
           await page.getByText('Quem manda em cada chart').waitFor();

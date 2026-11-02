@@ -16,7 +16,7 @@
 
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
-import { countries, fetchAppleChart } from '../../lib/sources/apple.ts';
+import { countries, fetchAppleChart, type AppleKind } from '../../lib/sources/apple.ts';
 import { fetchKworbChart, kworbMarkets, kworbUrl } from '../../lib/sources/kworb.ts';
 import { fetchLastfmTrack, type LastfmStats } from '../../lib/sources/lastfm.ts';
 import { cleanTitle, matchKey, splitArtists } from '../../lib/sources/match.ts';
@@ -103,13 +103,15 @@ function upsert(h: History, date: string, rows: { id: string; rank: number; stre
   return { previous, prevDate };
 }
 
-async function collectApple(country: string) {
-  const latestPath = `apple/${country}/latest.json`;
+async function collectApple(country: string, kind: AppleKind = 'songs') {
+  const dir = kind === 'albums' ? `apple-albums/${country}` : `apple/${country}`;
+  const label = kind === 'albums' ? `apple-albums:${country}` : `apple:${country}`;
+  const latestPath = `${dir}/latest.json`;
   try {
-    const { date, updated, tracks } = await fetchAppleChart(country, 4); // a Apple às vezes trava com os servidores do GitHub: até 4 tentativas
-    const history = (await readJson<History>(`apple/${country}/history.json`)) ?? { dates: [], ranks: {} };
+    const { date, updated, tracks } = await fetchAppleChart(country, 4, kind); // a Apple às vezes trava com os servidores do GitHub: até 4 tentativas
+    const history = (await readJson<History>(`${dir}/history.json`)) ?? { dates: [], ranks: {} };
     const { previous, prevDate } = upsert(history, date, tracks, false);
-    await writeJson(`apple/${country}/history.json`, history);
+    await writeJson(`${dir}/history.json`, history);
     await writeJson(latestPath, {
       country,
       date,
@@ -125,13 +127,15 @@ async function collectApple(country: string) {
         isNew: !!prevDate && !previous.has(t.id),
       })),
     });
-    for (const t of tracks.slice(0, 50)) collected.push({ name: t.name, artist: t.artistName });
-    for (const t of tracks) remember({ name: t.name, artist: t.artistName, img: t.artworkUrl100, appleId: t.id }, `ap:${country}`, date);
-    return `apple:${country} ok (${date})`;
+    if (kind === 'songs') {
+      for (const t of tracks.slice(0, 50)) collected.push({ name: t.name, artist: t.artistName });
+      for (const t of tracks) remember({ name: t.name, artist: t.artistName, img: t.artworkUrl100, appleId: t.id }, `ap:${country}`, date);
+    }
+    return `${label} ok (${date})`;
   } catch (e) {
     const old = await readJson<Record<string, unknown>>(latestPath);
     if (old) await writeJson(latestPath, { ...old, stale: true });
-    return `apple:${country} ERRO ${(e as Error).message}${old ? ' (mantido o último)' : ''}`;
+    return `${label} ERRO ${(e as Error).message}${old ? ' (mantido o último)' : ''}`;
   }
 }
 
@@ -216,6 +220,7 @@ async function collectLastfm() {
 // Um país por vez: em paralelo a Apple às vezes segura uma das respostas até estourar o tempo.
 const report: string[] = [];
 for (const c of countries) report.push(await collectApple(c));
+for (const c of countries) report.push(await collectApple(c, 'albums'));
 for (const m of Object.keys(kworbMarkets)) report.push(await collectSpotify(m));
 await writeJson('spotify/artwork.json', artwork);
 
