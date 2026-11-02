@@ -9,6 +9,7 @@ import { getLastfm, type LastfmRow, type Point } from '@/lib/data-source';
 import { findInIndex, searchCatalogSongs, type Song } from '@/lib/search';
 import { artwork, fmtCompact, fmtFull, shortDate } from '@/lib/vybe';
 import { PreviewButton } from './preview';
+import { SpotifyAllTime } from './spotify-all-time';
 import { Cover, Movement } from './ui';
 
 // Apple em azuis/violetas, Spotify em verdes/cianos.
@@ -142,6 +143,14 @@ export function SongSheet({ song, onClose, onArtist }: { song: Song | null; onCl
                 </p>
               )}
             </section>
+
+            {!loading && (
+              <SpotifyAllTime
+                spotifyId={spotifyId}
+                appleId={full.appleId ?? hits.find((h) => h.market.startsWith('ap:'))?.id}
+                deezerId={full.deezerId}
+              />
+            )}
 
             {lf && !('missing' in lf) && (
               <a href={lf.url} target="_blank" rel="noreferrer" className="block rounded-xl border border-rose-500/20 bg-rose-500/5 p-3 transition-colors hover:border-rose-500/40">
