@@ -8,6 +8,7 @@ import { artwork, daysSince, fmtCompact, fmtFull, matchKey, releaseLabel, shortD
 import { Cover, CrossBadges, Movement } from './ui';
 import { getLastfm, type LastfmRow, type Point } from '@/lib/data-source';
 import { SpotifyAllTime } from './spotify-all-time';
+import { StreamCount } from './stream-count';
 
 
 const periods = [7, 30, 90] as const;
@@ -134,6 +135,8 @@ export function TrackSheet({
                 </a>
               );
             })()}
+
+            <StreamCount {...(spotify ? { spotifyId: track.id } : { name: track.name, artist: track.artistName, songKey: matchKey(track.name, track.artistName) })} />
 
             <SpotifyAllTime {...(spotify ? { spotifyId: track.id } : { name: track.name, artist: track.artistName, songKey: matchKey(track.name, track.artistName) })} />
 

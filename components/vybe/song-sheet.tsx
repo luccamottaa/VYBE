@@ -10,6 +10,7 @@ import { findInIndex, searchCatalogSongs, type Song } from '@/lib/search';
 import { artwork, fmtCompact, fmtFull, shortDate } from '@/lib/vybe';
 import { PreviewButton } from './preview';
 import { SpotifyAllTime } from './spotify-all-time';
+import { StreamCount } from './stream-count';
 import { Cover, Movement } from './ui';
 
 // Apple em azuis/violetas, Spotify em verdes/cianos.
@@ -143,6 +144,8 @@ export function SongSheet({ song, onClose, onArtist }: { song: Song | null; onCl
                 </p>
               )}
             </section>
+
+            {!loading && <StreamCount spotifyId={spotifyId} name={full.name} artist={full.artist} songKey={full.key} />}
 
             {!loading && (
               <SpotifyAllTime
