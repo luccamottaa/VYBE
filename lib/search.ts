@@ -53,14 +53,17 @@ const norm = (s: string) =>
     .replace(/\p{M}/gu, '')
     .toLowerCase();
 
+/** Todas as palavras da busca precisam começar alguma palavra de `text` ("tate" acha Tate McRae, não "Stateside"). */
+export function matchesWords(text: string, query: string) {
+  const tokens = norm(text).split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  const words = norm(query).split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  return words.length > 0 && words.every((w) => tokens.some((t) => t.startsWith(w)));
+}
+
 /** Busca no índice local: todas as palavras precisam aparecer em "música + artista". */
 export async function searchIndex(query: string, limit = 8): Promise<Song[]> {
-  const words = norm(query).split(/\s+/).filter(Boolean);
-  if (!words.length) return [];
-  const hits = (await getIndex()).filter((s) => {
-    const hay = norm(`${s.name} ${s.artist}`);
-    return words.every((w) => hay.includes(w));
-  });
+  if (!query.trim()) return [];
+  const hits = (await getIndex()).filter((s) => matchesWords(`${s.name} ${s.artist}`, query));
   // quem aparece em mais mercados primeiro
   return hits.sort((a, b) => (b.markets?.length ?? 0) - (a.markets?.length ?? 0)).slice(0, limit);
 }
@@ -72,7 +75,7 @@ export async function searchIndexArtists(query: string, limit = 4): Promise<Arti
   const count = new Map<string, { name: string; n: number }>();
   for (const s of await getIndex()) {
     for (const a of splitArtists(s.artist)) {
-      if (!norm(a).includes(q)) continue;
+      if (!matchesWords(a, q)) continue;
       const k = norm(a);
       count.set(k, { name: a, n: (count.get(k)?.n ?? 0) + 1 });
     }
