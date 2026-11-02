@@ -11,7 +11,8 @@ concurrency:
 
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    # Playwright só instala dependências em versões de Ubuntu que ele suporta: fixa a 24.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
@@ -48,7 +49,7 @@ jobs:
 
       - name: Instalar Playwright (Chromium + WebKit)
         run: |
-          npm install --no-save --prefix "$RUNNER_TEMP/pw" playwright@1.56.1
+          npm install --no-save --prefix "$RUNNER_TEMP/pw" playwright@1.63.0
           "$RUNNER_TEMP/pw/node_modules/.bin/playwright" install --with-deps chromium webkit
 
       - name: Smoke test visual
