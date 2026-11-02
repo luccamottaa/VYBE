@@ -76,24 +76,33 @@ function parseTable(table, wanted) {
   return out;
 }
 
-/** Acha o id do Spotify a partir de Apple Music ou Deezer, via Odesli (song.link). */
+/** Acha o id do Spotify a partir de Apple Music ou Deezer, via Odesli (song.link). Devolve { id } ou { why }. */
 async function resolveSpotifyId(platform, id) {
-  const url = platform === 'apple' ? `https://music.apple.com/us/song/${id}` : `https://www.deezer.com/track/${id}`;
-  const r = await fetch(`https://api.song.link/v1-alpha.1/links?url=${encodeURIComponent(url)}`, {
-    headers: { 'User-Agent': UA },
-    signal: AbortSignal.timeout(10000),
-  });
-  if (!r.ok) return null;
-  const d = await r.json();
-  const unique = d?.linksByPlatform?.spotify?.entityUniqueId;
-  return typeof unique === 'string' ? unique.split('::').pop() : null;
+  const attempts = [
+    `platform=${platform === 'apple' ? 'appleMusic' : 'deezer'}&type=song&id=${id}&userCountry=US`,
+    `url=${encodeURIComponent(platform === 'apple' ? `https://music.apple.com/us/song/${id}` : `https://www.deezer.com/track/${id}`)}`,
+  ];
+  let why = '';
+  for (const qs of attempts) {
+    const r = await fetch(`https://api.song.link/v1-alpha.1/links?${qs}`, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(10000) });
+    if (!r.ok) {
+      why = `Odesli respondeu ${r.status}`;
+      continue;
+    }
+    const d = await r.json();
+    const unique = d?.linksByPlatform?.spotify?.entityUniqueId;
+    if (typeof unique === 'string') return { id: unique.split('::').pop() };
+    why = 'Odesli não conhece essa música no Spotify';
+  }
+  return { why };
 }
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
-  const send = (status, body, cache = 's-maxage=43200, stale-while-revalidate=86400') => {
-    res.setHeader('Cache-Control', status === 200 || status === 404 ? `public, max-age=600, ${cache}` : 'no-store');
+  // cache = false: resposta que não deve ficar guardada (falha de terceiros)
+  const send = (status, body, cache = true) => {
+    res.setHeader('Cache-Control', cache && (status === 200 || status === 404) ? 'public, max-age=600, s-maxage=43200, stale-while-revalidate=86400' : 'no-store');
     res.status(status).end(JSON.stringify(body));
   };
 
@@ -103,8 +112,9 @@ export default async function handler(req, res) {
 
   try {
     if (!id && (req.query.apple || req.query.deezer)) {
-      id = (await resolveSpotifyId(req.query.apple ? 'apple' : 'deezer', clean(req.query.apple || req.query.deezer))) ?? '';
-      if (!id) return send(404, { error: 'Essa música não foi encontrada no Spotify.' });
+      const found = await resolveSpotifyId(req.query.apple ? 'apple' : 'deezer', clean(req.query.apple || req.query.deezer));
+      if (!found.id) return send(found.why?.includes('respondeu') ? 502 : 404, { error: 'Não deu pra achar essa música no Spotify.', why: found.why }, false);
+      id = found.id;
     }
     if (!/^[A-Za-z0-9]{22}$/.test(id)) return send(400, { error: 'Informe id (Spotify), apple ou deezer.' });
 
