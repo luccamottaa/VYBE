@@ -26,6 +26,7 @@ import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recha
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TrackSheet } from '@/components/vybe/track-sheet';
 import { Sources } from '@/components/vybe/sources';
+import { DitherField, palettes } from '@/components/vybe/dither-field';
 import { Cover, CrossBadges, MetricCard, Movement, Panel, PanelTitle } from '@/components/vybe/ui';
 import {
   appleView,
@@ -254,10 +255,10 @@ export default function Page() {
             {view && !view.historyAvailable && !view.stale && <Notice>Histórico indisponível agora. O ranking abre normal, mas este registro não foi salvo.</Notice>}
 
             {/* Hero: #1 */}
-            <section className="relative overflow-hidden rounded-3xl border border-slate-800/80 bg-gradient-to-r from-slate-900/90 via-slate-900/50 to-slate-950/80 p-6 shadow-2xl backdrop-blur-md lg:p-8">
-              {top?.artworkUrl100 && (
-                <img src={artwork(top.artworkUrl100, 600)} alt="" aria-hidden className="pointer-events-none absolute -right-20 top-1/2 h-[140%] -translate-y-1/2 text-[0px] opacity-15 blur-2xl" />
-              )}
+            <section className="relative overflow-hidden rounded-3xl border border-slate-800/80 bg-gradient-to-br from-slate-900 via-[#0a1430] to-slate-950 p-6 shadow-2xl lg:p-8">
+              <DitherField palette={palettes[source]} className="pointer-events-none absolute inset-0 h-full w-full" />
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#070a11]/85 via-[#070a11]/35 to-transparent" />
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#070a11]/60 to-transparent md:hidden" />
               <div className="relative z-10 flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
                 <div className="flex min-w-0 items-center gap-5">
                   <div className="relative shrink-0">
