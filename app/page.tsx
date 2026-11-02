@@ -27,6 +27,7 @@ import { TrackSheet } from '@/components/vybe/track-sheet';
 import { Sources } from '@/components/vybe/sources';
 import { DitherField, palettes } from '@/components/vybe/dither-field';
 import { Logo, LogoMark } from '@/components/vybe/logo';
+import { getAppleChart, getSpotifyChart } from '@/lib/data-source';
 import { Cover, CrossBadges, MetricCard, Movement, Panel, PanelTitle } from '@/components/vybe/ui';
 import {
   appleView,
@@ -42,24 +43,15 @@ import {
   spotifyView,
   summarize,
   tenure,
-  type Chart,
   type ChartView,
   type CrossHit,
   type Source,
-  type SpotifyPayload,
   type ViewTrack,
 } from '@/lib/vybe';
 
 const genreColors = ['#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'];
-const tooltipStyle = { backgroundColor: '#090d16', borderColor: '#1e293b', borderRadius: '0.75rem', fontSize: 12 };
+const tooltipStyle = { backgroundColor: 'var(--popover)', borderColor: 'var(--border)', color: 'var(--popover-foreground)', borderRadius: '0.75rem', fontSize: 12 };
 type View = 'charts' | 'sources';
-
-async function getJson<T>(url: string, signal?: AbortSignal): Promise<T> {
-  const r = await fetch(url, { signal });
-  const d = (await r.json()) as T & { error?: string };
-  if (!r.ok) throw new Error(d.error || 'Erro ao carregar');
-  return d;
-}
 
 export default function Page() {
   const [source, setSource] = useState<Source>('apple');
@@ -80,8 +72,8 @@ export default function Page() {
       try {
         const next =
           source === 'spotify'
-            ? spotifyView(await getJson<SpotifyPayload>('/api/spotify', signal))
-            : appleView(await getJson<Chart>(`/api/chart?country=${country}`, signal), country);
+            ? spotifyView(await getSpotifyChart(signal))
+            : appleView(await getAppleChart(country, signal), country);
         setView(next);
       } catch (e) {
         if ((e as Error).name !== 'AbortError') {
@@ -111,11 +103,11 @@ export default function Page() {
     (async () => {
       const map = new Map<string, CrossHit[]>();
       if (source === 'apple') {
-        const sp = spotifyView(await getJson<SpotifyPayload>('/api/spotify', c.signal));
+        const sp = spotifyView(await getSpotifyChart(c.signal));
         for (const t of sp.tracks) add(map, matchKey(t.name, t.artistName), { label: 'Spotify', rank: t.rank });
       } else {
         const ids = Object.keys(markets);
-        const results = await Promise.allSettled(ids.map((m) => getJson<Chart>(`/api/chart?country=${m}`, c.signal)));
+        const results = await Promise.allSettled(ids.map((m) => getAppleChart(m, c.signal)));
         results.forEach((r, i) => {
           if (r.status !== 'fulfilled') return;
           for (const t of r.value.tracks) add(map, matchKey(t.name, t.artistName), { label: markets[ids[i]].flag, rank: t.rank });
@@ -160,7 +152,7 @@ export default function Page() {
   const needsHistory = 'Precisa de 2 dias de registro';
 
   return (
-    <div className="min-h-screen bg-[#070a11] p-4 font-sans text-slate-100 selection:bg-cyan-500 selection:text-black sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-background p-4 font-sans text-slate-100 selection:bg-cyan-500 selection:text-black sm:p-6 lg:p-8">
       <div className="pointer-events-none fixed left-1/4 top-0 h-96 w-96 rounded-full bg-cyan-600/10 blur-[120px]" />
       <div className="pointer-events-none fixed bottom-0 right-1/4 h-96 w-96 rounded-full bg-blue-600/10 blur-[120px]" />
 
@@ -239,7 +231,7 @@ export default function Page() {
             <Music2 className="h-10 w-10 text-slate-600" />
             <h2 className="text-lg font-bold text-white">{isSpotify ? 'O Spotify Charts não respondeu' : 'O ranking não carregou'}</h2>
             <p className="max-w-lg text-sm text-slate-400">{error}</p>
-            <button onClick={() => load()} className="rounded-xl bg-cyan-500 px-4 py-2 text-xs font-bold text-slate-950 hover:bg-cyan-400">
+            <button onClick={() => load()} className="rounded-xl bg-cyan-500 px-4 py-2 text-xs font-bold text-[#020617] hover:bg-cyan-400">
               Tentar novamente
             </button>
           </Panel>
@@ -249,7 +241,7 @@ export default function Page() {
             {view && !view.historyAvailable && !view.stale && <Notice>Histórico indisponível agora. O ranking abre normal, mas este registro não foi salvo.</Notice>}
 
             {/* Hero: #1 */}
-            <section className="relative overflow-hidden rounded-3xl border border-slate-800/80 bg-gradient-to-br from-slate-900 via-[#0a1430] to-slate-950 p-6 shadow-2xl lg:p-8">
+            <section className="theme-dark relative overflow-hidden rounded-3xl border border-slate-800/80 bg-gradient-to-br from-slate-900 via-[#0a1430] to-slate-950 p-6 text-slate-100 shadow-2xl lg:p-8">
               <DitherField palette={palettes[source]} className="pointer-events-none absolute inset-0 h-full w-full" />
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#070a11]/85 via-[#070a11]/35 to-transparent" />
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#070a11]/60 to-transparent md:hidden" />
@@ -265,7 +257,7 @@ export default function Page() {
                         </div>
                       )}
                     </div>
-                    {top && <span className="absolute -bottom-2 -right-2 rounded-lg border-2 border-slate-900 bg-cyan-400 px-1.5 text-xs font-black text-slate-950">#1</span>}
+                    {top && <span className="absolute -bottom-2 -right-2 rounded-lg border-2 border-slate-900 bg-cyan-400 px-1.5 text-xs font-black text-[#020617]">#1</span>}
                   </div>
 
                   <div className="min-w-0 space-y-1">
@@ -296,9 +288,9 @@ export default function Page() {
                       href={top.url}
                       target="_blank"
                       rel="noreferrer"
-                      className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-3 text-xs font-bold text-slate-950 shadow-lg shadow-cyan-500/20 transition-all hover:from-cyan-400 hover:to-blue-500 md:flex-none"
+                      className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-3 text-xs font-bold text-[#020617] shadow-lg shadow-cyan-500/20 transition-all hover:from-cyan-400 hover:to-blue-500 md:flex-none"
                     >
-                      <Play className="h-4 w-4 fill-slate-950" /> Ouvir no {isSpotify ? 'Spotify' : 'Apple Music'}
+                      <Play className="h-4 w-4 fill-[#020617]" /> Ouvir no {isSpotify ? 'Spotify' : 'Apple Music'}
                     </a>
                     <button
                       onClick={() => setSelected(top)}
@@ -585,7 +577,7 @@ export default function Page() {
         )}
 
         <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-800/60 pt-6 text-xs text-slate-500">
-          <span className="flex items-center gap-2"><LogoMark className="h-5 w-auto" cutout="#070a11" title="" /><span className="font-brand text-sm font-semibold text-slate-300">vybe</span></span>
+          <span className="flex items-center gap-2"><LogoMark className="h-5 w-auto" title="" /><span className="font-brand text-sm font-semibold text-slate-300">vybe</span></span>
           <span>Ouça a música. Entenda o movimento.</span>
           <span>Feito em Manaus</span>
         </footer>
@@ -617,7 +609,7 @@ function Segmented<T extends string>({
           aria-label={label}
           onClick={() => onChange(id)}
           className={`flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
-            value === id ? 'bg-cyan-500 font-bold text-slate-950 shadow-md' : 'text-slate-400 hover:text-white'
+            value === id ? 'bg-cyan-500 font-bold text-[#020617] shadow-md' : 'text-slate-400 hover:text-white'
           }`}
         >
           {Icon && <Icon className="h-3.5 w-3.5" />}

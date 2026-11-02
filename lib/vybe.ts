@@ -1,3 +1,5 @@
+import { getAppleHistory, getSpotifyHistory, type Point } from './data-source';
+
 // Tipos e helpers do lado do cliente. Não importar lib/chart.ts aqui (depende do runtime Cloudflare).
 
 export const markets: Record<string, { name: string; flag: string }> = {
@@ -109,7 +111,7 @@ export type ChartView = {
   hasMovement: boolean;
   compareLabel: string | null; // "vs 01 de nov." / "vs semana anterior"
   footnote: string;
-  historyUrl: (id: string) => string;
+  loadHistory: (id: string, signal?: AbortSignal) => Promise<Point[]>;
   sourceUrl: string;
   chartKey?: string; // alias do Spotify
 };
@@ -149,7 +151,7 @@ export function appleView(chart: Chart & { days: number }, country: string): Cha
     footnote: `Feed de ${shortDate(chart.updated)} · ${chart.days} ${chart.days === 1 ? 'dia registrado' : 'dias registrados'}${
       chart.previousDate ? '' : ' · variações aparecem a partir do 2º dia'
     }`,
-    historyUrl: (id) => `/api/history?country=${country}&id=${id}`,
+    loadHistory: (id, signal) => getAppleHistory(country, id, signal),
     sourceUrl: `https://rss.marketingtools.apple.com/api/v2/${country}/music/most-played/100/songs.json`,
   };
 }
@@ -178,7 +180,7 @@ export function spotifyView(p: SpotifyPayload): ChartView {
     hasMovement: true,
     compareLabel: weekly ? 'vs semana anterior' : 'vs dia anterior',
     footnote: `Parada de ${shortDate(`${p.date}T00:00:00Z`)}${weekly ? ' · sem login, o Spotify só libera o semanal' : ''}`,
-    historyUrl: (id) => `/api/spotify/history?chart=${p.chart}&id=${id}`,
+    loadHistory: (id, signal) => getSpotifyHistory(p.chart, id, signal),
     sourceUrl: 'https://charts.spotify.com/charts/overview/global',
     chartKey: p.chart,
   };

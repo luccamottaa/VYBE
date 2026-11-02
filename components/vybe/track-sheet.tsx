@@ -6,8 +6,8 @@ import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YA
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { artwork, daysSince, fmtCompact, fmtFull, releaseLabel, shortDate, tenure, type ChartView, type CrossHit, type ViewTrack } from '@/lib/vybe';
 import { Cover, CrossBadges, Movement } from './ui';
+import type { Point } from '@/lib/data-source';
 
-type Point = { date: string; rank: number | null; streams?: number | null };
 
 const periods = [7, 30, 90] as const;
 
@@ -26,20 +26,17 @@ export function TrackSheet({
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [period, setPeriod] = useState<number>(30);
-  const historyUrl = track && view ? view.historyUrl(track.id) : null;
+  const trackId = track?.id;
 
   useEffect(() => {
-    if (!historyUrl) return;
+    if (!trackId || !view) return;
     const c = new AbortController();
     setPoints([]);
     setError('');
     setLoading(true);
-    fetch(historyUrl, { signal: c.signal })
-      .then(async (r) => {
-        const d = (await r.json()) as { points?: Point[]; error?: string };
-        if (!r.ok) throw new Error(d.error);
-        setPoints(d.points ?? []);
-      })
+    view
+      .loadHistory(trackId, c.signal)
+      .then(setPoints)
       .catch((e: Error) => {
         if (e.name !== 'AbortError') setError(e.message || 'Não foi possível carregar o histórico');
       })
@@ -47,7 +44,7 @@ export function TrackSheet({
         if (!c.signal.aborted) setLoading(false);
       });
     return () => c.abort();
-  }, [historyUrl]);
+  }, [trackId, view]);
 
   // Recorte relativo ao último registro, não ao relógio do navegador.
   const last = points.length ? Date.parse(points[points.length - 1].date) : 0;
@@ -61,7 +58,7 @@ export function TrackSheet({
 
   return (
     <Sheet open={!!track} onOpenChange={(o) => !o && onClose()}>
-      <SheetContent className="w-full overflow-y-auto border-slate-800 bg-[#090d16] text-slate-100 sm:max-w-md">
+      <SheetContent className="w-full overflow-y-auto border-slate-800 bg-popover text-slate-100 sm:max-w-md">
         <SheetHeader>
           <SheetTitle className="text-white">Trajetória da música</SheetTitle>
           <SheetDescription className="text-slate-400">{view?.title} · registros do VYBE</SheetDescription>
@@ -71,7 +68,7 @@ export function TrackSheet({
           <div className="space-y-5 px-4 pb-8">
             <div className="relative overflow-hidden rounded-2xl border border-slate-800">
               <Cover src={track.artworkUrl100 ? artwork(track.artworkUrl100) : ''} alt={`Capa de ${track.name}`} className="aspect-square w-full rounded-none" />
-              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#090d16] via-[#090d16]/80 to-transparent p-4 pt-16">
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-popover via-popover/80 to-transparent p-4 pt-16">
                 <h2 className="text-2xl font-extrabold leading-tight text-white">{track.name}</h2>
                 <p className="text-sm text-slate-300">{track.artistName}</p>
                 <div className="mt-2 flex flex-wrap gap-1.5 text-[10px]">
@@ -116,7 +113,7 @@ export function TrackSheet({
                       key={p}
                       onClick={() => setPeriod(p)}
                       className={`rounded-lg px-2.5 py-1 text-xs transition-all ${
-                        period === p ? 'bg-cyan-500 font-bold text-slate-950' : 'text-slate-400 hover:text-white'
+                        period === p ? 'bg-cyan-500 font-bold text-[#020617]' : 'text-slate-400 hover:text-white'
                       }`}
                     >
                       {p}D
@@ -139,7 +136,7 @@ export function TrackSheet({
                 <div className="h-60">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={history} margin={{ left: -18, right: hasStreams ? -8 : 8, top: 8 }}>
-                      <CartesianGrid stroke="#1e293b" strokeDasharray="3 3" vertical={false} />
+                      <CartesianGrid stroke="#94a3b833" strokeDasharray="3 3" vertical={false} />
                       <XAxis dataKey="date" tickFormatter={shortDate} stroke="#475569" fontSize={11} tickLine={false} axisLine={false} />
                       <YAxis yAxisId="rank" reversed domain={[1, 'dataMax']} allowDecimals={false} stroke="#475569" fontSize={11} tickLine={false} axisLine={false} />
                       {hasStreams && (
@@ -148,7 +145,7 @@ export function TrackSheet({
                       <Tooltip
                         labelFormatter={(v) => shortDate(String(v))}
                         formatter={(v, name) => (name === 'Streams' ? [fmtFull(Number(v)), 'Streams'] : [`#${v}`, 'Posição'])}
-                        contentStyle={{ backgroundColor: '#090d16', borderColor: '#1e293b', borderRadius: '0.75rem', fontSize: 12 }}
+                        contentStyle={{ backgroundColor: 'var(--popover)', borderColor: 'var(--border)', color: 'var(--popover-foreground)', borderRadius: '0.75rem', fontSize: 12 }}
                       />
                       <Line yAxisId="rank" name="Posição" dataKey="rank" stroke="#06b6d4" strokeWidth={2.5} dot={{ r: 3, fill: '#06b6d4' }} connectNulls={false} />
                       {hasStreams && (
@@ -165,7 +162,7 @@ export function TrackSheet({
               href={track.url}
               target="_blank"
               rel="noreferrer"
-              className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-3 text-xs font-bold text-slate-950 shadow-lg shadow-cyan-500/20 transition-all hover:from-cyan-400 hover:to-blue-500"
+              className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-3 text-xs font-bold text-[#020617] shadow-lg shadow-cyan-500/20 transition-all hover:from-cyan-400 hover:to-blue-500"
             >
               Abrir no {spotify ? 'Spotify' : 'Apple Music'} <ExternalLink className="h-4 w-4" />
             </a>

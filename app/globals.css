@@ -60,9 +60,15 @@
     "Liberation Mono", "Courier New", monospace;
 }
 
-/* Tema VYBE: noite azul + ciano. Usado pelos componentes shadcn (select, sheet etc.). */
+/* ---------- Tema ----------
+ * Escuro é o padrão. No modo claro do aparelho (prefers-color-scheme: light) a paleta inteira é remapeada
+ * por variáveis: as classes slate-* invertem (fundo vira claro, texto vira escuro) e os destaques
+ * (cyan-400, emerald-400...) escurecem pra manter contraste em fundo branco.
+ * `.theme-dark` força o escuro num pedaço da página (ex.: o card do #1 com a animação).
+ */
 :root,
-.dark {
+.dark,
+.theme-dark {
   color-scheme: dark;
   --background: #070a11;
   --foreground: #f1f5f9;
@@ -88,6 +94,77 @@
   --chart-3: #8b5cf6;
   --chart-4: #ec4899;
   --chart-5: #f59e0b;
+  --logo-cutout: #0b0f17;
+}
+
+/* Restaura a escala original dentro de .theme-dark quando a página está no claro. */
+.theme-dark {
+  --color-white: #fff;
+  --color-slate-50: #f8fafc;
+  --color-slate-100: #f1f5f9;
+  --color-slate-200: #e2e8f0;
+  --color-slate-300: #cbd5e1;
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #64748b;
+  --color-slate-600: #475569;
+  --color-slate-700: #334155;
+  --color-slate-800: #1e293b;
+  --color-slate-900: #0f172a;
+  --color-slate-950: #020617;
+  --color-cyan-300: #67e8f9;
+  --color-cyan-400: #22d3ee;
+  --color-emerald-400: #34d399;
+  --color-rose-400: #fb7185;
+  --color-amber-300: #fcd34d;
+  --color-orange-400: #fb923c;
+  --color-purple-400: #c084fc;
+  --color-blue-400: #60a5fa;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+    --background: #f4f7fb;
+    --foreground: #0f172a;
+    --card: #ffffff;
+    --card-foreground: #0f172a;
+    --popover: #ffffff;
+    --popover-foreground: #0f172a;
+    --primary: #0891b2;
+    --primary-foreground: #ffffff;
+    --secondary: #e2e8f0;
+    --secondary-foreground: #0f172a;
+    --muted: #e2e8f0;
+    --muted-foreground: #475569;
+    --accent: #e2e8f0;
+    --accent-foreground: #0f172a;
+    --destructive: #e11d48;
+    --border: #dbe2ea;
+    --input: #cbd5e1;
+    --ring: #0891b2;
+    --logo-cutout: #f8fafc;
+
+    --color-white: #0b1220;
+    --color-slate-50: #020617;
+    --color-slate-100: #0f172a;
+    --color-slate-200: #1e293b;
+    --color-slate-300: #334155;
+    --color-slate-400: #475569;
+    --color-slate-500: #64748b;
+    --color-slate-600: #94a3b8;
+    --color-slate-700: #cbd5e1;
+    --color-slate-800: #e2e8f0;
+    --color-slate-900: #ffffff;
+    --color-slate-950: #eef2f7;
+    --color-cyan-300: #0e7490;
+    --color-cyan-400: #0891b2;
+    --color-emerald-400: #059669;
+    --color-rose-400: #e11d48;
+    --color-amber-300: #b45309;
+    --color-orange-400: #ea580c;
+    --color-purple-400: #9333ea;
+    --color-blue-400: #2563eb;
+  }
 }
 
 body {
@@ -109,6 +186,90 @@ button:not(:disabled) {
 }
 input[type='search']::-webkit-search-cancel-button {
   filter: invert(0.6);
+}
+
+/* ---------- Animação da logo ----------
+ * Entrada: haste do V cai, seta sobe com quique, barras crescem, onda se desenha.
+ * Depois: pulso de luz correndo pela onda e barras oscilando como equalizador.
+ * Valores de translate em unidades do viewBox (transform-box padrão do SVG).
+ */
+.vy-anim .vy-stroke {
+  animation: vy-drop 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+}
+.vy-anim .vy-rise {
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: vy-rise 0.75s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s backwards;
+}
+.vy-anim .vy-bar {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation:
+    vy-grow 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.5s backwards,
+    vy-eq 1.4s ease-in-out 1.6s infinite alternate;
+}
+.vy-anim .vy-bar-2 {
+  animation-delay: 0.62s, 2s;
+  animation-duration: 0.5s, 1.05s;
+}
+.vy-anim .vy-wave {
+  stroke-dasharray: 1;
+  animation: vy-draw 1s cubic-bezier(0.6, 0, 0.2, 1) 0.25s backwards;
+}
+.vy-pulse {
+  opacity: 0;
+}
+.vy-anim .vy-pulse {
+  stroke-dasharray: 0.1 2;
+  animation: vy-pulse 3.6s ease-in-out 1.5s infinite;
+}
+a:hover .vy-anim .vy-rise,
+.vy-anim:hover .vy-rise {
+  transform: translate(14px, -18px);
+}
+@keyframes vy-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-70px);
+  }
+}
+@keyframes vy-rise {
+  from {
+    opacity: 0;
+    transform: translate(-60px, 80px);
+  }
+}
+@keyframes vy-grow {
+  from {
+    transform: scaleY(0);
+  }
+}
+@keyframes vy-eq {
+  to {
+    transform: scaleY(0.7);
+  }
+}
+@keyframes vy-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes vy-pulse {
+  0% {
+    stroke-dashoffset: 0.1;
+    opacity: 0;
+  }
+  8%,
+  45% {
+    opacity: 0.85;
+  }
+  55%,
+  100% {
+    stroke-dashoffset: -1;
+    opacity: 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

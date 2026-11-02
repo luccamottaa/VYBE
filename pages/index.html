@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#070a11" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f4f7fb" />
+    <script>(()=>{const m=matchMedia('(prefers-color-scheme: dark)');const s=()=>document.documentElement.classList.toggle('dark',m.matches);s();m.addEventListener('change',s)})()</script>
+    <title>vybe · do play ao topo</title>
+    <meta name="description" content="Charts do Apple Music e do Spotify, streams, posições e histórico." />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  </head>
+  <body class="antialiased">
+    <div id="root"></div>
+    <script type="module" src="./main.tsx"></script>
+  </body>
+</html>

@@ -1,8 +1,10 @@
-# VYBE
+# vybe
 
-Painel de charts musicais com rankings por país, busca por música e artista e histórico de posições.
+**do play ao topo.** Painel de charts musicais com rankings por país, streams, busca e histórico de posições.
 
 ## Site
+
+- GitHub Pages: https://luccamottaa.github.io/VYBE/ (estático, atualizado por GitHub Action)
 
 https://vybe.luccamotta.chatgpt.site — acesso privado nesta primeira versão.
 
@@ -16,13 +18,28 @@ https://vybe.luccamotta.chatgpt.site — acesso privado nesta primeira versão.
 - Painel de cada faixa, com posições e evolução em 7, 30 ou 90 dias.
 - Histórico persistente em Cloudflare D1: um registro por data do feed e país.
 - Cache de até uma hora e último ranking disponível quando a fonte falha.
-- Layout responsivo em português brasileiro.
+- Layout responsivo em português brasileiro, com tema claro e escuro conforme o aparelho.
 
 ## Limites desta versão
 
 A coleta roda por Cron Trigger e também ao abrir o ranking. O histórico começa com os registros do VYBE e não é retroativo. Variações comparam o registro atual ao anterior disponível.
 
 O Spotify Charts não tem API pública; o VYBE usa as rotas do próprio charts.spotify.com e pode quebrar se o Spotify mudar algo. MyStreamCount, Last.fm, Billboard, YouTube e Circle ainda não estão integrados.
+
+## GitHub Pages
+
+O Pages não roda servidor, então lá o vybe funciona assim:
+
+1. `.github/workflows/pages.yml` roda às 06:17 e 15:17 UTC (e a cada push na `main`).
+2. `scripts/pages/collect.ts` busca Apple Music e Spotify e atualiza o histórico em JSON na branch `data`.
+3. O site é gerado com `vite.pages.config.ts` (`VITE_STATIC=1`) e lê `data/*.json` no lugar das rotas `/api`.
+
+Para ativar: Settings → Pages → Source: **GitHub Actions**. Repositório privado exige GitHub Pro, e o site publicado é público.
+
+```sh
+node scripts/pages/collect.ts data-store          # coleta local
+VITE_STATIC=1 pnpm exec vite build -c vite.pages.config.ts
+```
 
 ## Desenvolvimento
 

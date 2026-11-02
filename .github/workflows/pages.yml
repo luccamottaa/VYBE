@@ -1,0 +1,86 @@
+# vybe no GitHub Pages: coleta os charts, guarda o histórico na branch `data` e publica o site estático.
+#
+# Antes da primeira execução: Settings → Pages → Build and deployment → Source: "GitHub Actions".
+name: Pages
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    # 06:17 UTC pega o feed novo da Apple; 15:17 UTC pega o diário do Spotify já publicado.
+    - cron: '17 6 * * *'
+    - cron: '17 15 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write # gravar o histórico na branch `data`
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Baixar histórico (branch data)
+        run: |
+          if git ls-remote --exit-code --heads origin data >/dev/null 2>&1; then
+            git clone --depth 1 --branch data "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" data-store
+          else
+            mkdir data-store && cd data-store && git init -b data && git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
+          fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Ativar pnpm
+        run: corepack enable && corepack prepare --activate
+
+      - name: Instalar dependências
+        run: pnpm install --frozen-lockfile
+        env:
+          SITES_PNPM_SHARED_STORE: ${{ runner.temp }}/pnpm-store
+
+      - name: Coletar charts (Apple Music + Spotify)
+        run: node scripts/pages/collect.ts data-store
+
+      - name: Salvar histórico
+        working-directory: data-store
+        run: |
+          git config user.name "vybe-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then echo "Sem mudanças nos dados."; else git commit -q -m "dados: $(date -u +%Y-%m-%dT%H:%MZ)" && git push -q origin data; fi
+
+      - name: Build estático
+        run: pnpm exec vite build -c vite.pages.config.ts
+        env:
+          VITE_STATIC: '1'
+          PAGES_BASE: /${{ github.event.repository.name }}/
+
+      - name: Juntar dados ao site
+        run: |
+          mkdir -p dist-pages/data
+          rsync -a --exclude .git data-store/ dist-pages/data/
+          cp dist-pages/index.html dist-pages/404.html
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist-pages
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

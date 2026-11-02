@@ -47,3 +47,7 @@ next-env.d.ts
 
 # TypeScript incremental cache
 *.tsbuildinfo
+
+# build do GitHub Pages
+dist-pages/
+data-store/
