@@ -29,6 +29,7 @@ import { Logo, LogoMark } from '@/components/vybe/logo';
 import { GlobalSearch } from '@/components/vybe/global-search';
 import { SongSheet } from '@/components/vybe/song-sheet';
 import { ArtistSheet } from '@/components/vybe/artist-sheet';
+import { SearchResults } from '@/components/vybe/search-results';
 import { songFrom, type Artist, type Song } from '@/lib/search';
 import { getAppleChart, getSpotifyChart, isStatic, spotifyMarkets } from '@/lib/data-source';
 import { Cover, CrossBadges, MetricCard, Movement, Panel, PanelTitle } from '@/components/vybe/ui';
@@ -69,6 +70,7 @@ export default function Page() {
   const [selected, setSelected] = useState<ViewTrack | null>(null);
   const [song, setSong] = useState<Song | null>(null);
   const [artist, setArtist] = useState<Artist | null>(null);
+  const [allQuery, setAllQuery] = useState<string | null>(null);
   const [cross, setCross] = useState<Map<string, CrossHit[]>>(new Map());
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -179,7 +181,7 @@ export default function Page() {
 
       <div className="relative z-10 mx-auto max-w-7xl space-y-6">
         {/* Navbar */}
-        <header className="flex flex-col gap-4 rounded-2xl border border-slate-800/80 bg-slate-900/40 p-4 shadow-2xl backdrop-blur-xl lg:flex-row lg:items-center lg:justify-between">
+        <header className="relative z-30 flex flex-col gap-4 rounded-2xl border border-slate-800/80 bg-slate-900/40 p-4 shadow-2xl backdrop-blur-xl lg:flex-row lg:items-center lg:justify-between">
           <div className="flex w-full items-center gap-3 lg:w-auto">
             <Link href="/" aria-label="vybe — início" className="flex items-center gap-2">
               <Logo />
@@ -219,6 +221,7 @@ export default function Page() {
               onTrack={setSelected}
               onSong={setSong}
               onArtist={setArtist}
+              onAll={setAllQuery}
             />
             {isSpotify && spotifyMarkets.length < 2 ? (
               <span className="flex h-9 shrink-0 items-center rounded-xl border border-slate-700/60 bg-slate-800/60 px-3 text-xs text-slate-300" title="Nesta versão o Spotify só tem o Global">
@@ -624,6 +627,18 @@ export default function Page() {
         }}
       />
       <SongSheet song={song} onClose={() => setSong(null)} onArtist={(name, artistId) => { setSong(null); setArtist({ name, artistId }); }} />
+      <SearchResults
+        query={allQuery}
+        onClose={() => setAllQuery(null)}
+        onSong={(s) => {
+          setAllQuery(null);
+          setSong(s);
+        }}
+        onArtist={(a) => {
+          setAllQuery(null);
+          setArtist(a);
+        }}
+      />
       <ArtistSheet artist={artist} onClose={() => setArtist(null)} onSong={(s) => { setArtist(null); setSong(s); }} />
     </div>
   );

@@ -4,8 +4,9 @@ import { useEffect, useState } from 'react';
 import { Disc3, ExternalLink, Radar } from 'lucide-react';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { artistHits, loadAllCharts } from '@/lib/all-charts';
-import { catalogSongsByArtist, mergeSongs, songFrom, type Artist, type Song } from '@/lib/search';
+import { catalogSongsByArtist, matchesWords, mergeSongs, songFrom, type Artist, type Song } from '@/lib/search';
 import { artwork, shortDate } from '@/lib/vybe';
+import { PreviewButton } from './preview';
 import { Cover, CrossBadges } from './ui';
 
 type Charted = Awaited<ReturnType<typeof artistHits>>[number];
@@ -15,6 +16,7 @@ export function ArtistSheet({ artist, onClose, onSong }: { artist: Artist | null
   const [catalog, setCatalog] = useState<Song[]>([]);
   const [loading, setLoading] = useState(false);
   const [catalogError, setCatalogError] = useState('');
+  const [filter, setFilter] = useState('');
 
   useEffect(() => {
     if (!artist) return;
@@ -22,6 +24,7 @@ export function ArtistSheet({ artist, onClose, onSong }: { artist: Artist | null
     setCharted([]);
     setCatalog([]);
     setCatalogError('');
+    setFilter('');
     setLoading(true);
     loadAllCharts()
       .then((all) => !c.signal.aborted && setCharted(artistHits(all, artist.name)))
@@ -33,8 +36,9 @@ export function ArtistSheet({ artist, onClose, onSong }: { artist: Artist | null
     return () => c.abort();
   }, [artist]);
 
-  const cover = charted.find((s) => s.artwork)?.artwork ?? catalog.find((s) => s.artwork)?.artwork;
   const chartedKeys = new Set(charted.map((s) => s.key));
+  const cover = artist?.picture ?? charted.find((s) => s.artwork)?.artwork ?? catalog.find((s) => s.artwork)?.artwork;
+  const rest = catalog.filter((s) => !chartedKeys.has(s.key) && (!filter.trim() || matchesWords(`${s.name} ${s.album ?? ''}`, filter)));
   const markets = new Set(charted.flatMap((s) => s.hits.map((h) => h.market)));
 
   return (
@@ -91,15 +95,25 @@ export function ArtistSheet({ artist, onClose, onSong }: { artist: Artist | null
             <section>
               <h3 className="mb-2 flex items-center gap-1.5 text-sm font-bold text-white">
                 <Disc3 className="h-4 w-4 text-cyan-400" /> Catálogo
+                {catalog.length > 0 && <span className="text-xs font-normal text-slate-500">· {catalog.length} músicas</span>}
               </h3>
+              {catalog.length > 12 && (
+                <input
+                  type="search"
+                  value={filter}
+                  onChange={(e) => setFilter(e.target.value)}
+                  placeholder="Filtrar músicas ou álbuns"
+                  aria-label="Filtrar catálogo do artista"
+                  className="mb-2 w-full rounded-xl border border-slate-800 bg-slate-950/60 px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:border-cyan-500/60 focus:outline-none"
+                />
+              )}
               {catalogError ? (
                 <p className="text-xs text-amber-300">{catalogError}</p>
               ) : catalog.length ? (
                 <div className="divide-y divide-slate-800/60 overflow-hidden rounded-2xl border border-slate-800/60">
-                  {catalog
-                    .filter((s) => !chartedKeys.has(s.key))
-                    .map((s) => (
-                      <button key={s.key} onClick={() => onSong(s)} className="flex w-full items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-slate-800/30">
+                  {rest.map((s) => (
+                      <div key={s.key} className="flex items-center gap-2 pr-2 transition-colors hover:bg-slate-800/30">
+                      <button onClick={() => onSong(s)} className="flex min-w-0 flex-1 items-center gap-3 px-3 py-2 text-left">
                         <Cover src={s.artwork ?? ''} alt="" className="h-9 w-9 shrink-0" />
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm text-white">{s.name}</p>
@@ -109,12 +123,15 @@ export function ArtistSheet({ artist, onClose, onSong }: { artist: Artist | null
                           </p>
                         </div>
                       </button>
+                      <PreviewButton src={s.preview} label={s.name} />
+                      </div>
                     ))}
+                  {!rest.length && <p className="px-3 py-4 text-xs text-slate-500">Nada com esse filtro.</p>}
                 </div>
               ) : (
                 <p className="text-xs text-slate-400">{loading ? 'Abrindo catálogo…' : 'Nada encontrado no catálogo.'}</p>
               )}
-              <p className="mt-1 text-[10px] text-slate-500">Catálogo via iTunes Search API.</p>
+              <p className="mt-1 text-[10px] text-slate-500">Catálogo via iTunes Search API e Deezer.</p>
             </section>
           </div>
         )}

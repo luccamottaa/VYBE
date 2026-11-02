@@ -6,8 +6,10 @@ import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, X
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { findHits, loadAllCharts, marketLabel, songHistory, type ChartHit } from '@/lib/all-charts';
 import { getLastfm, type LastfmRow, type Point } from '@/lib/data-source';
-import { findInIndex, type Song } from '@/lib/search';
+import { findInIndex, searchCatalogSongs, type Song } from '@/lib/search';
 import { artwork, fmtCompact, fmtFull, shortDate } from '@/lib/vybe';
+import { PreviewButton } from './preview';
+import { SpotifyAllTime } from './spotify-all-time';
 import { Cover, Movement } from './ui';
 
 // Apple em azuis/violetas, Spotify em verdes/cianos.
@@ -38,6 +40,15 @@ export function SongSheet({ song, onClose, onArtist }: { song: Song | null; onCl
       // completa com o índice (ids das duas fontes e mercados por onde já passou)
       const idx = await findInIndex(song.key);
       const s: Song = idx ? { ...idx, ...song, appleId: song.appleId ?? idx.appleId, spotifyId: song.spotifyId ?? idx.spotifyId, artwork: song.artwork ?? idx.artwork, markets: idx.markets } : song;
+      if (!s.preview) {
+        try {
+          const found = await searchCatalogSongs(`${s.name} ${s.artist.split(/,|&/)[0]}`, undefined, 5);
+          const same = found.find((x) => x.key === s.key);
+          if (same) Object.assign(s, { preview: same.preview, appleUrl: s.appleUrl ?? same.appleUrl, album: s.album ?? same.album, releaseDate: s.releaseDate ?? same.releaseDate, artistId: s.artistId ?? same.artistId, artwork: s.artwork ?? same.artwork });
+        } catch {
+          /* sem prévia, tudo bem */
+        }
+      }
       const all = await loadAllCharts();
       const h = findHits(all, s);
       if (!alive) return;
@@ -83,7 +94,10 @@ export function SongSheet({ song, onClose, onArtist }: { song: Song | null; onCl
         {full && (
           <div className="space-y-5 px-4 pb-8">
             <div className="flex items-center gap-4">
-              <Cover src={full.artwork ? artwork(full.artwork, 300) : ''} alt={`Capa de ${full.name}`} className="h-24 w-24 shrink-0 rounded-2xl" />
+              <div className="relative shrink-0">
+                <Cover src={full.artwork ? artwork(full.artwork, 300) : ''} alt={`Capa de ${full.name}`} className="h-24 w-24 rounded-2xl" />
+                <PreviewButton src={full.preview} label={full.name} size="lg" className="absolute -bottom-2 -right-2 shadow-lg" />
+              </div>
               <div className="min-w-0">
                 <h2 className="text-xl font-extrabold leading-tight text-white">{full.name}</h2>
                 <button onClick={() => onArtist(full.artist.split(/,|&| feat/i)[0].trim(), full.artistId)} className="mt-0.5 inline-flex items-center gap-1 text-sm text-cyan-400 hover:text-cyan-300">
@@ -130,6 +144,15 @@ export function SongSheet({ song, onClose, onArtist }: { song: Song | null; onCl
               )}
             </section>
 
+            {!loading && (
+              <SpotifyAllTime
+                spotifyId={spotifyId}
+                name={full.name}
+                artist={full.artist}
+                songKey={full.key}
+              />
+            )}
+
             {lf && !('missing' in lf) && (
               <a href={lf.url} target="_blank" rel="noreferrer" className="block rounded-xl border border-rose-500/20 bg-rose-500/5 p-3 transition-colors hover:border-rose-500/40">
                 <span className="mb-1 flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-rose-400/90">
@@ -172,6 +195,7 @@ export function SongSheet({ song, onClose, onArtist }: { song: Song | null; onCl
             <div className="grid grid-cols-2 gap-2">
               {appleUrl && <ListenLink href={appleUrl}>Apple Music</ListenLink>}
               {spotifyId && <ListenLink href={`https://open.spotify.com/track/${spotifyId}`}>Spotify</ListenLink>}
+              {full.deezerUrl && <ListenLink href={full.deezerUrl}>Deezer</ListenLink>}
             </div>
             {hits.some((h) => typeof h.streams === 'number') && (
               <p className="text-[10px] text-slate-500">Streams do Spotify via kworb.net · maior número do dia: {fmtFull(Math.max(...hits.map((h) => h.streams ?? 0)))}</p>
