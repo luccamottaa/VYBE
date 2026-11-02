@@ -179,7 +179,7 @@ export default function Page() {
 
       <div className="relative z-10 mx-auto max-w-7xl space-y-6">
         {/* Navbar */}
-        <header className="flex flex-col gap-4 rounded-2xl border border-slate-800/80 bg-slate-900/40 p-4 shadow-2xl backdrop-blur-xl lg:flex-row lg:items-center lg:justify-between">
+        <header className="relative z-30 flex flex-col gap-4 rounded-2xl border border-slate-800/80 bg-slate-900/40 p-4 shadow-2xl backdrop-blur-xl lg:flex-row lg:items-center lg:justify-between">
           <div className="flex w-full items-center gap-3 lg:w-auto">
             <Link href="/" aria-label="vybe — início" className="flex items-center gap-2">
               <Logo />

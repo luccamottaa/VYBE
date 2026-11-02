@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { Disc3, Loader2, Music2, Radar, Search, User } from 'lucide-react';
-import { mergeSongs, searchCatalogArtists, searchCatalogSongs, searchIndex, searchIndexArtists, type Artist, type Song } from '@/lib/search';
+import { matchesWords, mergeSongs, searchCatalogArtists, searchCatalogSongs, searchIndex, searchIndexArtists, type Artist, type Song } from '@/lib/search';
 import type { ViewTrack } from '@/lib/vybe';
 import { Cover } from './ui';
 
@@ -97,8 +97,7 @@ export function GlobalSearch({
     };
   }, [q]);
 
-  const words = norm(q).split(/\s+/).filter(Boolean);
-  const inChart = q.length >= 2 ? tracks.filter((t) => words.every((w) => norm(`${t.name} ${t.artistName}`).includes(w))).slice(0, 4) : [];
+  const inChart = q.length >= 2 ? tracks.filter((t) => matchesWords(`${t.name} ${t.artistName}`, q)).slice(0, 4) : [];
   const pick = (fn: () => void) => {
     setOpen(false);
     fn();
@@ -128,7 +127,7 @@ export function GlobalSearch({
       {busy && <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-slate-500" />}
 
       {open && q.length >= 2 && (
-        <div className="absolute right-0 top-full z-50 mt-2 max-h-[70vh] w-full min-w-[min(26rem,calc(100vw-2rem))] overflow-y-auto rounded-2xl border border-slate-800 bg-popover p-2 shadow-2xl">
+        <div className="absolute inset-x-0 top-full z-50 mt-2 max-h-[70vh] overflow-y-auto sm:left-auto sm:w-[26rem] rounded-2xl border border-slate-800 bg-popover p-2 shadow-2xl">
           {inChart.length > 0 && (
             <Group icon={<Radar className="h-3.5 w-3.5" />} title="Neste chart">
               {inChart.map((t) => (
