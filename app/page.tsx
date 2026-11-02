@@ -15,7 +15,6 @@ import {
   Music2,
   Play,
   RefreshCw,
-  Search,
   Sparkles,
   Tags,
   TrendingUp,
@@ -27,6 +26,10 @@ import { TrackSheet } from '@/components/vybe/track-sheet';
 import { Sources } from '@/components/vybe/sources';
 import { DitherField, palettes } from '@/components/vybe/dither-field';
 import { Logo, LogoMark } from '@/components/vybe/logo';
+import { GlobalSearch } from '@/components/vybe/global-search';
+import { SongSheet } from '@/components/vybe/song-sheet';
+import { ArtistSheet } from '@/components/vybe/artist-sheet';
+import { songFrom, type Artist, type Song } from '@/lib/search';
 import { getAppleChart, getSpotifyChart, isStatic, spotifyMarkets } from '@/lib/data-source';
 import { Cover, CrossBadges, MetricCard, Movement, Panel, PanelTitle } from '@/components/vybe/ui';
 import {
@@ -64,6 +67,8 @@ export default function Page() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selected, setSelected] = useState<ViewTrack | null>(null);
+  const [song, setSong] = useState<Song | null>(null);
+  const [artist, setArtist] = useState<Artist | null>(null);
   const [cross, setCross] = useState<Map<string, CrossHit[]>>(new Map());
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -203,22 +208,18 @@ export default function Page() {
                 ['spotify', 'Spotify'],
               ]}
             />
-            <div className="relative order-last min-w-0 basis-full sm:order-none sm:basis-auto sm:flex-1 lg:w-72 lg:flex-none">
-              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-              <input
-                ref={searchRef}
-                type="search"
-                value={query}
-                onChange={(e) => {
-                  setQuery(e.target.value);
-                  setTab('charts');
-                }}
-                maxLength={200}
-                aria-label="Buscar no ranking"
-                placeholder="Buscar música ou artista"
-                className="w-full rounded-xl border border-slate-800/80 bg-slate-950/60 py-2 pl-10 pr-4 text-xs text-slate-200 placeholder-slate-500 transition-all focus:border-cyan-500/60 focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
-              />
-            </div>
+            <GlobalSearch
+              query={query}
+              onQuery={(q) => {
+                setQuery(q);
+                setTab('charts');
+              }}
+              inputRef={searchRef}
+              tracks={view?.tracks ?? []}
+              onTrack={setSelected}
+              onSong={setSong}
+              onArtist={setArtist}
+            />
             {isSpotify && spotifyMarkets.length < 2 ? (
               <span className="flex h-9 shrink-0 items-center rounded-xl border border-slate-700/60 bg-slate-800/60 px-3 text-xs text-slate-300" title="Nesta versão o Spotify só tem o Global">
                 🌍 Global
@@ -612,7 +613,18 @@ export default function Page() {
         </footer>
       </div>
 
-      <TrackSheet track={selected} view={view} cross={selected ? hitsFor(selected) : []} onClose={() => setSelected(null)} />
+      <TrackSheet
+        track={selected}
+        view={view}
+        cross={selected ? hitsFor(selected) : []}
+        onClose={() => setSelected(null)}
+        onAllCharts={(t) => {
+          setSelected(null);
+          setSong(songFrom({ name: t.name, artist: t.artistName, artwork: t.artworkUrl100, ...(isSpotify ? { spotifyId: t.id } : { appleId: t.id }) }));
+        }}
+      />
+      <SongSheet song={song} onClose={() => setSong(null)} onArtist={(name, artistId) => { setSong(null); setArtist({ name, artistId }); }} />
+      <ArtistSheet artist={artist} onClose={() => setArtist(null)} onSong={(s) => { setArtist(null); setSong(s); }} />
     </div>
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Activity, ExternalLink, Headphones } from 'lucide-react';
+import { Activity, ExternalLink, Globe2, Headphones } from 'lucide-react';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { artwork, daysSince, fmtCompact, fmtFull, matchKey, releaseLabel, shortDate, tenure, type ChartView, type CrossHit, type ViewTrack } from '@/lib/vybe';
@@ -16,11 +16,14 @@ export function TrackSheet({
   view,
   cross,
   onClose,
+  onAllCharts,
 }: {
   track: ViewTrack | null;
   view: ChartView | null;
   cross: CrossHit[];
   onClose: () => void;
+  /** Abre a página de charts da música em todos os mercados. */
+  onAllCharts?: (t: ViewTrack) => void;
 }) {
   const [points, setPoints] = useState<Point[]>([]);
   const [lastfm, setLastfm] = useState<Record<string, LastfmRow>>({});
@@ -192,6 +195,14 @@ export function TrackSheet({
               <p className="mt-2 text-[11px] text-slate-500">Buraco no gráfico = a faixa não estava no chart naquele registro. Não significa zero reproduções.</p>
             </div>
 
+            {onAllCharts && (
+              <button
+                onClick={() => onAllCharts(track)}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-5 py-3 text-xs font-bold text-cyan-300 transition-colors hover:bg-cyan-500/20"
+              >
+                <Globe2 className="h-4 w-4" /> Ver em todos os charts
+              </button>
+            )}
             <a
               href={track.url}
               target="_blank"

@@ -9,6 +9,7 @@
 //   spotify/<chart>/history.json    { dates, ranks, streams } (chart = mercado, ou o alias oficial no fallback)
 //   spotify/artwork.json            capas por id do Spotify (cache entre rodadas)
 //   lastfm.json                     ouvintes/scrobbles por faixa (só com LASTFM_API_KEY)
+//   tracks.json                     índice de busca: toda faixa vista em algum chart nos últimos 120 dias
 //   meta.json                       quando rodou e o que deu certo
 //
 // Se uma fonte falhar, o último dado salvo continua lá, marcado como `stale`.
@@ -22,6 +23,19 @@ import { cleanTitle, matchKey, splitArtists } from '../../lib/sources/match.ts';
 import { fetchSpotifyChart, fillArtwork, type SpotifyEntry } from '../../lib/sources/spotify.ts';
 
 const KEEP_DAYS = 120;
+
+/** Índice de busca: chave matchKey → faixa, ids nas fontes e mercados onde apareceu. */
+type IndexRow = { n: string; a: string; img?: string; ap?: string; sp?: string; mk: string[]; seen: string };
+const index: Record<string, IndexRow> = {};
+function remember(t: { name: string; artist: string; img?: string | null; appleId?: string; spotifyId?: string }, market: string, date: string) {
+  const k = matchKey(t.name, t.artist);
+  const row = (index[k] ??= { n: t.name, a: t.artist, mk: [], seen: date });
+  if (t.img && !row.img) row.img = t.img;
+  if (t.appleId) row.ap ??= t.appleId;
+  if (t.spotifyId) row.sp ??= t.spotifyId;
+  if (!row.mk.includes(market)) row.mk.push(market);
+  if (date > row.seen) row.seen = date;
+}
 const root = process.argv[2] ?? 'data-store';
 
 type History = { dates: string[]; ranks: Record<string, (number | null)[]>; streams?: Record<string, (number | null)[]> };
@@ -112,6 +126,7 @@ async function collectApple(country: string) {
       })),
     });
     for (const t of tracks.slice(0, 50)) collected.push({ name: t.name, artist: t.artistName });
+    for (const t of tracks) remember({ name: t.name, artist: t.artistName, img: t.artworkUrl100, appleId: t.id }, `ap:${country}`, date);
     return `apple:${country} ok (${date})`;
   } catch (e) {
     const old = await readJson<Record<string, unknown>>(latestPath);
@@ -138,6 +153,7 @@ async function saveSpotify(market: string, chart: string, payload: Record<string
   await writeJson(`spotify/${market}/latest.json`, latest);
   if (market === 'global') await writeJson('spotify/latest.json', latest); // compatibilidade com a versão anterior
   for (const e of payload.entries.slice(0, 50)) collected.push({ name: e.trackName, artist: e.artist });
+  for (const e of payload.entries) remember({ name: e.trackName, artist: e.artist, img: e.artworkUrl, spotifyId: e.spotifyId }, `sp:${market}`, payload.date);
 }
 
 async function collectSpotify(market: string) {
@@ -202,6 +218,25 @@ const report: string[] = [];
 for (const c of countries) report.push(await collectApple(c));
 for (const m of Object.keys(kworbMarkets)) report.push(await collectSpotify(m));
 await writeJson('spotify/artwork.json', artwork);
+
+// Junta o índice novo ao antigo e descarta o que não aparece em chart há mais de 120 dias.
+{
+  const old = (await readJson<Record<string, IndexRow>>('tracks.json')) ?? {};
+  const cutoff = new Date(Date.now() - KEEP_DAYS * 86400_000).toISOString().slice(0, 10);
+  for (const [k, row] of Object.entries(index)) {
+    const prev = old[k];
+    if (prev) {
+      row.mk = [...new Set([...prev.mk, ...row.mk])];
+      row.img ??= prev.img;
+      row.ap ??= prev.ap;
+      row.sp ??= prev.sp;
+    }
+    old[k] = row;
+  }
+  for (const [k, row] of Object.entries(old)) if (row.seen < cutoff) delete old[k];
+  await writeJson('tracks.json', old);
+  report.push(`índice: ${Object.keys(old).length} faixas`);
+}
 report.push(await collectLastfm());
 await writeJson('meta.json', { ran: new Date().toISOString(), report });
 for (const line of report) console.log(line.includes('ERRO') ? `::warning::${line}` : line);
