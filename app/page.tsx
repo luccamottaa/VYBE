@@ -27,7 +27,7 @@ import { TrackSheet } from '@/components/vybe/track-sheet';
 import { Sources } from '@/components/vybe/sources';
 import { DitherField, palettes } from '@/components/vybe/dither-field';
 import { Logo, LogoMark } from '@/components/vybe/logo';
-import { getAppleChart, getSpotifyChart } from '@/lib/data-source';
+import { getAppleChart, getSpotifyChart, isStatic, spotifyMarkets } from '@/lib/data-source';
 import { Cover, CrossBadges, MetricCard, Movement, Panel, PanelTitle } from '@/components/vybe/ui';
 import {
   appleView,
@@ -49,6 +49,7 @@ import {
   type ViewTrack,
 } from '@/lib/vybe';
 
+const globalMarket = { flag: '🌍', name: 'Global' };
 const genreColors = ['#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'];
 const tooltipStyle = { backgroundColor: 'var(--popover)', borderColor: 'var(--border)', color: 'var(--popover-foreground)', borderRadius: '0.75rem', fontSize: 12 };
 type View = 'charts' | 'sources';
@@ -56,6 +57,7 @@ type View = 'charts' | 'sources';
 export default function Page() {
   const [source, setSource] = useState<Source>('apple');
   const [country, setCountry] = useState('br');
+  const [spotifyMarket, setSpotifyMarket] = useState('global');
   const [tab, setTab] = useState<View>('charts');
   const [query, setQuery] = useState('');
   const [view, setView] = useState<ChartView | null>(null);
@@ -72,7 +74,7 @@ export default function Page() {
       try {
         const next =
           source === 'spotify'
-            ? spotifyView(await getSpotifyChart(signal))
+            ? spotifyView(await getSpotifyChart(spotifyMarket, signal))
             : appleView(await getAppleChart(country, signal), country);
         setView(next);
       } catch (e) {
@@ -84,7 +86,7 @@ export default function Page() {
         if (!signal?.aborted) setLoading(false);
       }
     },
-    [source, country],
+    [source, country, spotifyMarket],
   );
 
   useEffect(() => {
@@ -103,8 +105,11 @@ export default function Page() {
     (async () => {
       const map = new Map<string, CrossHit[]>();
       if (source === 'apple') {
-        const sp = spotifyView(await getSpotifyChart(c.signal));
-        for (const t of sp.tracks) add(map, matchKey(t.name, t.artistName), { label: 'Spotify', rank: t.rank });
+        // No Pages compara com o Spotify do mesmo país; no Cloudflare só existe o Global.
+        const same = isStatic ? country : 'global';
+        const sp = spotifyView(await getSpotifyChart(same, c.signal));
+        const label = same === 'global' ? 'Spotify 🌍' : `Spotify ${markets[same].flag}`;
+        for (const t of sp.tracks) add(map, matchKey(t.name, t.artistName), { label, rank: t.rank });
       } else {
         const ids = Object.keys(markets);
         const results = await Promise.allSettled(ids.map((m) => getAppleChart(m, c.signal)));
@@ -116,7 +121,7 @@ export default function Page() {
       if (!c.signal.aborted) setCross(map);
     })().catch(() => {});
     return () => c.abort();
-  }, [source]);
+  }, [source, country]);
 
   // Ctrl/Cmd+K foca a busca
   useEffect(() => {
@@ -157,6 +162,7 @@ export default function Page() {
   const top = view?.tracks[0];
   const market = markets[country];
   const isSpotify = source === 'spotify';
+  const place = isSpotify ? (markets[spotifyMarket] ?? globalMarket) : market;
   const weekly = !!view?.chartKey?.includes('weekly');
   const topRelease = top && view ? releaseLabel(daysSince(top.releaseDate, view.updated)) : null;
   const needsHistory = 'Precisa de 2 dias de registro';
@@ -213,19 +219,19 @@ export default function Page() {
                 className="w-full rounded-xl border border-slate-800/80 bg-slate-950/60 py-2 pl-10 pr-4 text-xs text-slate-200 placeholder-slate-500 transition-all focus:border-cyan-500/60 focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
               />
             </div>
-            {isSpotify ? (
-              <span className="flex h-9 shrink-0 items-center rounded-xl border border-slate-700/60 bg-slate-800/60 px-3 text-xs text-slate-300" title="O Spotify Charts público só tem o Global">
+            {isSpotify && spotifyMarkets.length < 2 ? (
+              <span className="flex h-9 shrink-0 items-center rounded-xl border border-slate-700/60 bg-slate-800/60 px-3 text-xs text-slate-300" title="Nesta versão o Spotify só tem o Global">
                 🌍 Global
               </span>
             ) : (
-              <Select value={country} onValueChange={(v) => v && setCountry(v)}>
+              <Select value={isSpotify ? spotifyMarket : country} onValueChange={(v) => v && (isSpotify ? setSpotifyMarket(v) : setCountry(v))}>
                 <SelectTrigger aria-label="País do ranking" className="h-9 w-auto shrink-0 rounded-xl border-slate-700/60 bg-slate-800/60 text-xs text-slate-200">
-                  <SelectValue>{`${market.flag} ${country.toUpperCase()}`}</SelectValue>
+                  <SelectValue>{`${place.flag} ${(isSpotify ? spotifyMarket : country).toUpperCase()}`}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.entries(markets).map(([id, m]) => (
+                  {(isSpotify ? spotifyMarkets : Object.keys(markets)).map((id) => (
                     <SelectItem key={id} value={id}>
-                      {m.flag} {m.name}
+                      {(markets[id] ?? globalMarket).flag} {(markets[id] ?? globalMarket).name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -273,7 +279,7 @@ export default function Page() {
                   <div className="min-w-0 space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-xs font-semibold uppercase tracking-wide text-cyan-400">
-                        No topo · {isSpotify ? '🌍 Spotify Global' : `${market.flag} ${market.name}`}
+                        No topo · {isSpotify ? `${place.flag} Spotify ${place.name}` : `${market.flag} ${market.name}`}
                       </span>
                       {top?.genre && <Chip>{top.genre}</Chip>}
                       {top && hitsFor(top).length > 0 && <CrossBadges hits={hitsFor(top)} max={3} />}

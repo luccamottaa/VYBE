@@ -5,19 +5,19 @@ const sources = [
   {
     name: 'Apple Music',
     status: 'connected' as const,
-    desc: 'Top 100 de Brasil, EUA, Coreia do Sul, Japão e Reino Unido. Consulta ao abrir o ranking, com cache de até uma hora.',
+    desc: 'Top 100 de Brasil, EUA, Coreia do Sul, Japão e Reino Unido, pelo feed oficial da Apple.',
     link: 'https://rss.marketingtools.apple.com/',
   },
   {
-    name: 'Spotify Charts',
+    name: 'Spotify via kworb',
     status: 'connected' as const,
-    desc: 'Top 200 Global com streams, pico e dias no chart. Fonte não oficial: tenta o diário e, sem login, cai pro semanal. Coleta automática duas vezes por dia.',
-    link: 'https://charts.spotify.com/',
+    desc: 'Top 200 diário do Global, Brasil, EUA, Coreia do Sul, Japão e Reino Unido, com streams do dia, total, pico e dias no chart. O kworb não é oficial; se o Global falhar, o vybe usa o Top 50 semanal público do Spotify (sem streams).',
+    link: 'https://kworb.net/spotify/',
   },
   {
     name: 'Last.fm',
-    status: 'next' as const,
-    desc: 'Scrobbles, ouvintes e tags por faixa e artista. API pública e gratuita — próxima integração da fila.',
+    status: 'connected' as const,
+    desc: 'Ouvintes e scrobbles de todos os tempos das faixas do topo, pela API oficial e gratuita. Aparece no painel de cada música.',
     link: 'https://www.last.fm/api',
   },
   {
@@ -76,10 +76,10 @@ export function Sources() {
         <div className="space-y-2 text-sm text-slate-400">
           <p>
             O VYBE guarda um registro por data do feed e país quando o ranking é consultado. Variações comparam o registro atual ao anterior
-            disponível; lacunas não são preenchidas com estimativa. O histórico não é retroativo. A coleta roda sozinha duas vezes por dia, e também quando alguém abre o ranking.
+            disponível; lacunas não são preenchidas com estimativa. O histórico não é retroativo. A coleta roda sozinha três vezes por dia.
           </p>
           <p>
-            Posição na Apple não é contagem de streams: o feed da Apple não informa reproduções. Os streams exibidos vêm só do Spotify Charts. O melhor resultado observado no VYBE também não é o
+            Posição na Apple não é contagem de streams: o feed da Apple não informa reproduções. Os streams exibidos vêm do Spotify, via kworb. O melhor resultado observado no VYBE também não é o
             pico oficial da faixa.
           </p>
         </div>

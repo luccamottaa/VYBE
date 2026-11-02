@@ -91,6 +91,7 @@ export type Source = 'apple' | 'spotify';
 
 export type ViewTrack = Track & {
   streams?: number | null;
+  totalStreams?: number | null;
   peak?: number | null;
   days?: number | null;
 };
@@ -116,10 +117,12 @@ export type SpotifyPayload = {
   label: string;
   date: string;
   fetched: number;
-  source: 'csv' | 'json';
+  source: 'csv' | 'json' | 'kworb';
+  sourceUrl?: string;
   stale: boolean;
   historyAvailable: boolean;
   entries: {
+    totalStreams?: number | null;
     rank: number;
     previousRank: number | null;
     peakRank: number | null;
@@ -169,6 +172,7 @@ export function spotifyView(p: SpotifyPayload): ChartView {
       isNew: e.entryStatus ? e.entryStatus === 'NEW_ENTRY' || e.entryStatus === 'RE_ENTRY' : e.previousRank === null,
       releaseDate: e.releaseDate,
       streams: e.streams,
+      totalStreams: e.totalStreams ?? null,
       peak: e.peakRank || null,
       days: e.daysOnChart || null,
     })),
@@ -178,10 +182,14 @@ export function spotifyView(p: SpotifyPayload): ChartView {
     hasMovement: true,
     compareLabel: weekly ? 'vs semana anterior' : 'vs dia anterior',
     footnote: `Parada de ${shortDate(`${p.date}T00:00:00Z`)}${
-      p.entries.some((e) => e.streams !== null) ? '' : ` · sem login o Spotify libera só o Top ${p.entries.length}${weekly ? ' semanal' : ''}, sem streams`
+      p.source === 'kworb'
+        ? ' · streams via kworb.net'
+        : p.entries.some((e) => e.streams !== null)
+          ? ''
+          : ` · sem login o Spotify libera só o Top ${p.entries.length}${weekly ? ' semanal' : ''}, sem streams`
     }`,
     loadHistory: (id, signal) => getSpotifyHistory(p.chart, id, signal),
-    sourceUrl: 'https://charts.spotify.com/charts/overview/global',
+    sourceUrl: p.sourceUrl ?? 'https://charts.spotify.com/charts/overview/global',
     chartKey: p.chart,
   };
 }

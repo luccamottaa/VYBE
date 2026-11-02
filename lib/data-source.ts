@@ -22,7 +22,31 @@ async function getJson<T>(url: string, signal?: AbortSignal): Promise<T> {
 export const getAppleChart = (country: string, signal?: AbortSignal) =>
   getJson<Chart & { days: number }>(isStatic ? `${base}data/apple/${country}/latest.json` : `/api/chart?country=${country}`, signal);
 
-export const getSpotifyChart = (signal?: AbortSignal) => getJson<SpotifyPayload>(isStatic ? `${base}data/spotify/latest.json` : '/api/spotify', signal);
+/** Mercados do Spotify: no Pages, Global + 5 países (kworb); no Cloudflare, só o Global. */
+export const spotifyMarkets = isStatic ? ['global', 'br', 'us', 'kr', 'jp', 'gb'] : ['global'];
+
+export async function getSpotifyChart(market = 'global', signal?: AbortSignal): Promise<SpotifyPayload> {
+  if (!isStatic) return getJson<SpotifyPayload>('/api/spotify', signal);
+  try {
+    return await getJson<SpotifyPayload>(`${base}data/spotify/${market}/latest.json`, signal);
+  } catch (e) {
+    // dados gravados antes da separação por mercado
+    if (market === 'global' && (e as Error).name !== 'AbortError') return getJson<SpotifyPayload>(`${base}data/spotify/latest.json`, signal);
+    throw e;
+  }
+}
+
+export type LastfmRow = { listeners: number; playcount: number; url: string; fetched: number } | { missing: true; fetched: number };
+let lastfm: Promise<Record<string, LastfmRow>> | null = null;
+/** Ouvintes/scrobbles do Last.fm por matchKey (só no Pages; no Cloudflare devolve vazio). */
+export function getLastfm(): Promise<Record<string, LastfmRow>> {
+  if (!isStatic) return Promise.resolve({});
+  lastfm ??= getJson<Record<string, LastfmRow>>(`${base}data/lastfm.json`).catch(() => {
+    lastfm = null;
+    return {};
+  });
+  return lastfm;
+}
 
 // No Pages o histórico inteiro de um chart vem num arquivo só; guarda em memória entre aberturas.
 const historyCache = new Map<string, Promise<StaticHistory>>();
