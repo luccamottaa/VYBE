@@ -1,4 +1,4 @@
-// Núcleo do histórico completo de charts do Spotify (kworb), compartilhado entre Vercel e Cloudflare Worker.
+// Núcleo do histórico completo de charts do Spotify (kworb).
 // Sem dependência de plataforma: só fetch.
 
 export const DEFAULT_MARKETS = ['global', 'br', 'us', 'kr', 'jp', 'gb'];
@@ -73,7 +73,7 @@ function parseTable(table, wanted) {
 
 /**
  * query:  { id?, name?, artist?, m? } → { status, body, cache } (cache = pode guardar na CDN)
- * findId: (name, artist) => Promise<string|null> — acha o id do Spotify pelo nome (busca oficial; só no Worker)
+ * findId: (name, artist) => Promise<string|null> — acha o id do Spotify pelo nome (busca oficial do Spotify)
  */
 export async function trackHistory(query, findId) {
   const out = (status, body, cache = true) => ({ status, body, cache: cache && (status === 200 || status === 404) });
