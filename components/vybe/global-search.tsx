@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { Disc3, Loader2, Music2, Radar, Search, User } from 'lucide-react';
-import { matchesWords, mergeSongs, searchCatalogArtists, searchCatalogSongs, searchIndex, searchIndexArtists, type Artist, type Song } from '@/lib/search';
+import { matchesWords, mergeSongs, searchDeezerSongs, searchCatalogArtists, searchCatalogSongs, searchIndex, searchIndexArtists, type Artist, type Song } from '@/lib/search';
 import type { ViewTrack } from '@/lib/vybe';
+import { PreviewButton } from './preview';
 import { Cover } from './ui';
 
 const norm = (s: string) =>
@@ -25,6 +26,7 @@ export function GlobalSearch({
   onTrack,
   onSong,
   onArtist,
+  onAll,
 }: {
   query: string;
   onQuery: (q: string) => void;
@@ -33,6 +35,8 @@ export function GlobalSearch({
   onTrack: (t: ViewTrack) => void;
   onSong: (s: Song) => void;
   onArtist: (a: Artist) => void;
+  /** Abre a página com todos os resultados. */
+  onAll: (q: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [songs, setSongs] = useState<Song[]>([]);
@@ -70,13 +74,15 @@ export function GlobalSearch({
     const t = setTimeout(async () => {
       setBusy(true);
       try {
-        const [cs, ca] = await Promise.all([searchCatalogSongs(q, c.signal, 15), searchCatalogArtists(q, c.signal, 5)]);
+        const [ap, dz, ca] = await Promise.allSettled([searchCatalogSongs(q, c.signal, 12), searchDeezerSongs(q, 0, c.signal, 12), searchCatalogArtists(q, c.signal, 5)]);
         if (c.signal.aborted) return;
+        if (ap.status === 'rejected' && dz.status === 'rejected') throw ap.reason;
         setCatalogDown(false);
-        setSongs(mergeSongs(local, cs).slice(0, 15));
+        setSongs(mergeSongs(local, ap.status === 'fulfilled' ? ap.value : [], dz.status === 'fulfilled' ? dz.value.songs : []).slice(0, 12));
+        const cs = ca.status === 'fulfilled' ? ca.value : [];
         const seen = new Set<string>();
         setArtists(
-          [...ca, ...localArtists]
+          [...cs, ...localArtists]
             .filter((a) => {
               const k = norm(a.name);
               if (seen.has(k)) return false;
@@ -117,7 +123,7 @@ export function GlobalSearch({
         onFocus={() => setOpen(true)}
         onKeyDown={(e) => {
           if (e.key === 'Escape') setOpen(false);
-          if (e.key === 'Enter' && songs[0]) pick(() => onSong(songs[0]));
+          if (e.key === 'Enter' && q.length >= 2) pick(() => onAll(q));
         }}
         maxLength={200}
         aria-label="Buscar música ou artista"
@@ -154,6 +160,7 @@ export function GlobalSearch({
                   title={s.name}
                   sub={s.album ? `${s.artist} · ${s.album}` : s.artist}
                   badge={s.markets?.length ? `${s.markets.length} ${s.markets.length === 1 ? 'chart' : 'charts'}` : undefined}
+                  preview={s.preview}
                 />
               ))
             ) : (
@@ -161,7 +168,13 @@ export function GlobalSearch({
             )}
           </Group>
           {catalogDown && <p className="px-2 pb-1 text-[10px] text-amber-300">Catálogo completo fora do ar agora: mostrando só o que passou pelos charts.</p>}
-          <p className="flex items-center gap-1 px-2 pt-1 text-[10px] text-slate-500">
+          <button
+            onClick={() => pick(() => onAll(q))}
+            className="mt-1 flex w-full items-center justify-center gap-1.5 rounded-xl border border-cyan-500/30 bg-cyan-500/10 py-2 text-xs font-bold text-cyan-300 hover:bg-cyan-500/20"
+          >
+            <Search className="h-3.5 w-3.5" /> Ver todos os resultados de “{q}”
+          </button>
+          <p className="flex items-center gap-1 px-2 pt-2 text-[10px] text-slate-500">
             <Disc3 className="h-3 w-3" /> Clique numa música pra ver os charts dela em todos os mercados.
           </p>
         </div>
@@ -181,9 +194,10 @@ function Group({ icon, title, children }: { icon: React.ReactNode; title: string
   );
 }
 
-function Row({ onClick, cover, title, sub, badge, round }: { onClick: () => void; cover?: string; title: string; sub: string; badge?: string; round?: boolean }) {
+function Row({ onClick, cover, title, sub, badge, round, preview }: { onClick: () => void; cover?: string; title: string; sub: string; badge?: string; round?: boolean; preview?: string }) {
   return (
-    <button onClick={onClick} className="flex w-full items-center gap-3 rounded-xl px-2 py-1.5 text-left transition-colors hover:bg-slate-800/50">
+    <div className="flex items-center gap-1 rounded-xl pr-1 transition-colors hover:bg-slate-800/50">
+    <button onClick={onClick} className="flex min-w-0 flex-1 items-center gap-3 px-2 py-1.5 text-left">
       {round ? (
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-800 bg-slate-900">
           <User className="h-4 w-4 text-cyan-500/70" />
@@ -197,5 +211,7 @@ function Row({ onClick, cover, title, sub, badge, round }: { onClick: () => void
       </span>
       {badge && <span className="shrink-0 rounded-md bg-cyan-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-cyan-400">{badge}</span>}
     </button>
+    <PreviewButton src={preview} label={title} />
+    </div>
   );
 }
