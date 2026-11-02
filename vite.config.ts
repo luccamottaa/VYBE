@@ -17,6 +17,8 @@ const managedLinux = readExecutionProfile() === "managed-linux";
 const localBindingConfig = {
   main: "./build/sites-worker.ts",
   compatibility_flags: ["nodejs_compat"],
+  // Coleta diária (UTC): 06:17 pega o feed novo da Apple; 15:17 pega o diário do Spotify já publicado.
+  triggers: { crons: ["17 6 * * *", "17 15 * * *"] },
   d1_databases: d1
     ? [
         {

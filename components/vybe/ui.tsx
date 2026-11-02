@@ -1,5 +1,8 @@
-import type { ReactNode } from 'react';
-import { ArrowDownRight, ArrowUpRight, Sparkles } from 'lucide-react';
+'use client';
+
+import { useState, type ReactNode } from 'react';
+import { ArrowDownRight, ArrowUpRight, Music2, Sparkles } from 'lucide-react';
+import type { CrossHit } from '@/lib/vybe';
 import { cn } from '@/lib/utils';
 
 export function Panel({ className, children }: { className?: string; children: ReactNode }) {
@@ -92,4 +95,31 @@ export function Movement({ change, isNew, compact }: { change: number | null; is
       </span>
     );
   return <span className={cn(base, 'bg-slate-800 text-slate-400')}>=</span>;
+}
+
+/** Capa com fallback: sem URL ou se a imagem falhar, mostra um ícone no lugar do alt quebrado. */
+export function Cover({ src, alt, className }: { src: string; alt: string; className?: string }) {
+  const [failed, setFailed] = useState<string | null>(null);
+  if (!src || failed === src)
+    return (
+      <div role="img" aria-label={alt} className={cn('flex items-center justify-center rounded-lg border border-slate-800 bg-slate-900', className)}>
+        <Music2 className="h-1/3 max-h-10 w-1/3 max-w-10 text-cyan-500/60" />
+      </div>
+    );
+  return <img src={src} alt={alt} loading="lazy" onError={() => setFailed(src)} className={cn('rounded-lg border border-slate-800 bg-slate-900 object-cover', className)} />;
+}
+
+/** Selos de posição da mesma faixa em outros charts: "🇧🇷 #3". */
+export function CrossBadges({ hits, max }: { hits: CrossHit[]; max?: number }) {
+  const shown = max ? hits.slice(0, max) : hits;
+  return (
+    <span className="inline-flex flex-wrap gap-1">
+      {shown.map((h) => (
+        <span key={h.label} className="rounded-md border border-slate-700/80 bg-slate-800/60 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-slate-300">
+          {h.label} #{h.rank}
+        </span>
+      ))}
+      {max && hits.length > max && <span className="text-[10px] text-slate-500">+{hits.length - max}</span>}
+    </span>
+  );
 }

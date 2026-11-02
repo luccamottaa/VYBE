@@ -66,7 +66,7 @@ export function splitArtists(name: string) {
     .filter(Boolean);
 }
 
-export function summarize(chart: Chart) {
+export function summarize(chart: Pick<Chart, 'tracks' | 'updated'>) {
   const { tracks } = chart;
   const artistCount = new Map<string, number>();
   const genreCount = new Map<string, number>();
@@ -87,3 +87,131 @@ export function summarize(chart: Chart) {
   const debuts = tracks.filter((t) => t.isNew);
   return { artistCount: artistCount.size, topArtists, genres, recent, climbers, debuts };
 }
+
+/* ---------- Fontes unificadas (Apple Music + Spotify) ---------- */
+
+export type Source = 'apple' | 'spotify';
+
+export type ViewTrack = Track & {
+  streams?: number | null;
+  peak?: number | null;
+  days?: number | null;
+};
+
+export type ChartView = {
+  source: Source;
+  title: string; // "Top 100 Apple Music · 🇧🇷 Brasil"
+  tracks: ViewTrack[];
+  updated: string; // data de referência do chart (ISO)
+  stale: boolean;
+  historyAvailable: boolean;
+  /** true quando as variações de posição já são confiáveis (Spotify: sempre; Apple: a partir do 2º registro). */
+  hasMovement: boolean;
+  compareLabel: string | null; // "vs 01 de nov." / "vs semana anterior"
+  footnote: string;
+  historyUrl: (id: string) => string;
+  sourceUrl: string;
+  chartKey?: string; // alias do Spotify
+};
+
+export type SpotifyPayload = {
+  chart: string;
+  label: string;
+  date: string;
+  fetched: number;
+  source: 'csv' | 'json';
+  stale: boolean;
+  historyAvailable: boolean;
+  entries: {
+    rank: number;
+    previousRank: number | null;
+    peakRank: number | null;
+    daysOnChart: number | null;
+    trackName: string;
+    artist: string;
+    streams: number | null;
+    spotifyId: string;
+    artworkUrl: string | null;
+  }[];
+};
+
+export function appleView(chart: Chart & { days: number }, country: string): ChartView {
+  const m = markets[country];
+  return {
+    source: 'apple',
+    title: `Top 100 Apple Music · ${m.flag} ${m.name}`,
+    tracks: chart.tracks,
+    updated: chart.updated,
+    stale: chart.stale,
+    historyAvailable: chart.historyAvailable,
+    hasMovement: !!chart.previousDate,
+    compareLabel: chart.previousDate ? `vs ${shortDate(chart.previousDate)}` : null,
+    footnote: `Feed de ${shortDate(chart.updated)} · ${chart.days} ${chart.days === 1 ? 'dia registrado' : 'dias registrados'}${
+      chart.previousDate ? '' : ' · variações aparecem a partir do 2º dia'
+    }`,
+    historyUrl: (id) => `/api/history?country=${country}&id=${id}`,
+    sourceUrl: `https://rss.marketingtools.apple.com/api/v2/${country}/music/most-played/100/songs.json`,
+  };
+}
+
+export function spotifyView(p: SpotifyPayload): ChartView {
+  const weekly = p.chart.includes('weekly');
+  return {
+    source: 'spotify',
+    title: `${p.label} · Spotify`,
+    tracks: p.entries.map((e) => ({
+      id: e.spotifyId,
+      name: e.trackName,
+      artistName: e.artist,
+      artworkUrl100: e.artworkUrl ?? '',
+      url: `https://open.spotify.com/track/${e.spotifyId}`,
+      rank: e.rank,
+      change: e.previousRank === null ? null : e.previousRank - e.rank,
+      isNew: e.previousRank === null,
+      streams: e.streams,
+      peak: e.peakRank,
+      days: e.daysOnChart,
+    })),
+    updated: `${p.date}T00:00:00Z`,
+    stale: p.stale,
+    historyAvailable: p.historyAvailable,
+    hasMovement: true,
+    compareLabel: weekly ? 'vs semana anterior' : 'vs dia anterior',
+    footnote: `Parada de ${shortDate(`${p.date}T00:00:00Z`)}${weekly ? ' · sem login, o Spotify só libera o semanal' : ''}`,
+    historyUrl: (id) => `/api/spotify/history?chart=${p.chart}&id=${id}`,
+    sourceUrl: 'https://charts.spotify.com/charts/overview/global',
+    chartKey: p.chart,
+  };
+}
+
+const compact = new Intl.NumberFormat('pt-BR', { notation: 'compact', maximumFractionDigits: 1 });
+const full = new Intl.NumberFormat('pt-BR');
+export const fmtCompact = (n: number) => compact.format(n);
+export const fmtFull = (n: number) => full.format(n);
+
+export function spotifySummary(view: ChartView) {
+  const withStreams = view.tracks.filter((t) => typeof t.streams === 'number') as (ViewTrack & { streams: number })[];
+  const totalStreams = withStreams.reduce((s, t) => s + t.streams, 0);
+  const topStreams = [...withStreams].sort((a, b) => b.streams - a.streams).slice(0, 10);
+  const veterans = view.tracks.filter((t) => (t.days ?? 0) > 0).sort((a, b) => (b.days ?? 0) - (a.days ?? 0)).slice(0, 4);
+  return { totalStreams, topStreams, veterans, hasStreams: withStreams.length > 0 };
+}
+
+/* ---------- Cruzamento entre fontes ---------- */
+
+const strip = (s: string) =>
+  s
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '') // remove acentos
+    .toLowerCase()
+    .replace(/\s*[([].*?[)\]]/g, '') // (feat. X), [Ao Vivo]
+    .replace(/\s+-\s+.*$/, '') // " - Remastered"
+    .replace(/[^a-z0-9]+/g, '');
+
+/** Chave "música|primeiro artista" pra achar a mesma faixa em charts diferentes. */
+export const matchKey = (name: string, artist: string) => `${strip(name)}|${strip(splitArtists(artist)[0] ?? artist)}`;
+
+export type CrossHit = { label: string; rank: number };
+
+/** "1 dia" / "12 dias" / "3 semanas" no chart. */
+export const tenure = (n: number, weekly: boolean) => `${n} ${weekly ? (n === 1 ? 'semana' : 'semanas') : n === 1 ? 'dia' : 'dias'}`;

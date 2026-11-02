@@ -9,15 +9,21 @@ const sources = [
     link: 'https://rss.marketingtools.apple.com/',
   },
   {
+    name: 'Spotify Charts',
+    status: 'connected' as const,
+    desc: 'Top 200 Global com streams, pico e dias no chart. Fonte não oficial: tenta o diário e, sem login, cai pro semanal. Coleta automática duas vezes por dia.',
+    link: 'https://charts.spotify.com/',
+  },
+  {
     name: 'Last.fm',
     status: 'next' as const,
     desc: 'Scrobbles, ouvintes e tags por faixa e artista. API pública e gratuita — próxima integração da fila.',
     link: 'https://www.last.fm/api',
   },
   {
-    name: 'MyStreamCount / Spotify',
+    name: 'MyStreamCount',
     status: 'pending' as const,
-    desc: 'Streams totais e diários. Aguardando acesso à API; enquanto isso, nenhum número de stream aparece no painel.',
+    desc: 'Streams acumulados por faixa e por país. Aguardando acesso à API.',
     link: 'https://www.mystreamcount.com/',
   },
   {
@@ -70,11 +76,10 @@ export function Sources() {
         <div className="space-y-2 text-sm text-slate-400">
           <p>
             O VYBE guarda um registro por data do feed e país quando o ranking é consultado. Variações comparam o registro atual ao anterior
-            disponível; lacunas não são preenchidas com estimativa. O histórico não é retroativo e ainda não há coleta programada com o site
-            fechado.
+            disponível; lacunas não são preenchidas com estimativa. O histórico não é retroativo. A coleta roda sozinha duas vezes por dia, e também quando alguém abre o ranking.
           </p>
           <p>
-            Posição no chart não é contagem de streams — o feed da Apple não informa reproduções. O melhor resultado observado no VYBE também não é o
+            Posição na Apple não é contagem de streams: o feed da Apple não informa reproduções. Os streams exibidos vêm só do Spotify Charts. O melhor resultado observado no VYBE também não é o
             pico oficial da faixa.
           </p>
         </div>

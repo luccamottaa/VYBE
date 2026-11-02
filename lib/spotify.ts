@@ -34,7 +34,7 @@ const BASE = 'https://charts-spotify-com-service.spotify.com/public/v0/charts';
 const CACHE_MS = 3600_000;
 const UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
-const labels: Record<string, string> = {
+export const spotifyLabels: Record<string, string> = {
   'regional-global-daily': 'Top 200 Global · Diário',
   'regional-global-weekly': 'Top 200 Global · Semanal',
 };
@@ -105,7 +105,7 @@ async function fromCsv(): Promise<Omit<SpotifyChart, 'fetched' | 'stale' | 'hist
   if (!entries.length) throw new Error('CSV diário veio vazio');
   // previous_rank = -1 significa estreia.
   for (const e of entries) if (e.previousRank !== null && e.previousRank < 1) e.previousRank = null;
-  return { chart: 'regional-global-daily', label: labels['regional-global-daily'], // O "latest" diário é a parada de ontem (UTC).
+  return { chart: 'regional-global-daily', label: spotifyLabels['regional-global-daily'], // O "latest" diário é a parada de ontem (UTC).
   date: new Date(Date.now() - 86400000).toISOString().slice(0, 10), source: 'csv', entries };
 }
 
@@ -143,9 +143,32 @@ async function fromJson(): Promise<Omit<SpotifyChart, 'fetched' | 'stale' | 'his
 
   const chart = alias(view);
   const date = String(view.displayChart?.date ?? '').slice(0, 10) || new Date().toISOString().slice(0, 10);
-  return { chart, label: labels[chart] ?? 'Top Global', date, source: 'json', entries };
+  return { chart, label: spotifyLabels[chart] ?? 'Top Global', date, source: 'json', entries };
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
+
+/** Capas: reaproveita do snapshot anterior e busca as que faltam no oEmbed público (sem login). */
+async function fillArtwork(entries: SpotifyEntry[], previous: SpotifyEntry[], limit = 30) {
+  const known = new Map(previous.filter((e) => e.artworkUrl).map((e) => [e.spotifyId, e.artworkUrl]));
+  for (const e of entries) if (!e.artworkUrl) e.artworkUrl = known.get(e.spotifyId) ?? null;
+  // Limite baixo pra caber no teto de subrequests do Worker; o resto entra nas próximas coletas.
+  const missing = entries.filter((e) => !e.artworkUrl && e.spotifyId).slice(0, limit);
+  for (let i = 0; i < missing.length; i += 10) {
+    await Promise.all(
+      missing.slice(i, i + 10).map(async (e) => {
+        try {
+          const track = encodeURIComponent(`https://open.spotify.com/track/${e.spotifyId}`);
+          const r = await fetch(`https://open.spotify.com/oembed?url=${track}`, { signal: AbortSignal.timeout(5000) });
+          if (!r.ok) return;
+          const d = (await r.json()) as { thumbnail_url?: unknown };
+          if (typeof d.thumbnail_url === 'string') e.artworkUrl = d.thumbnail_url;
+        } catch {
+          /* sem capa, segue o jogo */
+        }
+      }),
+    );
+  }
+}
 
 type Row = { chart: string; date: string; fetched: number; source: 'csv' | 'json'; payload: string };
 
@@ -160,7 +183,7 @@ export async function loadSpotifyChart(): Promise<SpotifyChart> {
   }
   const fromRow = (row: Row, stale: boolean): SpotifyChart => ({
     chart: row.chart,
-    label: labels[row.chart] ?? 'Top Global',
+    label: spotifyLabels[row.chart] ?? 'Top Global',
     date: row.date,
     fetched: row.fetched,
     source: row.source,
@@ -175,6 +198,13 @@ export async function loadSpotifyChart(): Promise<SpotifyChart> {
     try {
       const result = await attempt();
       const fetched = Date.now();
+      let previous: SpotifyEntry[] = [];
+      try {
+        previous = cached ? JSON.parse(cached.payload) : [];
+      } catch {
+        /* snapshot antigo ilegível */
+      }
+      await fillArtwork(result.entries, previous);
       try {
         await db
           ?.prepare(
