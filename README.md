@@ -11,7 +11,8 @@ https://vybe.luccamotta.chatgpt.site — acesso privado nesta primeira versão.
 ## Funcionalidades
 
 - Apple Music Top 100: Brasil, Estados Unidos, Coreia do Sul, Japão e Reino Unido.
-- Spotify Top 200 Global (diário, ou semanal quando o diário pede login), com streams, pico e dias no chart.
+- Spotify Top 200 diário (Global, Brasil, EUA, Coreia do Sul, Japão e Reino Unido) via kworb.net, com streams do dia, total, pico e dias no chart. Se o kworb falhar, o Global usa o Top 50 semanal público do Spotify.
+- Last.fm: ouvintes e scrobbles das faixas do topo (opcional, precisa de chave).
 - Cruzamento entre fontes: posição da mesma faixa no Spotify e nos 5 países da Apple.
 - Coleta automática por Cron Trigger (06:17 e 15:17 UTC).
 - Busca dentro do ranking selecionado.
@@ -24,7 +25,7 @@ https://vybe.luccamotta.chatgpt.site — acesso privado nesta primeira versão.
 
 A coleta roda por Cron Trigger e também ao abrir o ranking. O histórico começa com os registros do VYBE e não é retroativo. Variações comparam o registro atual ao anterior disponível.
 
-O Spotify Charts não tem API pública; o VYBE usa as rotas do próprio charts.spotify.com e pode quebrar se o Spotify mudar algo. MyStreamCount, Last.fm, Billboard, YouTube e Circle ainda não estão integrados.
+O Spotify não tem API pública de charts. Os streams vêm do kworb.net (não oficial, lido do HTML) e o fallback usa o JSON público do charts.spotify.com; os dois podem quebrar se mudarem o formato. MyStreamCount, Last.fm, Billboard, YouTube e Circle ainda não estão integrados.
 
 ## GitHub Pages
 
@@ -34,7 +35,9 @@ O Pages não roda servidor, então lá o vybe funciona assim:
 2. `scripts/pages/collect.ts` busca Apple Music e Spotify e atualiza o histórico em JSON na branch `data`.
 3. O site é gerado com `vite.pages.config.ts` (`VITE_STATIC=1`) e lê `data/*.json` no lugar das rotas `/api`.
 
-Para ativar: Settings → Pages → Source: **GitHub Actions**. Repositório privado exige GitHub Pro, e o site publicado é público.
+Para ativar: Settings → Pages → Source: **GitHub Actions**.
+
+Last.fm (opcional): crie uma chave grátis em https://www.last.fm/api/account/create e salve em Settings → Secrets and variables → Actions → New repository secret, com o nome `LASTFM_API_KEY`. Repositório privado exige GitHub Pro, e o site publicado é público.
 
 ```sh
 node scripts/pages/collect.ts data-store          # coleta local

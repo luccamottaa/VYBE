@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Activity, ExternalLink } from 'lucide-react';
+import { Activity, ExternalLink, Globe2, Headphones } from 'lucide-react';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { artwork, daysSince, fmtCompact, fmtFull, releaseLabel, shortDate, tenure, type ChartView, type CrossHit, type ViewTrack } from '@/lib/vybe';
+import { artwork, daysSince, fmtCompact, fmtFull, matchKey, releaseLabel, shortDate, tenure, type ChartView, type CrossHit, type ViewTrack } from '@/lib/vybe';
 import { Cover, CrossBadges, Movement } from './ui';
-import type { Point } from '@/lib/data-source';
+import { getLastfm, type LastfmRow, type Point } from '@/lib/data-source';
 
 
 const periods = [7, 30, 90] as const;
@@ -16,13 +16,20 @@ export function TrackSheet({
   view,
   cross,
   onClose,
+  onAllCharts,
 }: {
   track: ViewTrack | null;
   view: ChartView | null;
   cross: CrossHit[];
   onClose: () => void;
+  /** Abre a página de charts da música em todos os mercados. */
+  onAllCharts?: (t: ViewTrack) => void;
 }) {
   const [points, setPoints] = useState<Point[]>([]);
+  const [lastfm, setLastfm] = useState<Record<string, LastfmRow>>({});
+  useEffect(() => {
+    getLastfm().then(setLastfm);
+  }, []);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [period, setPeriod] = useState<number>(30);
@@ -74,7 +81,7 @@ export function TrackSheet({
                 <div className="mt-2 flex flex-wrap gap-1.5 text-[10px]">
                   {track.genre && <Tag>{track.genre}</Tag>}
                   {release && <Tag>{release}</Tag>}
-                  {typeof track.days === 'number' && <Tag>{tenure(track.days, !!view?.chartKey?.includes('weekly'))} no chart</Tag>}
+                  {!!track.days && <Tag>{tenure(track.days, !!view?.chartKey?.includes('weekly'))} no chart</Tag>}
                 </div>
               </div>
             </div>
@@ -91,11 +98,41 @@ export function TrackSheet({
             </div>
 
             {typeof track.streams === 'number' && (
-              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3">
-                <span className="block text-[10px] uppercase tracking-wider text-emerald-400/80">Streams nesta parada</span>
-                <strong className="text-2xl font-black text-white">{fmtFull(track.streams)}</strong>
+              <div className="grid grid-cols-2 gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3">
+                <div>
+                  <span className="block text-[10px] uppercase tracking-wider text-emerald-400/80">{view?.chartKey?.includes('weekly') ? 'Streams na semana' : 'Streams no dia'}</span>
+                  <strong className="text-xl font-black text-white">{fmtFull(track.streams)}</strong>
+                </div>
+                {typeof track.totalStreams === 'number' && (
+                  <div>
+                    <span className="block text-[10px] uppercase tracking-wider text-emerald-400/80">Total neste chart</span>
+                    <strong className="text-xl font-black text-white">{fmtCompact(track.totalStreams)}</strong>
+                  </div>
+                )}
               </div>
             )}
+
+            {(() => {
+              const lf = lastfm[matchKey(track.name, track.artistName)];
+              if (!lf || 'missing' in lf) return null;
+              return (
+                <a href={lf.url} target="_blank" rel="noreferrer" className="block rounded-xl border border-rose-500/20 bg-rose-500/5 p-3 transition-colors hover:border-rose-500/40">
+                  <span className="mb-1 flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-rose-400/90">
+                    <Headphones className="h-3 w-3" /> Last.fm · todos os tempos
+                  </span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <strong className="text-xl font-black text-white">{fmtCompact(lf.listeners)}</strong>
+                      <span className="block text-[10px] text-slate-400">ouvintes</span>
+                    </div>
+                    <div>
+                      <strong className="text-xl font-black text-white">{fmtCompact(lf.playcount)}</strong>
+                      <span className="block text-[10px] text-slate-400">scrobbles</span>
+                    </div>
+                  </div>
+                </a>
+              );
+            })()}
 
             {cross.length > 0 && (
               <div>
@@ -158,6 +195,14 @@ export function TrackSheet({
               <p className="mt-2 text-[11px] text-slate-500">Buraco no gráfico = a faixa não estava no chart naquele registro. Não significa zero reproduções.</p>
             </div>
 
+            {onAllCharts && (
+              <button
+                onClick={() => onAllCharts(track)}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-5 py-3 text-xs font-bold text-cyan-300 transition-colors hover:bg-cyan-500/20"
+              >
+                <Globe2 className="h-4 w-4" /> Ver em todos os charts
+              </button>
+            )}
             <a
               href={track.url}
               target="_blank"

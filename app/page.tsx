@@ -15,7 +15,6 @@ import {
   Music2,
   Play,
   RefreshCw,
-  Search,
   Sparkles,
   Tags,
   TrendingUp,
@@ -27,7 +26,11 @@ import { TrackSheet } from '@/components/vybe/track-sheet';
 import { Sources } from '@/components/vybe/sources';
 import { DitherField, palettes } from '@/components/vybe/dither-field';
 import { Logo, LogoMark } from '@/components/vybe/logo';
-import { getAppleChart, getSpotifyChart } from '@/lib/data-source';
+import { GlobalSearch } from '@/components/vybe/global-search';
+import { SongSheet } from '@/components/vybe/song-sheet';
+import { ArtistSheet } from '@/components/vybe/artist-sheet';
+import { songFrom, type Artist, type Song } from '@/lib/search';
+import { getAppleChart, getSpotifyChart, isStatic, spotifyMarkets } from '@/lib/data-source';
 import { Cover, CrossBadges, MetricCard, Movement, Panel, PanelTitle } from '@/components/vybe/ui';
 import {
   appleView,
@@ -49,6 +52,7 @@ import {
   type ViewTrack,
 } from '@/lib/vybe';
 
+const globalMarket = { flag: '🌍', name: 'Global' };
 const genreColors = ['#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'];
 const tooltipStyle = { backgroundColor: 'var(--popover)', borderColor: 'var(--border)', color: 'var(--popover-foreground)', borderRadius: '0.75rem', fontSize: 12 };
 type View = 'charts' | 'sources';
@@ -56,12 +60,15 @@ type View = 'charts' | 'sources';
 export default function Page() {
   const [source, setSource] = useState<Source>('apple');
   const [country, setCountry] = useState('br');
+  const [spotifyMarket, setSpotifyMarket] = useState('global');
   const [tab, setTab] = useState<View>('charts');
   const [query, setQuery] = useState('');
   const [view, setView] = useState<ChartView | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selected, setSelected] = useState<ViewTrack | null>(null);
+  const [song, setSong] = useState<Song | null>(null);
+  const [artist, setArtist] = useState<Artist | null>(null);
   const [cross, setCross] = useState<Map<string, CrossHit[]>>(new Map());
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -72,7 +79,7 @@ export default function Page() {
       try {
         const next =
           source === 'spotify'
-            ? spotifyView(await getSpotifyChart(signal))
+            ? spotifyView(await getSpotifyChart(spotifyMarket, signal))
             : appleView(await getAppleChart(country, signal), country);
         setView(next);
       } catch (e) {
@@ -84,7 +91,7 @@ export default function Page() {
         if (!signal?.aborted) setLoading(false);
       }
     },
-    [source, country],
+    [source, country, spotifyMarket],
   );
 
   useEffect(() => {
@@ -103,8 +110,11 @@ export default function Page() {
     (async () => {
       const map = new Map<string, CrossHit[]>();
       if (source === 'apple') {
-        const sp = spotifyView(await getSpotifyChart(c.signal));
-        for (const t of sp.tracks) add(map, matchKey(t.name, t.artistName), { label: 'Spotify', rank: t.rank });
+        // No Pages compara com o Spotify do mesmo país; no Cloudflare só existe o Global.
+        const same = isStatic ? country : 'global';
+        const sp = spotifyView(await getSpotifyChart(same, c.signal));
+        const label = same === 'global' ? 'Spotify 🌍' : `Spotify ${markets[same].flag}`;
+        for (const t of sp.tracks) add(map, matchKey(t.name, t.artistName), { label, rank: t.rank });
       } else {
         const ids = Object.keys(markets);
         const results = await Promise.allSettled(ids.map((m) => getAppleChart(m, c.signal)));
@@ -116,7 +126,7 @@ export default function Page() {
       if (!c.signal.aborted) setCross(map);
     })().catch(() => {});
     return () => c.abort();
-  }, [source]);
+  }, [source, country]);
 
   // Ctrl/Cmd+K foca a busca
   useEffect(() => {
@@ -131,8 +141,18 @@ export default function Page() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  const apple = useMemo(() => (view?.source === 'apple' ? summarize(view) : null), [view]);
   const spotify = useMemo(() => (view?.source === 'spotify' ? spotifySummary(view) : null), [view]);
+  // Spotify sem login não manda streams: aí os blocos de artistas/lançamentos substituem os de streams.
+  const streamMode = !!spotify?.hasStreams;
+  const apple = useMemo(() => (view && !streamMode ? summarize(view) : null), [view, streamMode]);
+  const recentReleases = useMemo(
+    () =>
+      [...(view?.tracks ?? [])]
+        .filter((t) => t.releaseDate)
+        .sort((a, b) => (b.releaseDate ?? '').localeCompare(a.releaseDate ?? '') || a.rank - b.rank)
+        .slice(0, 4),
+    [view],
+  );
   const climbers = useMemo(
     () => (view?.hasMovement ? view.tracks.filter((t) => (t.change ?? 0) > 0).sort((a, b) => (b.change ?? 0) - (a.change ?? 0)) : []),
     [view],
@@ -147,6 +167,7 @@ export default function Page() {
   const top = view?.tracks[0];
   const market = markets[country];
   const isSpotify = source === 'spotify';
+  const place = isSpotify ? (markets[spotifyMarket] ?? globalMarket) : market;
   const weekly = !!view?.chartKey?.includes('weekly');
   const topRelease = top && view ? releaseLabel(daysSince(top.releaseDate, view.updated)) : null;
   const needsHistory = 'Precisa de 2 dias de registro';
@@ -187,35 +208,31 @@ export default function Page() {
                 ['spotify', 'Spotify'],
               ]}
             />
-            <div className="relative order-last min-w-0 basis-full sm:order-none sm:basis-auto sm:flex-1 lg:w-72 lg:flex-none">
-              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-              <input
-                ref={searchRef}
-                type="search"
-                value={query}
-                onChange={(e) => {
-                  setQuery(e.target.value);
-                  setTab('charts');
-                }}
-                maxLength={200}
-                aria-label="Buscar no ranking"
-                placeholder="Buscar música ou artista"
-                className="w-full rounded-xl border border-slate-800/80 bg-slate-950/60 py-2 pl-10 pr-4 text-xs text-slate-200 placeholder-slate-500 transition-all focus:border-cyan-500/60 focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
-              />
-            </div>
-            {isSpotify ? (
-              <span className="flex h-9 shrink-0 items-center rounded-xl border border-slate-700/60 bg-slate-800/60 px-3 text-xs text-slate-300" title="O Spotify Charts público só tem o Global">
+            <GlobalSearch
+              query={query}
+              onQuery={(q) => {
+                setQuery(q);
+                setTab('charts');
+              }}
+              inputRef={searchRef}
+              tracks={view?.tracks ?? []}
+              onTrack={setSelected}
+              onSong={setSong}
+              onArtist={setArtist}
+            />
+            {isSpotify && spotifyMarkets.length < 2 ? (
+              <span className="flex h-9 shrink-0 items-center rounded-xl border border-slate-700/60 bg-slate-800/60 px-3 text-xs text-slate-300" title="Nesta versão o Spotify só tem o Global">
                 🌍 Global
               </span>
             ) : (
-              <Select value={country} onValueChange={(v) => v && setCountry(v)}>
+              <Select value={isSpotify ? spotifyMarket : country} onValueChange={(v) => v && (isSpotify ? setSpotifyMarket(v) : setCountry(v))}>
                 <SelectTrigger aria-label="País do ranking" className="h-9 w-auto shrink-0 rounded-xl border-slate-700/60 bg-slate-800/60 text-xs text-slate-200">
-                  <SelectValue>{`${market.flag} ${country.toUpperCase()}`}</SelectValue>
+                  <SelectValue>{`${place.flag} ${(isSpotify ? spotifyMarket : country).toUpperCase()}`}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.entries(markets).map(([id, m]) => (
+                  {(isSpotify ? spotifyMarkets : Object.keys(markets)).map((id) => (
                     <SelectItem key={id} value={id}>
-                      {m.flag} {m.name}
+                      {(markets[id] ?? globalMarket).flag} {(markets[id] ?? globalMarket).name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -263,7 +280,7 @@ export default function Page() {
                   <div className="min-w-0 space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-xs font-semibold uppercase tracking-wide text-cyan-400">
-                        No topo · {isSpotify ? '🌍 Spotify Global' : `${market.flag} ${market.name}`}
+                        No topo · {isSpotify ? `${place.flag} Spotify ${place.name}` : `${market.flag} ${market.name}`}
                       </span>
                       {top?.genre && <Chip>{top.genre}</Chip>}
                       {top && hitsFor(top).length > 0 && <CrossBadges hits={hitsFor(top)} max={3} />}
@@ -275,7 +292,7 @@ export default function Page() {
                       <p className="text-xs text-slate-400">
                         <span className="font-medium text-slate-200">{top.artistName}</span>
                         {typeof top.streams === 'number' && <> • {fmtFull(top.streams)} streams</>}
-                        {typeof top.days === 'number' && <> • {tenure(top.days, weekly)} no chart</>}
+                        {!!top.days && <> • {tenure(top.days, weekly)} no chart</>}
                         {topRelease && <> • {topRelease}</>}
                       </p>
                     )}
@@ -306,7 +323,7 @@ export default function Page() {
 
             {/* Métricas */}
             <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {isSpotify ? (
+              {streamMode ? (
                 <>
                   <MetricCard
                     label="Streams no chart"
@@ -327,7 +344,7 @@ export default function Page() {
               ) : (
                 <>
                   <MetricCard
-                    label="Artistas no Top 100"
+                    label={`Artistas no Top ${view?.tracks.length || 100}`}
                     value={apple ? apple.artistCount : '—'}
                     icon={<Users className="h-4 w-4" />}
                     tone="blue"
@@ -365,7 +382,7 @@ export default function Page() {
             {/* Grid principal */}
             <section className="grid grid-cols-1 gap-6 lg:grid-cols-3">
               <Panel className="lg:col-span-2">
-                {isSpotify ? (
+                {streamMode ? (
                   <>
                     <PanelTitle icon={<BarChart3 className="h-4 w-4 text-emerald-400" />} title="Top 10 em streams" hint="Reproduções contadas pelo Spotify nesta parada" />
                     <div className="h-72 w-full">
@@ -393,7 +410,7 @@ export default function Page() {
                   </>
                 ) : (
                   <>
-                    <PanelTitle icon={<BarChart3 className="h-4 w-4 text-cyan-400" />} title="Quem domina o Top 100" hint="Faixas por artista, contando colaborações para cada nome" />
+                    <PanelTitle icon={<BarChart3 className="h-4 w-4 text-cyan-400" />} title={`Quem domina o Top ${view?.tracks.length || 100}`} hint="Faixas por artista, contando colaborações para cada nome" />
                     <div className="h-72 w-full">
                       {apple?.topArtists.length ? (
                         <ResponsiveContainer width="100%" height="100%">
@@ -445,7 +462,7 @@ export default function Page() {
                 </div>
 
                 <div className="mt-6 border-t border-slate-800/60 pt-4">
-                  {isSpotify ? (
+                  {spotify?.veterans.length ? (
                     <>
                       <h4 className="mb-3 flex items-center gap-1.5 text-xs font-bold text-slate-300">
                         <Hourglass className="h-3.5 w-3.5 text-cyan-400" /> Mais tempo no chart
@@ -466,7 +483,8 @@ export default function Page() {
                   ) : (
                     <>
                       <h4 className="mb-3 flex items-center gap-1.5 text-xs font-bold text-slate-300">
-                        <Tags className="h-3.5 w-3.5 text-cyan-400" /> Gêneros no chart
+                        {apple?.genres.length ? <Tags className="h-3.5 w-3.5 text-cyan-400" /> : <CalendarClock className="h-3.5 w-3.5 text-cyan-400" />}
+                        {apple?.genres.length ? 'Gêneros no chart' : 'Lançadas mais recentemente'}
                       </h4>
                       {apple?.genres.length ? (
                         <div className="grid grid-cols-2 gap-2">
@@ -486,7 +504,19 @@ export default function Page() {
                           })}
                         </div>
                       ) : (
-                        <p className="text-[11px] text-slate-500">Gêneros aparecem na próxima atualização do feed.</p>
+                        recentReleases.length ? (
+                          <div className="grid grid-cols-2 gap-2">
+                            {recentReleases.map((t) => (
+                              <button key={t.id} onClick={() => setSelected(t)} className="rounded-xl border border-slate-800/60 bg-slate-950/50 p-2.5 text-left hover:border-slate-700">
+                                <span className="block truncate text-[10px] text-slate-400">{t.name}</span>
+                                <strong className="text-sm font-black text-white">#{t.rank}</strong>{' '}
+                                <span className="text-[10px] text-slate-500">{shortDate(`${t.releaseDate}T00:00:00Z`)}</span>
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-[11px] text-slate-500">Sem dados de gênero ou lançamento nesta fonte.</p>
+                        )
                       )}
                     </>
                   )}
@@ -583,7 +613,18 @@ export default function Page() {
         </footer>
       </div>
 
-      <TrackSheet track={selected} view={view} cross={selected ? hitsFor(selected) : []} onClose={() => setSelected(null)} />
+      <TrackSheet
+        track={selected}
+        view={view}
+        cross={selected ? hitsFor(selected) : []}
+        onClose={() => setSelected(null)}
+        onAllCharts={(t) => {
+          setSelected(null);
+          setSong(songFrom({ name: t.name, artist: t.artistName, artwork: t.artworkUrl100, ...(isSpotify ? { spotifyId: t.id } : { appleId: t.id }) }));
+        }}
+      />
+      <SongSheet song={song} onClose={() => setSong(null)} onArtist={(name, artistId) => { setSong(null); setArtist({ name, artistId }); }} />
+      <ArtistSheet artist={artist} onClose={() => setArtist(null)} onSong={(s) => { setArtist(null); setSong(s); }} />
     </div>
   );
 }

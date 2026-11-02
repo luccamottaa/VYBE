@@ -1,0 +1,124 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { Disc3, ExternalLink, Radar } from 'lucide-react';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { artistHits, loadAllCharts } from '@/lib/all-charts';
+import { catalogSongsByArtist, mergeSongs, songFrom, type Artist, type Song } from '@/lib/search';
+import { artwork, shortDate } from '@/lib/vybe';
+import { Cover, CrossBadges } from './ui';
+
+type Charted = Awaited<ReturnType<typeof artistHits>>[number];
+
+export function ArtistSheet({ artist, onClose, onSong }: { artist: Artist | null; onClose: () => void; onSong: (s: Song) => void }) {
+  const [charted, setCharted] = useState<Charted[]>([]);
+  const [catalog, setCatalog] = useState<Song[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [catalogError, setCatalogError] = useState('');
+
+  useEffect(() => {
+    if (!artist) return;
+    const c = new AbortController();
+    setCharted([]);
+    setCatalog([]);
+    setCatalogError('');
+    setLoading(true);
+    loadAllCharts()
+      .then((all) => !c.signal.aborted && setCharted(artistHits(all, artist.name)))
+      .catch(() => {});
+    catalogSongsByArtist(artist, c.signal)
+      .then((songs) => setCatalog(mergeSongs(songs)))
+      .catch((e: Error) => e.name !== 'AbortError' && setCatalogError('Não deu pra abrir o catálogo agora.'))
+      .finally(() => !c.signal.aborted && setLoading(false));
+    return () => c.abort();
+  }, [artist]);
+
+  const cover = charted.find((s) => s.artwork)?.artwork ?? catalog.find((s) => s.artwork)?.artwork;
+  const chartedKeys = new Set(charted.map((s) => s.key));
+  const markets = new Set(charted.flatMap((s) => s.hits.map((h) => h.market)));
+
+  return (
+    <Sheet open={!!artist} onOpenChange={(o) => !o && onClose()}>
+      <SheetContent className="w-full overflow-y-auto border-slate-800 bg-popover text-slate-100 sm:max-w-lg">
+        <SheetHeader>
+          <SheetTitle className="text-white">Artista</SheetTitle>
+          <SheetDescription className="text-slate-400">Músicas nos charts agora e catálogo completo</SheetDescription>
+        </SheetHeader>
+
+        {artist && (
+          <div className="space-y-5 px-4 pb-8">
+            <div className="flex items-center gap-4">
+              <Cover src={cover ? artwork(cover, 300) : ''} alt="" className="h-20 w-20 shrink-0 rounded-full" />
+              <div className="min-w-0">
+                <h2 className="text-2xl font-extrabold leading-tight text-white">{artist.name}</h2>
+                <p className="text-xs text-slate-400">
+                  {artist.genre && `${artist.genre} · `}
+                  {charted.length ? `${charted.length} ${charted.length === 1 ? 'música' : 'músicas'} em ${markets.size} ${markets.size === 1 ? 'chart' : 'charts'}` : 'Fora dos charts agora'}
+                </p>
+                {artist.url && (
+                  <a href={artist.url} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 text-xs text-cyan-400 hover:text-cyan-300">
+                    Apple Music <ExternalLink className="h-3 w-3" />
+                  </a>
+                )}
+              </div>
+            </div>
+
+            <section>
+              <h3 className="mb-2 flex items-center gap-1.5 text-sm font-bold text-white">
+                <Radar className="h-4 w-4 text-cyan-400" /> Nos charts agora
+              </h3>
+              {charted.length ? (
+                <div className="space-y-2">
+                  {charted.map((s) => (
+                    <button
+                      key={s.key}
+                      onClick={() => onSong(songFrom({ name: s.name, artist: s.artist, artwork: s.artwork, appleId: s.appleId, spotifyId: s.spotifyId }))}
+                      className="flex w-full items-center gap-3 rounded-2xl border border-slate-800/50 bg-slate-950/40 p-2.5 text-left transition-colors hover:border-slate-700"
+                    >
+                      <Cover src={s.artwork ?? ''} alt="" className="h-10 w-10 shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-bold text-white">{s.name}</p>
+                        <CrossBadges hits={s.hits.map((h) => ({ label: h.label, rank: h.rank }))} max={4} />
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-slate-400">{loading ? 'Procurando nos charts…' : 'Nenhuma música desse artista nos charts acompanhados agora.'}</p>
+              )}
+            </section>
+
+            <section>
+              <h3 className="mb-2 flex items-center gap-1.5 text-sm font-bold text-white">
+                <Disc3 className="h-4 w-4 text-cyan-400" /> Catálogo
+              </h3>
+              {catalogError ? (
+                <p className="text-xs text-amber-300">{catalogError}</p>
+              ) : catalog.length ? (
+                <div className="divide-y divide-slate-800/60 overflow-hidden rounded-2xl border border-slate-800/60">
+                  {catalog
+                    .filter((s) => !chartedKeys.has(s.key))
+                    .map((s) => (
+                      <button key={s.key} onClick={() => onSong(s)} className="flex w-full items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-slate-800/30">
+                        <Cover src={s.artwork ?? ''} alt="" className="h-9 w-9 shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm text-white">{s.name}</p>
+                          <p className="truncate text-[11px] text-slate-500">
+                            {s.album}
+                            {s.releaseDate && ` · ${shortDate(`${s.releaseDate}T00:00:00Z`)}`}
+                          </p>
+                        </div>
+                      </button>
+                    ))}
+                </div>
+              ) : (
+                <p className="text-xs text-slate-400">{loading ? 'Abrindo catálogo…' : 'Nada encontrado no catálogo.'}</p>
+              )}
+              <p className="mt-1 text-[10px] text-slate-500">Catálogo via iTunes Search API.</p>
+            </section>
+          </div>
+        )}
+      </SheetContent>
+    </Sheet>
+  );
+}

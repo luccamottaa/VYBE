@@ -1,4 +1,7 @@
 import { getAppleHistory, getSpotifyHistory, type Point } from './data-source';
+import { matchKey, splitArtists } from './sources/match.ts';
+
+export { matchKey, splitArtists };
 
 // Tipos e helpers do lado do cliente. Não importar lib/chart.ts aqui (depende do runtime Cloudflare).
 
@@ -60,14 +63,6 @@ export function releaseLabel(days: number | null) {
   return `Lançada há ${y} ${y === 1 ? 'ano' : 'anos'}`;
 }
 
-/** Separa colaborações ("A & B", "A, B", "A feat. B") pra contar artistas individuais. */
-export function splitArtists(name: string) {
-  return name
-    .split(/\s*(?:,|&|\bx\b|\bfeat\.?|\bft\.?|\bcom\b|\bwith\b)\s*/i)
-    .map((s) => s.trim())
-    .filter(Boolean);
-}
-
 export function summarize(chart: Pick<Chart, 'tracks' | 'updated'>) {
   const { tracks } = chart;
   const artistCount = new Map<string, number>();
@@ -96,6 +91,7 @@ export type Source = 'apple' | 'spotify';
 
 export type ViewTrack = Track & {
   streams?: number | null;
+  totalStreams?: number | null;
   peak?: number | null;
   days?: number | null;
 };
@@ -121,14 +117,18 @@ export type SpotifyPayload = {
   label: string;
   date: string;
   fetched: number;
-  source: 'csv' | 'json';
+  source: 'csv' | 'json' | 'kworb';
+  sourceUrl?: string;
   stale: boolean;
   historyAvailable: boolean;
   entries: {
+    totalStreams?: number | null;
     rank: number;
     previousRank: number | null;
     peakRank: number | null;
     daysOnChart: number | null;
+    entryStatus?: string;
+    releaseDate?: string;
     trackName: string;
     artist: string;
     streams: number | null;
@@ -169,19 +169,27 @@ export function spotifyView(p: SpotifyPayload): ChartView {
       url: `https://open.spotify.com/track/${e.spotifyId}`,
       rank: e.rank,
       change: e.previousRank === null ? null : e.previousRank - e.rank,
-      isNew: e.previousRank === null,
+      isNew: e.entryStatus ? e.entryStatus === 'NEW_ENTRY' || e.entryStatus === 'RE_ENTRY' : e.previousRank === null,
+      releaseDate: e.releaseDate,
       streams: e.streams,
-      peak: e.peakRank,
-      days: e.daysOnChart,
+      totalStreams: e.totalStreams ?? null,
+      peak: e.peakRank || null,
+      days: e.daysOnChart || null,
     })),
     updated: `${p.date}T00:00:00Z`,
     stale: p.stale,
     historyAvailable: p.historyAvailable,
     hasMovement: true,
     compareLabel: weekly ? 'vs semana anterior' : 'vs dia anterior',
-    footnote: `Parada de ${shortDate(`${p.date}T00:00:00Z`)}${weekly ? ' · sem login, o Spotify só libera o semanal' : ''}`,
+    footnote: `Parada de ${shortDate(`${p.date}T00:00:00Z`)}${
+      p.source === 'kworb'
+        ? ' · streams via kworb.net'
+        : p.entries.some((e) => e.streams !== null)
+          ? ''
+          : ` · sem login o Spotify libera só o Top ${p.entries.length}${weekly ? ' semanal' : ''}, sem streams`
+    }`,
     loadHistory: (id, signal) => getSpotifyHistory(p.chart, id, signal),
-    sourceUrl: 'https://charts.spotify.com/charts/overview/global',
+    sourceUrl: p.sourceUrl ?? 'https://charts.spotify.com/charts/overview/global',
     chartKey: p.chart,
   };
 }
@@ -200,18 +208,6 @@ export function spotifySummary(view: ChartView) {
 }
 
 /* ---------- Cruzamento entre fontes ---------- */
-
-const strip = (s: string) =>
-  s
-    .normalize('NFD')
-    .replace(/\p{M}/gu, '') // remove acentos
-    .toLowerCase()
-    .replace(/\s*[([].*?[)\]]/g, '') // (feat. X), [Ao Vivo]
-    .replace(/\s+-\s+.*$/, '') // " - Remastered"
-    .replace(/[^a-z0-9]+/g, '');
-
-/** Chave "música|primeiro artista" pra achar a mesma faixa em charts diferentes. */
-export const matchKey = (name: string, artist: string) => `${strip(name)}|${strip(splitArtists(artist)[0] ?? artist)}`;
 
 export type CrossHit = { label: string; rank: number };
 
