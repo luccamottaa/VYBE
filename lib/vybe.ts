@@ -1,4 +1,7 @@
 import { getAppleHistory, getSpotifyHistory, type Point } from './data-source';
+import { matchKey, splitArtists } from './sources/match.ts';
+
+export { matchKey, splitArtists };
 
 // Tipos e helpers do lado do cliente. Não importar lib/chart.ts aqui (depende do runtime Cloudflare).
 
@@ -58,14 +61,6 @@ export function releaseLabel(days: number | null) {
   if (days < 365) return `Lançada há ${Math.round(days / 30)} ${Math.round(days / 30) === 1 ? 'mês' : 'meses'}`;
   const y = Math.floor(days / 365);
   return `Lançada há ${y} ${y === 1 ? 'ano' : 'anos'}`;
-}
-
-/** Separa colaborações ("A & B", "A, B", "A feat. B") pra contar artistas individuais. */
-export function splitArtists(name: string) {
-  return name
-    .split(/\s*(?:,|&|\bx\b|\bfeat\.?|\bft\.?|\bcom\b|\bwith\b)\s*/i)
-    .map((s) => s.trim())
-    .filter(Boolean);
 }
 
 export function summarize(chart: Pick<Chart, 'tracks' | 'updated'>) {
@@ -205,18 +200,6 @@ export function spotifySummary(view: ChartView) {
 }
 
 /* ---------- Cruzamento entre fontes ---------- */
-
-const strip = (s: string) =>
-  s
-    .normalize('NFD')
-    .replace(/\p{M}/gu, '') // remove acentos
-    .toLowerCase()
-    .replace(/\s*[([].*?[)\]]/g, '') // (feat. X), [Ao Vivo]
-    .replace(/\s+-\s+.*$/, '') // " - Remastered"
-    .replace(/[^a-z0-9]+/g, '');
-
-/** Chave "música|primeiro artista" pra achar a mesma faixa em charts diferentes. */
-export const matchKey = (name: string, artist: string) => `${strip(name)}|${strip(splitArtists(artist)[0] ?? artist)}`;
 
 export type CrossHit = { label: string; rank: number };
 
