@@ -3,7 +3,7 @@
 //   - precisam de dono com Premium;
 //   - a busca devolve no máximo 10 itens por página (paginar com offset).
 
-let token = null; // { value, expires } — reaproveitado enquanto a instância viver
+let token = null; // { value, expires } — reaproveitado enquanto a instância da função viver
 
 async function getToken(clientId, clientSecret) {
   if (token && token.expires > Date.now() + 60_000) return token.value;

@@ -279,7 +279,7 @@ export function mergeSongs(...lists: Song[][]): Song[] {
   return [...out.values()];
 }
 
-/* ---------- Spotify (busca oficial, via vybe-api no Cloudflare) ---------- */
+/* ---------- Spotify (busca oficial, via vybe-api na Vercel) ---------- */
 
 type SpTrack = { spotifyId: string; name: string; artist: string; album: string | null; artwork: string | null; releaseDate: string | null; preview: string | null; url: string };
 type SpArtist = { spotifyId: string; name: string; picture: string | null; genres: string[]; followers: number | null; url: string };
