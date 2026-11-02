@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "VYBE · Charts de música",
+  title: "VYBE · Music & Chart Intelligence",
   description: "Rankings musicais, posições e histórico por país.",
   other: {
     "codex-preview": "development",
@@ -19,7 +19,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" className="dark">
       <body className="antialiased">{children}</body>
     </html>
   );

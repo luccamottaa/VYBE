@@ -2,11 +2,11 @@ import { env } from 'cloudflare:workers';
 import br from './data/br.json';
 import us from './data/us.json';
 export const countries = ['br','us','kr','jp','gb'];
-export type Track = {id:string;name:string;artistName:string;artworkUrl100:string;url:string; rank:number};
+export type Track = {id:string;name:string;artistName:string;artworkUrl100:string;url:string;rank:number;releaseDate?:string;genre?:string;artistUrl?:string};
 export function database(): D1Database | undefined { return (env as unknown as {DB?:D1Database}).DB; }
 export function normalize(feed:any): Track[] {
  if (!Array.isArray(feed?.results) || !feed.results.length) throw new Error('Resposta inválida');
- return feed.results.slice(0,100).map((t:any,i:number)=>({id:String(t.id), name:String(t.name),artistName:String(t.artistName),artworkUrl100:String(t.artworkUrl100),url:String(t.url),rank:i+1}));
+ return feed.results.slice(0,100).map((t:any,i:number)=>({id:String(t.id), name:String(t.name),artistName:String(t.artistName),artworkUrl100:String(t.artworkUrl100),url:String(t.url),rank:i+1,releaseDate:typeof t.releaseDate==='string'?t.releaseDate:undefined,genre:Array.isArray(t.genres)?t.genres.map((g:any)=>String(g?.name??'')).find((n:string)=>n&&n!=='Música'&&n!=='Music'):undefined,artistUrl:typeof t.artistUrl==='string'?t.artistUrl:undefined}));
 }
 export async function loadChart(country:string) {
  const db=database(); let cached:any; let historyAvailable=!!db;

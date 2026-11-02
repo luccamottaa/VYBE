@@ -1,47 +1,483 @@
 'use client';
-import {useState,useEffect,useCallback} from 'react';
-import {Activity,Search,RefreshCw,ArrowUpRight,ArrowDownRight,Music2,Globe2,Disc3,Database,ExternalLink,Radio} from 'lucide-react';
-import {Select,SelectTrigger,SelectValue,SelectContent,SelectItem} from '@/components/ui/select';
-import {Sheet,SheetContent,SheetHeader,SheetTitle,SheetDescription} from '@/components/ui/sheet';
-import {Tabs,TabsList,TabsTrigger,TabsContent} from '@/components/ui/tabs';
-import {Table,TableHeader,TableBody,TableRow,TableHead,TableCell} from '@/components/ui/table';
-import {ResponsiveContainer,LineChart,Line,XAxis,YAxis,Tooltip,CartesianGrid} from 'recharts';
-const markets:{[key:string]:string}={br:'🇧🇷 Brasil',us:'🇺🇸 Estados Unidos',kr:'🇰🇷 Coreia do Sul',jp:'🇯🇵 Japão',gb:'🇬🇧 Reino Unido'};
-type Track={id:string;name:string;artistName:string;artworkUrl100:string;url:string;rank:number;change:number|null};
-type Chart={tracks:Track[];updated:string;date:string;stale:boolean;days:number;historyAvailable:boolean;previousDate:string|null};
-export default function Page(){
- const [country,setCountry]=useState('br'),[query,setQuery]=useState(''),[chart,setChart]=useState<Chart|null>(null),[loading,setLoading]=useState(true),[error,setError]=useState(''),[selected,setSelected]=useState<Track|null>(null),[points,setPoints]=useState<{date:string;rank:number|null}[]>([]),[histError,setHistError]=useState(''),[histLoading,setHistLoading]=useState(false),[period,setPeriod]=useState('30'),[tab,setTab]=useState('charts');
- const load=useCallback(async(signal?:AbortSignal)=>{setLoading(true);setError('');try{const r=await fetch('/api/chart?country='+country,{signal});const d:any=await r.json();if(!r.ok)throw new Error(d.error);setChart(d);}catch(e){if((e as Error).name!=='AbortError'){setChart(null);setError((e as Error).message);}}finally{if(!signal?.aborted)setLoading(false);}},[country]);
- useEffect(()=>{const c=new AbortController();setChart(null);setSelected(null);load(c.signal);return()=>c.abort();},[load]);
- useEffect(()=>{if(!selected)return;const c=new AbortController();setPoints([]);setHistError('');setHistLoading(true);fetch(`/api/history?country=${country}&id=${selected.id}`,{signal:c.signal}).then(async r=>{const d:any=await r.json();if(!r.ok)throw new Error(d.error);setPoints(d.points);}).catch(e=>{if(e.name!=='AbortError')setHistError(e.message);}).finally(()=>{if(!c.signal.aborted)setHistLoading(false);});return()=>c.abort();},[selected,country]);
- useEffect(()=>{const context=(document as any).modelContext;if(!context?.registerTool)return;const lifecycle=new AbortController();try{Promise.resolve(context.registerTool({name:'filter_chart',description:'Filtra o ranking visível por música ou artista.',inputSchema:{type:'object',properties:{query:{type:'string'}},required:['query'],additionalProperties:false},annotations:{readOnlyHint:false,untrustedContentHint:true},execute:async(input:any)=>{if(typeof input.query!=='string'||input.query.length>200)throw new Error('Busca inválida');setQuery(input.query);setTab('charts');return {query:input.query,matches:chart?.tracks.filter(t=>(t.name+' '+t.artistName).toLowerCase().includes(input.query.toLowerCase())).length||0};}},{signal:lifecycle.signal})).catch(()=>{});}catch{}return()=>lifecycle.abort();},[chart]);
- const filtered=chart?.tracks.filter(t=>(t.name+' '+t.artistName).toLocaleLowerCase().includes(query.toLocaleLowerCase()))||[];
- const top=chart?.tracks[0],artists=new Set(chart?.tracks.map(t=>t.artistName)).size;
- const history=points.filter(p=>new Date(p.date).getTime()>=Date.now()-Number(period)*86400000);const ranks=points.map(p=>p.rank).filter((n):n is number=>n!==null);
- const date=(v:string)=>new Date(v).toLocaleDateString('pt-BR',{day:'2-digit',month:'short',timeZone:'UTC'});
- return <main>
-  <header className="topbar"><a className="logo" href="/" aria-label="VYBE início"><Activity size={30}/><span>VYBE<span className="logo-dot">.</span></span></a><span className="edition">MUSIC INTELLIGENCE</span><span className="version">BETA / 01</span></header>
-  <div className="workspace"><Tabs value={tab} onValueChange={setTab}>
-   <div className="navrow"><TabsList className="navigation"><TabsTrigger value="charts"><Disc3 size={17}/> Charts</TabsTrigger><TabsTrigger value="sources"><Database size={17}/> Fontes</TabsTrigger></TabsList><span className="feed-label"><Radio size={14}/> APPLE MUSIC</span></div>
-   <TabsContent value="charts">
-    <section className="title-row"><div><p className="eyebrow">PANORAMA MUSICAL</p><h1>O som que está no topo<span>.</span></h1><p className="sub">Explore o ranking. Acompanhe cada movimento.</p></div><Select value={country} onValueChange={setCountry}><SelectTrigger className="country" aria-label="País do ranking"><SelectValue/></SelectTrigger><SelectContent>{Object.entries(markets).map(([id,name])=><SelectItem key={id} value={id}>{name}</SelectItem>)}</SelectContent></Select></section>
-    <section className="overview">
-     <div className="numberone">{top?<><img src={top.artworkUrl100} alt={'Capa de '+top.name}/><div className="topinfo"><span className="eyebrow">NO TOPO · #1</span><h2>{top.name}</h2><p>{top.artistName}</p><button onClick={()=>setSelected(top)}>Ver trajetória <Activity size={16}/></button></div><span className="big-one">01</span></>:<div className="loading-top"><Music2 size={35}/><span>{loading?'Consultando o ranking…':'Ranking indisponível'}</span></div>}</div>
-     <div className="metric"><Globe2 size={20}/><span>Músicas no chart</span><strong>{chart?.tracks.length??'—'}</strong><small>Top 100 · {markets[country].slice(5)}</small></div>
-     <div className="metric"><Disc3 size={20}/><span>Artistas e colaborações</span><strong>{chart?artists:'—'}</strong><small>Nomes distintos neste ranking</small></div>
-    </section>
-    <section className="chart-section"><div className="chart-toolbar"><div><h2>Top 100 <span>Apple Music</span></h2><p>{chart?`Fonte atualizada em ${date(chart.updated)} · ${chart.days} ${chart.days===1?'dia registrado':'dias registrados'}`:'Ranking das músicas mais ouvidas'}</p></div><div className="tools"><label className="search"><Search size={18}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar música ou artista" maxLength={200} aria-label="Buscar no ranking"/></label><button className="refresh" onClick={()=>load()} disabled={loading} aria-label="Atualizar ranking"><RefreshCw size={18} className={loading?'spin':''}/></button></div></div>
-    {error?<div className="empty" role="alert"><h3>O ranking não carregou</h3><p>{error}</p><button onClick={()=>load()}>Tentar novamente</button></div>:loading&&!chart?<div className="empty" role="status">Consultando Apple Music…</div>:<>
-    {chart?.stale&&<p className="notice">A fonte não respondeu. Exibindo o último ranking disponível, de {date(chart.updated)}.</p>}
-    {chart&&!chart.previousDate&&<p className="history-note">Primeiro registro deste mercado. As variações aparecerão quando houver outro dia para comparar.</p>}
-    {chart&&!chart.historyAvailable&&<p className="notice">Histórico indisponível neste momento. O ranking pode ser consultado, mas este registro não foi salvo.</p>}
-    <Table className="ranking"><TableHeader><TableRow><TableHead className="rankcol">POS.</TableHead><TableHead>MÚSICA / ARTISTA</TableHead><TableHead className="movement">VARIAÇÃO</TableHead><TableHead className="open-col">TRAJETÓRIA</TableHead></TableRow></TableHeader><TableBody>{filtered.map(t=><TableRow key={t.id}><TableCell className={'position '+(t.rank<=3?'podium':'')}>{String(t.rank).padStart(2,'0')}</TableCell><TableCell><button className="track" onClick={()=>setSelected(t)}><img src={t.artworkUrl100} alt="" loading="lazy"/><span><strong>{t.name}</strong><small>{t.artistName}</small></span></button></TableCell><TableCell className="movement"><span className={t.change===null?'neutral':t.change>0?'up':t.change<0?'down':'neutral'}>{t.change===null?'—':t.change>0?<><ArrowUpRight size={15}/>{t.change}</>:t.change<0?<><ArrowDownRight size={15}/>{Math.abs(t.change)}</>:'0'}</span></TableCell><TableCell className="open-col"><button className="detail-button" onClick={()=>setSelected(t)} aria-label={'Ver histórico de '+t.name}><Activity size={19}/></button></TableCell></TableRow>)}</TableBody></Table>
-    {!filtered.length&&chart&&<div className="empty"><h3>Nenhuma música encontrada</h3><p>Tente outro nome. A busca cobre as 100 faixas deste país.</p><button onClick={()=>setQuery('')}>Limpar busca</button></div>}
-    </>}
-    </section><div className="chart-foot"><span>Posições conforme a ordem do feed oficial da Apple.</span><a href={`https://rss.marketingtools.apple.com/api/v2/${country}/music/most-played/100/songs.json`} target="_blank" rel="noreferrer">Consultar fonte <ExternalLink size={13}/></a></div>
-   </TabsContent>
-   <TabsContent value="sources"><section className="title-row"><div><p className="eyebrow">DADOS & COBERTURA</p><h1>Cada número tem uma fonte<span>.</span></h1><p className="sub">Acompanhe o que está conectado e o que vem depois.</p></div></section><div className="sources-grid">{[{name:'Apple Music',status:'Conectado',desc:'Top 100 de Brasil, EUA, Coreia do Sul, Japão e Reino Unido. Consulta ao abrir o ranking, com cache de até uma hora.',link:'https://rss.marketingtools.apple.com/'},{name:'MyStreamCount / Spotify',status:'Aguardando acesso à API',desc:'Streams totais e histórico são a próxima integração. Ainda não há streams do Spotify neste painel.',link:'https://www.mystreamcount.com/'},{name:'Billboard',status:'Não conectado',desc:'Hot 100, Billboard 200 e Global 200 ainda não estão disponíveis.',link:'https://www.billboard.com/charts/'},{name:'YouTube · Circle · Official Charts',status:'Não conectado',desc:'Fontes adicionais serão avaliadas antes de entrar no painel.',link:'https://charts.youtube.com/'}].map((s,i)=><article className="source-card" key={s.name}><div className="source-top"><Music2 size={22}/><span className={i===0?'connected':'pending'}>{s.status}</span></div><h2>{s.name}</h2><p>{s.desc}</p><a href={s.link} target="_blank" rel="noreferrer">Site da fonte <ExternalLink size={15}/></a></article>)}</div><article className="method"><h2>Como o histórico funciona</h2><p>O VYBE guarda um registro por data do feed e país quando o ranking é consultado. Variações comparam o registro atual ao anterior disponível; lacunas não são preenchidas com estimativas. O histórico não é retroativo e ainda não há coleta programada com o site fechado.</p><p>Posição no chart não é contagem de streams. Apple Music não fornece o total de reproduções neste feed. O melhor resultado observado no VYBE também não equivale ao pico histórico oficial.</p></article></TabsContent>
-  </Tabs><footer><a className="footer-logo" href="/">VYBE.</a><span>Ouça a música. Entenda o movimento.</span><span>Feito em Manaus</span></footer></div>
-  <Sheet open={!!selected} onOpenChange={o=>{if(!o)setSelected(null)}}><SheetContent className="track-sheet"><SheetHeader><SheetTitle>Trajetória da música</SheetTitle><SheetDescription>Apple Music · {markets[country]} · registros do VYBE</SheetDescription></SheetHeader>{selected&&<div className="sheet-body"><img className="detail-cover" src={selected.artworkUrl100} alt={'Capa de '+selected.name}/><h2>{selected.name}</h2><p>{selected.artistName}</p><div className="detail-metrics"><div><span>Posição atual</span><strong>#{selected.rank}</strong></div><div><span>Melhor observada</span><strong>{ranks.length?'#'+Math.min(...ranks):'—'}</strong></div></div><div className="history-heading"><h3>Evolução no chart</h3><Select value={period} onValueChange={setPeriod}><SelectTrigger aria-label="Período do histórico"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="7">7 dias</SelectItem><SelectItem value="30">30 dias</SelectItem><SelectItem value="90">90 dias</SelectItem></SelectContent></Select></div>{histLoading?<p className="empty">Carregando histórico…</p>:histError?<p className="notice">{histError}</p>:history.filter(p=>p.rank!==null).length<2?<div className="history-empty"><Activity size={35}/><h3>A trajetória começa agora</h3><p>Precisamos de pelo menos dois dias com posições registradas para desenhar o gráfico.</p></div>:<div className="history-chart"><ResponsiveContainer width="100%" height={250}><LineChart data={history}><CartesianGrid stroke="#30332e" strokeDasharray="3 3"/><XAxis dataKey="date" tickFormatter={date} stroke="#9ca397" fontSize={12}/><YAxis reversed domain={[1,100]} stroke="#9ca397" fontSize={12}/><Tooltip labelFormatter={v=>date(String(v))} formatter={(v)=>['#'+v,'Posição']} contentStyle={{background:'#191c17',border:'1px solid #434b38',borderRadius:10}}/><Line dataKey="rank" stroke="#caff5a" strokeWidth={3} dot={{r:4}} connectNulls={false}/></LineChart></ResponsiveContainer></div>}<p className="small-note">Ausência em um registro significa que a faixa não estava naquele Top 100. Não representa zero reproduções.</p><a className="listen" href={selected.url} target="_blank" rel="noreferrer">Abrir no Apple Music <ExternalLink size={16}/></a></div>}</SheetContent></Sheet>
- </main>
+
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  ArrowUpRight,
+  BarChart3,
+  CalendarClock,
+  Database,
+  Disc3,
+  ExternalLink,
+  Flame,
+  Globe2,
+  Music2,
+  Play,
+  Radio,
+  RefreshCw,
+  Search,
+  Sparkles,
+  Tags,
+  TrendingUp,
+  Users,
+} from 'lucide-react';
+import Link from 'next/link';
+import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { TrackSheet } from '@/components/vybe/track-sheet';
+import { Sources } from '@/components/vybe/sources';
+import { MetricCard, Movement, Panel, PanelTitle } from '@/components/vybe/ui';
+import { artwork, daysSince, markets, releaseLabel, shortDate, summarize, type Chart, type Track } from '@/lib/vybe';
+
+const genreColors = ['#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'];
+type View = 'charts' | 'sources';
+
+export default function Page() {
+  const [country, setCountry] = useState('br');
+  const [view, setView] = useState<View>('charts');
+  const [query, setQuery] = useState('');
+  const [chart, setChart] = useState<Chart | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [selected, setSelected] = useState<Track | null>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  const load = useCallback(
+    async (signal?: AbortSignal) => {
+      setLoading(true);
+      setError('');
+      try {
+        const r = await fetch('/api/chart?country=' + country, { signal });
+        const d = (await r.json()) as Chart & { error?: string };
+        if (!r.ok) throw new Error(d.error);
+        setChart(d);
+      } catch (e) {
+        if ((e as Error).name !== 'AbortError') {
+          setChart(null);
+          setError((e as Error).message || 'Erro ao carregar o ranking');
+        }
+      } finally {
+        if (!signal?.aborted) setLoading(false);
+      }
+    },
+    [country],
+  );
+
+  useEffect(() => {
+    const c = new AbortController();
+    setChart(null);
+    setSelected(null);
+    load(c.signal);
+    return () => c.abort();
+  }, [load]);
+
+  // Ctrl/Cmd+K foca a busca
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setView('charts');
+        searchRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  const stats = useMemo(() => (chart ? summarize(chart) : null), [chart]);
+  const filtered = useMemo(() => {
+    const q = query.trim().toLocaleLowerCase();
+    return chart?.tracks.filter((t) => !q || `${t.name} ${t.artistName}`.toLocaleLowerCase().includes(q)) ?? [];
+  }, [chart, query]);
+
+  const top = chart?.tracks[0];
+  const market = markets[country];
+  const hasHistory = !!chart?.previousDate;
+
+  return (
+    <div className="min-h-screen bg-[#070a11] p-4 font-sans text-slate-100 selection:bg-cyan-500 selection:text-black sm:p-6 lg:p-8">
+      <div className="pointer-events-none fixed left-1/4 top-0 h-96 w-96 rounded-full bg-cyan-600/10 blur-[120px]" />
+      <div className="pointer-events-none fixed bottom-0 right-1/4 h-96 w-96 rounded-full bg-blue-600/10 blur-[120px]" />
+
+      <div className="relative z-10 mx-auto max-w-7xl space-y-6">
+        {/* Navbar */}
+        <header className="flex flex-col items-center justify-between gap-4 rounded-2xl border border-slate-800/80 bg-slate-900/40 p-4 shadow-2xl backdrop-blur-xl md:flex-row">
+          <div className="flex w-full items-center gap-3 md:w-auto">
+            <Link href="/" aria-label="VYBE início" className="rounded-xl bg-gradient-to-br from-cyan-500 via-blue-600 to-indigo-700 p-2.5 shadow-lg shadow-cyan-500/20">
+              <Radio className="h-5 w-5 text-white motion-safe:animate-pulse" />
+            </Link>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="bg-gradient-to-r from-cyan-400 via-sky-300 to-blue-500 bg-clip-text text-xl font-black tracking-wider text-transparent">VYBE</h1>
+                <span className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-2 py-0.5 text-[10px] font-semibold text-cyan-400">BETA</span>
+              </div>
+              <p className="text-[11px] font-medium text-slate-400">Music & Chart Intelligence</p>
+            </div>
+            <nav className="ml-auto flex items-center rounded-xl border border-slate-800 bg-slate-950/80 p-1 md:ml-6">
+              {(
+                [
+                  ['charts', 'Charts', Disc3],
+                  ['sources', 'Fontes', Database],
+                ] as const
+              ).map(([id, label, Icon]) => (
+                <button
+                  key={id}
+                  onClick={() => setView(id)}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
+                    view === id ? 'bg-cyan-500 font-bold text-slate-950 shadow-md' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Icon className="h-3.5 w-3.5" /> {label}
+                </button>
+              ))}
+            </nav>
+          </div>
+
+          <div className="flex w-full items-center gap-3 md:w-auto">
+            <div className="relative w-full md:w-80">
+              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+              <input
+                ref={searchRef}
+                type="search"
+                value={query}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setView('charts');
+                }}
+                maxLength={200}
+                aria-label="Buscar no ranking"
+                placeholder="Buscar música ou artista"
+                className="w-full rounded-xl border border-slate-800/80 bg-slate-950/60 py-2 pl-10 pr-4 text-xs text-slate-200 placeholder-slate-500 transition-all focus:border-cyan-500/60 focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
+              />
+            </div>
+            <Select value={country} onValueChange={(v) => v && setCountry(v)}>
+              <SelectTrigger aria-label="País do ranking" className="h-9 w-auto shrink-0 rounded-xl border-slate-700/60 bg-slate-800/60 text-xs text-slate-200">
+                <SelectValue>{`${market.flag} ${country.toUpperCase()}`}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(markets).map(([id, m]) => (
+                  <SelectItem key={id} value={id}>
+                    {m.flag} {m.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </header>
+
+        {view === 'sources' ? (
+          <Sources />
+        ) : error ? (
+          <Panel className="flex flex-col items-center gap-3 py-16 text-center">
+            <Music2 className="h-10 w-10 text-slate-600" />
+            <h2 className="text-lg font-bold text-white">O ranking não carregou</h2>
+            <p className="text-sm text-slate-400">{error}</p>
+            <button onClick={() => load()} className="rounded-xl bg-cyan-500 px-4 py-2 text-xs font-bold text-slate-950 hover:bg-cyan-400">
+              Tentar novamente
+            </button>
+          </Panel>
+        ) : (
+          <>
+            {/* Avisos de estado dos dados */}
+            {chart?.stale && (
+              <Notice>A fonte não respondeu. Exibindo o último ranking disponível, de {shortDate(chart.updated)}.</Notice>
+            )}
+            {chart && !chart.historyAvailable && !chart.stale && (
+              <Notice>Histórico indisponível agora. O ranking abre normal, mas este registro não foi salvo.</Notice>
+            )}
+
+            {/* Hero: #1 do país */}
+            <section className="relative overflow-hidden rounded-3xl border border-slate-800/80 bg-gradient-to-r from-slate-900/90 via-slate-900/50 to-slate-950/80 p-6 shadow-2xl backdrop-blur-md lg:p-8">
+              {top && (
+                <img
+                  src={artwork(top.artworkUrl100, 600)}
+                  alt=""
+                  aria-hidden
+                  className="pointer-events-none absolute -right-20 top-1/2 h-[140%] -translate-y-1/2 opacity-15 blur-2xl"
+                />
+              )}
+              <div className="relative z-10 flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
+                <div className="flex min-w-0 items-center gap-5">
+                  <div className="relative shrink-0">
+                    <div className="h-20 w-20 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 p-0.5 shadow-xl shadow-cyan-900/30 sm:h-28 sm:w-28">
+                      <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-[14px] bg-slate-900">
+                        {top ? (
+                          <img src={artwork(top.artworkUrl100, 300)} alt={`Capa de ${top.name}`} className="h-full w-full object-cover text-[0px]" />
+                        ) : (
+                          <Disc3 className="h-10 w-10 text-cyan-400 motion-safe:animate-[spin_8s_linear_infinite]" />
+                        )}
+                      </div>
+                    </div>
+                    {top && (
+                      <span className="absolute -bottom-2 -right-2 rounded-lg border-2 border-slate-900 bg-cyan-400 px-1.5 text-xs font-black text-slate-950">#1</span>
+                    )}
+                  </div>
+
+                  <div className="min-w-0 space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-cyan-400">
+                        No topo · {market.flag} {market.name}
+                      </span>
+                      {top?.genre && (
+                        <span className="rounded-md border border-slate-700 bg-slate-800 px-2 py-0.5 text-[10px] text-slate-300">{top.genre}</span>
+                      )}
+                    </div>
+                    <h2 className="truncate text-2xl font-extrabold tracking-tight text-white sm:text-4xl">
+                      {top ? top.name : loading ? 'Consultando o ranking…' : 'Ranking indisponível'}
+                    </h2>
+                    {top && (
+                      <p className="text-xs text-slate-400">
+                        <span className="font-medium text-slate-200">{top.artistName}</span>
+                        {releaseLabel(daysSince(top.releaseDate, chart!.updated)) && <> • {releaseLabel(daysSince(top.releaseDate, chart!.updated))}</>}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {top && (
+                  <div className="flex w-full items-center justify-end gap-3 md:w-auto">
+                    <a
+                      href={top.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-3 text-xs font-bold text-slate-950 shadow-lg shadow-cyan-500/20 transition-all hover:from-cyan-400 hover:to-blue-500 md:flex-none"
+                    >
+                      <Play className="h-4 w-4 fill-slate-950" /> Ouvir no Apple Music
+                    </a>
+                    <button
+                      onClick={() => setSelected(top)}
+                      aria-label={`Ver trajetória de ${top.name}`}
+                      className="rounded-xl border border-slate-700/80 bg-slate-800/80 p-3 text-slate-300 transition-all hover:bg-slate-700/80"
+                    >
+                      <ArrowUpRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            </section>
+
+            {/* Métricas */}
+            <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <MetricCard
+                label="Artistas no Top 100"
+                value={stats ? stats.artistCount : '—'}
+                icon={<Users className="h-4 w-4" />}
+                tone="blue"
+                badge={stats?.topArtists[0] ? `${stats.topArtists[0].count} faixas` : undefined}
+                note={stats?.topArtists[0] ? `${stats.topArtists[0].artist} lidera` : undefined}
+              />
+              <MetricCard
+                label="Maior alta"
+                value={stats?.climbers[0] ? stats.climbers[0].name : '—'}
+                icon={<TrendingUp className="h-4 w-4" />}
+                tone="emerald"
+                badge={stats?.climbers[0] ? `+${stats.climbers[0].change}` : undefined}
+                note={stats?.climbers[0] ? `agora #${stats.climbers[0].rank}` : hasHistory ? 'Ninguém subiu' : 'Precisa de 2 dias de registro'}
+              />
+              <MetricCard
+                label="Estreias"
+                value={hasHistory ? stats?.debuts.length ?? '—' : '—'}
+                icon={<Sparkles className="h-4 w-4" />}
+                tone="cyan"
+                badge={hasHistory ? 'novas no chart' : undefined}
+                note={hasHistory ? `vs ${shortDate(chart!.previousDate!)}` : 'Precisa de 2 dias de registro'}
+              />
+              <MetricCard
+                label="Lançamentos da semana"
+                value={stats ? stats.recent.length : '—'}
+                icon={<CalendarClock className="h-4 w-4" />}
+                tone="purple"
+                badge={stats ? 'até 7 dias' : undefined}
+                note={stats?.recent[0] ? `melhor: #${stats.recent[0].rank} ${stats.recent[0].name}` : undefined}
+              />
+            </section>
+
+            {/* Grid principal */}
+            <section className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+              <Panel className="lg:col-span-2">
+                <PanelTitle
+                  icon={<BarChart3 className="h-4 w-4 text-cyan-400" />}
+                  title="Quem domina o Top 100"
+                  hint="Faixas por artista, contando colaborações para cada nome"
+                />
+                <div className="h-72 w-full">
+                  {stats?.topArtists.length ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={stats.topArtists} layout="vertical" margin={{ left: 0, right: 16 }}>
+                        <defs>
+                          <linearGradient id="barGlow" x1="0" y1="0" x2="1" y2="0">
+                            <stop offset="0%" stopColor="#3b82f6" />
+                            <stop offset="100%" stopColor="#06b6d4" />
+                          </linearGradient>
+                        </defs>
+                        <XAxis type="number" allowDecimals={false} stroke="#475569" fontSize={11} tickLine={false} axisLine={false} />
+                        <YAxis type="category" dataKey="artist" width={130} stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
+                        <Tooltip
+                          cursor={{ fill: 'rgba(6,182,212,0.06)' }}
+                          formatter={(v) => [v, 'Faixas']}
+                          contentStyle={{ backgroundColor: '#090d16', borderColor: '#1e293b', borderRadius: '0.75rem', fontSize: 12 }}
+                        />
+                        <Bar dataKey="count" fill="url(#barGlow)" radius={[0, 6, 6, 0]} barSize={18} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <Skeleton />
+                  )}
+                </div>
+              </Panel>
+
+              <Panel className="flex flex-col justify-between">
+                <div>
+                  <PanelTitle icon={<Flame className="h-4 w-4 text-orange-400" />} title={stats?.climbers.length ? 'Subindo rápido' : 'Top 5 agora'}>
+                    <span className="text-xs font-medium text-slate-500">{stats?.climbers.length ? `vs ${shortDate(chart!.previousDate!)}` : 'Top hits'}</span>
+                  </PanelTitle>
+                  <div className="space-y-3">
+                    {(stats?.climbers.length ? stats.climbers : chart?.tracks ?? []).slice(0, 5).map((t) => (
+                      <button
+                        key={t.id}
+                        onClick={() => setSelected(t)}
+                        className="group flex w-full items-center justify-between gap-2 rounded-2xl border border-slate-800/50 bg-slate-950/40 p-3 text-left transition-all hover:border-slate-700/80"
+                      >
+                        <div className="flex min-w-0 items-center gap-3">
+                          <span className="w-6 text-center text-xs font-bold text-slate-500">#{t.rank}</span>
+                          <img src={t.artworkUrl100} alt="" loading="lazy" className="h-9 w-9 shrink-0 rounded-lg border border-slate-800 group-hover:border-cyan-500/40" />
+                          <div className="min-w-0">
+                            <h4 className="truncate text-xs font-bold text-white group-hover:text-cyan-300">{t.name}</h4>
+                            <p className="truncate text-[10px] text-slate-400">{t.artistName}</p>
+                          </div>
+                        </div>
+                        <Movement change={t.change} isNew={t.isNew} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-6 border-t border-slate-800/60 pt-4">
+                  <h4 className="mb-3 flex items-center gap-1.5 text-xs font-bold text-slate-300">
+                    <Tags className="h-3.5 w-3.5 text-cyan-400" /> Gêneros no chart
+                  </h4>
+                  {stats?.genres.length ? (
+                    <div className="grid grid-cols-2 gap-2">
+                      {stats.genres.slice(0, 4).map((g, i) => {
+                        const pct = Math.round((g.count / chart!.tracks.length) * 100);
+                        return (
+                          <div key={g.genre} className="rounded-xl border border-slate-800/60 bg-slate-950/50 p-2.5">
+                            <div className="mb-1 flex items-center justify-between gap-1 text-[10px] text-slate-400">
+                              <span className="truncate">{g.genre}</span>
+                              <span className="font-bold text-white">{pct}%</span>
+                            </div>
+                            <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
+                              <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: genreColors[i % genreColors.length] }} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-slate-500">Gêneros aparecem na próxima atualização do feed.</p>
+                  )}
+                </div>
+              </Panel>
+            </section>
+
+            {/* Ranking completo */}
+            <Panel className="p-0 sm:p-0">
+              <div className="flex flex-wrap items-center justify-between gap-3 p-5 sm:p-6">
+                <div>
+                  <h3 className="flex items-center gap-2 text-base font-bold text-white">
+                    <Globe2 className="h-4 w-4 text-cyan-400" /> Top 100 Apple Music · {market.flag} {market.name}
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    {chart
+                      ? `Feed de ${shortDate(chart.updated)} · ${chart.days} ${chart.days === 1 ? 'dia registrado' : 'dias registrados'}`
+                      : 'Ranking das músicas mais tocadas'}
+                    {chart && !hasHistory && ' · variações aparecem a partir do 2º dia'}
+                  </p>
+                </div>
+                <button
+                  onClick={() => load()}
+                  disabled={loading}
+                  aria-label="Atualizar ranking"
+                  className="rounded-xl border border-slate-700/60 bg-slate-800/60 p-2.5 text-slate-300 transition-all hover:bg-slate-800 disabled:opacity-50"
+                >
+                  <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                </button>
+              </div>
+
+              {loading && !chart ? (
+                <div className="px-6 pb-6">
+                  <Skeleton rows={8} />
+                </div>
+              ) : filtered.length ? (
+                <ol className="divide-y divide-slate-800/60 border-t border-slate-800/60">
+                  {filtered.map((t) => (
+                    <li key={t.id}>
+                      <button
+                        onClick={() => setSelected(t)}
+                        className="group flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-800/30 sm:gap-4 sm:px-6"
+                      >
+                        <span className={`w-8 shrink-0 text-center text-sm font-black tabular-nums ${t.rank <= 3 ? 'text-cyan-400' : 'text-slate-500'}`}>
+                          {String(t.rank).padStart(2, '0')}
+                        </span>
+                        <img src={t.artworkUrl100} alt="" loading="lazy" className="h-10 w-10 shrink-0 rounded-lg border border-slate-800" />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-bold text-white group-hover:text-cyan-300">{t.name}</p>
+                          <p className="truncate text-xs text-slate-400">{t.artistName}</p>
+                        </div>
+                        {t.genre && <span className="hidden shrink-0 rounded-md bg-slate-800/80 px-2 py-0.5 text-[10px] text-slate-400 md:inline">{t.genre}</span>}
+                        <span className="w-16 shrink-0 text-right">
+                          <Movement change={t.change} isNew={t.isNew} compact />
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ol>
+              ) : (
+                <div className="flex flex-col items-center gap-2 border-t border-slate-800/60 p-10 text-center">
+                  <h4 className="font-bold text-white">Nenhuma música encontrada</h4>
+                  <p className="text-xs text-slate-400">A busca cobre as 100 faixas deste país.</p>
+                  <button onClick={() => setQuery('')} className="mt-1 text-xs font-semibold text-cyan-400 hover:text-cyan-300">
+                    Limpar busca
+                  </button>
+                </div>
+              )}
+            </Panel>
+
+            <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-[11px] text-slate-500">
+              <span>Posições conforme a ordem do feed oficial da Apple. Posição ≠ streams.</span>
+              <a
+                href={`https://rss.marketingtools.apple.com/api/v2/${country}/music/most-played/100/songs.json`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 hover:text-cyan-400"
+              >
+                Consultar fonte <ExternalLink className="h-3 w-3" />
+              </a>
+            </div>
+          </>
+        )}
+
+        <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-800/60 pt-6 text-xs text-slate-500">
+          <span className="font-black tracking-wider text-slate-300">VYBE.</span>
+          <span>Ouça a música. Entenda o movimento.</span>
+          <span>Feito em Manaus</span>
+        </footer>
+      </div>
+
+      <TrackSheet track={selected} country={country} feedUpdated={chart?.updated} onClose={() => setSelected(null)} />
+    </div>
+  );
+}
+
+function Notice({ children }: { children: React.ReactNode }) {
+  return <p className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-300">{children}</p>;
+}
+
+function Skeleton({ rows = 6 }: { rows?: number }) {
+  return (
+    <div className="flex h-full flex-col justify-center gap-3" role="status" aria-label="Carregando">
+      {Array.from({ length: rows }, (_, i) => (
+        <div key={i} className="h-6 animate-pulse rounded-lg bg-slate-800/60" style={{ width: `${90 - i * 7}%` }} />
+      ))}
+    </div>
+  );
 }
