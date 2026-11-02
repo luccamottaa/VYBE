@@ -14,7 +14,6 @@ import {
   Hourglass,
   Music2,
   Play,
-  Radio,
   RefreshCw,
   Search,
   Sparkles,
@@ -27,6 +26,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { TrackSheet } from '@/components/vybe/track-sheet';
 import { Sources } from '@/components/vybe/sources';
 import { DitherField, palettes } from '@/components/vybe/dither-field';
+import { Logo, LogoMark } from '@/components/vybe/logo';
 import { Cover, CrossBadges, MetricCard, Movement, Panel, PanelTitle } from '@/components/vybe/ui';
 import {
   appleView,
@@ -168,16 +168,10 @@ export default function Page() {
         {/* Navbar */}
         <header className="flex flex-col gap-4 rounded-2xl border border-slate-800/80 bg-slate-900/40 p-4 shadow-2xl backdrop-blur-xl lg:flex-row lg:items-center lg:justify-between">
           <div className="flex w-full items-center gap-3 lg:w-auto">
-            <Link href="/" aria-label="VYBE início" className="rounded-xl bg-gradient-to-br from-cyan-500 via-blue-600 to-indigo-700 p-2.5 shadow-lg shadow-cyan-500/20">
-              <Radio className="h-5 w-5 text-white motion-safe:animate-pulse" />
+            <Link href="/" aria-label="vybe — início" className="flex items-center gap-2">
+              <Logo />
+              <span className="self-start rounded-full border border-cyan-500/20 bg-cyan-500/10 px-2 py-0.5 text-[10px] font-semibold text-cyan-400">BETA</span>
             </Link>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="bg-gradient-to-r from-cyan-400 via-sky-300 to-blue-500 bg-clip-text text-xl font-black tracking-wider text-transparent">VYBE</h1>
-                <span className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-2 py-0.5 text-[10px] font-semibold text-cyan-400">BETA</span>
-              </div>
-              <p className="text-[11px] font-medium text-slate-400">Music & Chart Intelligence</p>
-            </div>
             <Segmented
               className="ml-auto lg:ml-6"
               value={tab}
@@ -591,7 +585,7 @@ export default function Page() {
         )}
 
         <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-800/60 pt-6 text-xs text-slate-500">
-          <span className="font-black tracking-wider text-slate-300">VYBE.</span>
+          <span className="flex items-center gap-2"><LogoMark className="h-5 w-auto" cutout="#070a11" title="" /><span className="font-brand text-sm font-semibold text-slate-300">vybe</span></span>
           <span>Ouça a música. Entenda o movimento.</span>
           <span>Feito em Manaus</span>
         </footer>
@@ -620,12 +614,14 @@ function Segmented<T extends string>({
           key={id}
           role="tab"
           aria-selected={value === id}
+          aria-label={label}
           onClick={() => onChange(id)}
           className={`flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
             value === id ? 'bg-cyan-500 font-bold text-slate-950 shadow-md' : 'text-slate-400 hover:text-white'
           }`}
         >
-          {Icon && <Icon className="h-3.5 w-3.5" />} {label}
+          {Icon && <Icon className="h-3.5 w-3.5" />}
+          <span className={Icon ? 'hidden sm:inline' : undefined}>{label}</span>
         </button>
       ))}
     </div>

@@ -1,1 +1,27 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="#caff5a"/><path d="M13 36h9l6-17 9 29 6-12h8" fill="none" stroke="#10120d" stroke-width="5" stroke-linejoin="round"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="150 -40 660 660">
+  <rect x="150" y="-40" width="660" height="660" rx="150" fill="#0b0f17"/><defs>
+    <linearGradient id="vy-a" x1="0" y1="100" x2="0" y2="520" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#16f4f0"/><stop offset=".75" stop-color="#3d8cf6"/><stop offset="1" stop-color="#7d62f6"/>
+    </linearGradient>
+    <linearGradient id="vy-b" x1="400" y1="540" x2="760" y2="20" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#a24af2"/><stop offset=".5" stop-color="#7a63f6"/><stop offset="1" stop-color="#9d5cf5"/>
+    </linearGradient>
+    <linearGradient id="vy-c" x1="400" y1="520" x2="740" y2="30" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#3f8ff6"/><stop offset=".55" stop-color="#2cc6f5"/><stop offset="1" stop-color="#1ef1f1"/>
+    </linearGradient>
+    <linearGradient id="vy-d" x1="0" y1="140" x2="0" y2="250" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#3a9df6"/><stop offset="1" stop-color="#8a5cf6"/>
+    </linearGradient>
+    <linearGradient id="vy-e" x1="0" y1="200" x2="0" y2="460" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2be8f5"/><stop offset=".6" stop-color="#4a9af5"/><stop offset="1" stop-color="#a656f3"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#vy-b)" d="M398 536 L474 536 L722 172 L760 192 L747 22 L706 152 L560 366 L506 308 L400 500 Z"/>
+  <rect x="503" y="192" width="37" height="80" fill="url(#vy-d)"/>
+  <rect x="568" y="142" width="37" height="110" fill="url(#vy-d)"/>
+  <path fill="url(#vy-a)" d="M200 108 L345 108 L452 336 L404 516 Z"/>
+  <polyline points="404,524 507,318 562,380 710,160" fill="none" stroke="#0b0f17" stroke-width="12" stroke-linejoin="round"/>
+  <path fill="url(#vy-c)" d="M396 506 L434 338 L497 248 L552 302 L652 130 L600 102 L747 22 L706 152 L560 366 L506 308 Z"/>
+  
+  
+</svg>
