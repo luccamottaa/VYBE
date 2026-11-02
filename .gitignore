@@ -51,3 +51,4 @@ next-env.d.ts
 # build do GitHub Pages
 dist-pages/
 data-store/
+test-results/

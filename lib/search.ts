@@ -14,6 +14,8 @@ export type Song = {
   artistId?: string;
   appleUrl?: string;
   album?: string;
+  /** id do álbum na Apple (collectionId) */
+  albumId?: string;
   releaseDate?: string;
   /** mercados onde já apareceu ("ap:br", "sp:global"...), quando vem do índice */
   markets?: string[];
@@ -54,7 +56,7 @@ export async function findInIndex(key: string) {
   return (await getIndex()).find((s) => s.key === key);
 }
 
-const norm = (s: string) =>
+export const norm = (s: string) =>
   s
     .normalize('NFD')
     .replace(/\p{M}/gu, '')
@@ -103,6 +105,12 @@ type ItunesItem = {
   artistId?: number;
   artistName?: string;
   collectionName?: string;
+  collectionId?: number;
+  collectionViewUrl?: string;
+  trackCount?: number;
+  trackNumber?: number;
+  discNumber?: number;
+  trackTimeMillis?: number;
   artworkUrl100?: string;
   trackViewUrl?: string;
   artistLinkUrl?: string;
@@ -111,7 +119,7 @@ type ItunesItem = {
   previewUrl?: string;
 };
 
-async function itunes(path: string, params: Record<string, string>, signal?: AbortSignal, country = 'BR') {
+export async function itunes(path: string, params: Record<string, string>, signal?: AbortSignal, country = 'BR') {
   const qs = new URLSearchParams({ country, ...params });
   const r = await fetch(`https://itunes.apple.com/${path}?${qs}`, { signal });
   if (!r.ok) throw new Error(`Catálogo indisponível (${r.status})`);
@@ -119,13 +127,14 @@ async function itunes(path: string, params: Record<string, string>, signal?: Abo
 }
 
 /** Mesma consulta em várias lojas; ignora as que falharem (só falha se todas falharem). */
-async function itunesMany(path: string, params: Record<string, string>, signal: AbortSignal | undefined, stores: string[]) {
+export async function itunesMany(path: string, params: Record<string, string>, signal: AbortSignal | undefined, stores: string[]) {
   const res = await Promise.allSettled(stores.map((c) => itunes(path, params, signal, c)));
   if (res.every((r) => r.status === 'rejected')) throw (res[0] as PromiseRejectedResult).reason;
   return res.flatMap((r) => (r.status === 'fulfilled' ? r.value : []));
 }
 
-const toSong = (i: ItunesItem): Song =>
+export type { ItunesItem };
+export const toSong = (i: ItunesItem): Song =>
   songFrom({
     name: i.trackName ?? '',
     artist: i.artistName ?? '',
@@ -134,6 +143,7 @@ const toSong = (i: ItunesItem): Song =>
     artistId: i.artistId ? String(i.artistId) : undefined,
     appleUrl: i.trackViewUrl,
     album: i.collectionName,
+    albumId: i.collectionId ? String(i.collectionId) : undefined,
     releaseDate: i.releaseDate?.slice(0, 10),
     preview: i.previewUrl,
     from: ['apple'],
@@ -156,7 +166,7 @@ export async function searchCatalogArtists(query: string, signal?: AbortSignal, 
 // A API do Deezer não libera CORS, mas aceita JSONP (output=jsonp), que funciona num site estático.
 
 let jsonpSeq = 0;
-function jsonp<T>(url: string, signal?: AbortSignal, timeout = 10000): Promise<T> {
+export function jsonp<T>(url: string, signal?: AbortSignal, timeout = 10000): Promise<T> {
   return new Promise((resolve, reject) => {
     const cb = `__vybeDz${Date.now().toString(36)}${jsonpSeq++}`;
     const script = document.createElement('script');
@@ -179,7 +189,7 @@ function jsonp<T>(url: string, signal?: AbortSignal, timeout = 10000): Promise<T
   });
 }
 
-type DzTrack = {
+export type DzTrack = {
   id: number;
   title: string;
   title_short?: string;
@@ -191,7 +201,7 @@ type DzTrack = {
 };
 type DzArtist = { id: number; name: string; link?: string; picture_medium?: string; nb_fan?: number };
 
-const fromDeezer = (t: DzTrack): Song =>
+export const fromDeezer = (t: DzTrack): Song =>
   songFrom({
     name: t.title_short || t.title,
     artist: t.artist?.name ?? '',
@@ -270,6 +280,7 @@ export function mergeSongs(...lists: Song[][]): Song[] {
         artistId: pick('artistId'),
         appleUrl: pick('appleUrl'),
         album: pick('album'),
+        albumId: pick('albumId'),
         releaseDate: pick('releaseDate'),
         preview: pick('preview'),
         markets: pick('markets'),

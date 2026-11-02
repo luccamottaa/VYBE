@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState, type RefObject } from 'react';
-import { Disc3, Loader2, Music2, Radar, Search, User } from 'lucide-react';
+import { Disc3, Library, Loader2, Music2, Radar, Search, User } from 'lucide-react';
+import { albumTypeLabel, searchAlbums, type Album } from '@/lib/albums';
 import { matchesWords, mergeSongs, searchDeezerSongs, searchSpotifySongs, searchCatalogArtists, searchCatalogSongs, searchIndex, searchIndexArtists, type Artist, type Song } from '@/lib/search';
 import type { ViewTrack } from '@/lib/vybe';
 import { PreviewButton } from './preview';
@@ -27,6 +28,7 @@ export function GlobalSearch({
   onSong,
   onArtist,
   onAll,
+  onAlbum,
 }: {
   query: string;
   onQuery: (q: string) => void;
@@ -37,7 +39,9 @@ export function GlobalSearch({
   onArtist: (a: Artist) => void;
   /** Abre a página com todos os resultados. */
   onAll: (q: string) => void;
+  onAlbum: (a: Album) => void;
 }) {
+  const [albums, setAlbums] = useState<Album[]>([]);
   const [open, setOpen] = useState(false);
   const [songs, setSongs] = useState<Song[]>([]);
   const [artists, setArtists] = useState<Artist[]>([]);
@@ -57,6 +61,7 @@ export function GlobalSearch({
     if (q.length < 2) {
       setSongs([]);
       setArtists([]);
+      setAlbums([]);
       return;
     }
     const c = new AbortController();
@@ -80,6 +85,9 @@ export function GlobalSearch({
           searchDeezerSongs(q, 0, c.signal, 12),
           searchCatalogArtists(q, c.signal, 5),
         ]);
+        searchAlbums(q, c.signal, 6)
+          .then((a) => !c.signal.aborted && setAlbums(a.slice(0, 4)))
+          .catch(() => !c.signal.aborted && setAlbums([]));
         if (c.signal.aborted) return;
         if (ap.status === 'rejected' && dz.status === 'rejected' && sp.status === 'rejected') throw ap.reason;
         setCatalogDown(false);
@@ -151,6 +159,14 @@ export function GlobalSearch({
             <Group icon={<User className="h-3.5 w-3.5" />} title="Artistas">
               {artists.map((a) => (
                 <Row key={a.artistId ?? a.name} onClick={() => pick(() => onArtist(a))} title={a.name} sub={a.genre ?? 'Artista'} round />
+              ))}
+            </Group>
+          )}
+
+          {albums.length > 0 && (
+            <Group icon={<Library className="h-3.5 w-3.5" />} title="Álbuns">
+              {albums.map((a) => (
+                <Row key={a.key} onClick={() => pick(() => onAlbum(a))} cover={a.artwork} title={a.name} sub={`${albumTypeLabel(a)} · ${a.artist}${a.releaseDate ? ` · ${a.releaseDate.slice(0, 4)}` : ''}`} />
               ))}
             </Group>
           )}

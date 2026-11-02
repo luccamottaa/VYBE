@@ -16,6 +16,7 @@ import {
   Play,
   RefreshCw,
   Sparkles,
+  Star,
   Tags,
   TrendingUp,
   Users,
@@ -30,10 +31,22 @@ import { GlobalSearch } from '@/components/vybe/global-search';
 import { SongSheet } from '@/components/vybe/song-sheet';
 import { ArtistSheet } from '@/components/vybe/artist-sheet';
 import { SearchResults } from '@/components/vybe/search-results';
+import { AlbumSheet } from '@/components/vybe/album-sheet';
+import { albumFrom, type Album } from '@/lib/albums';
+import { Highlights } from '@/components/vybe/highlights';
+import { Following } from '@/components/vybe/following';
+import { PwaBar } from '@/components/vybe/pwa';
+import { VersionBadge } from '@/components/vybe/changelog';
+import { ErrorBoundary, safeMode } from '@/components/vybe/error-boundary';
+import { loadAllCharts } from '@/lib/all-charts';
+import { runAlertCheck, useAlerts } from '@/lib/alerts-store';
+import { readDeepLink, type DeepLink } from '@/lib/deep-link';
+import { useFollows } from '@/lib/follow';
 import { songFrom, type Artist, type Song } from '@/lib/search';
-import { getAppleChart, getSpotifyChart, isStatic, spotifyMarkets } from '@/lib/data-source';
+import { getAppleAlbumChart, getAppleChart, getSpotifyChart, isStatic, spotifyMarkets } from '@/lib/data-source';
 import { Cover, CrossBadges, MetricCard, Movement, Panel, PanelTitle } from '@/components/vybe/ui';
 import {
+  appleAlbumView,
   appleView,
   artwork,
   daysSince,
@@ -56,21 +69,41 @@ import {
 const globalMarket = { flag: '🌍', name: 'Global' };
 const genreColors = ['#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'];
 const tooltipStyle = { backgroundColor: 'var(--popover)', borderColor: 'var(--border)', color: 'var(--popover-foreground)', borderRadius: '0.75rem', fontSize: 12 };
-type View = 'charts' | 'sources';
+type View = 'charts' | 'highlights' | 'following' | 'sources';
+const tabToParam: Record<View, NonNullable<DeepLink['aba']>> = { charts: 'charts', highlights: 'destaques', following: 'seguindo', sources: 'fontes' };
+const paramToTab = Object.fromEntries(Object.entries(tabToParam).map(([k, v]) => [v, k])) as Record<string, View>;
+const initialLink = (): DeepLink => (typeof window === 'undefined' ? {} : readDeepLink(location.search));
 
 export default function Page() {
-  const [source, setSource] = useState<Source>('apple');
-  const [country, setCountry] = useState('br');
-  const [spotifyMarket, setSpotifyMarket] = useState('global');
-  const [tab, setTab] = useState<View>('charts');
+  return (
+    <ErrorBoundary full label="página">
+      <Dashboard />
+    </ErrorBoundary>
+  );
+}
+
+function Dashboard() {
+  const [link] = useState(initialLink);
+  const [source, setSource] = useState<Source>(link.fonte ?? (link.mercado ? 'spotify' : 'apple'));
+  const [country, setCountry] = useState(link.pais && markets[link.pais] ? link.pais : 'br');
+  const [spotifyMarket, setSpotifyMarket] = useState(link.mercado && spotifyMarkets.includes(link.mercado) ? link.mercado : 'global');
+  const [tab, setTab] = useState<View>((link.aba && paramToTab[link.aba]) || 'charts');
   const [query, setQuery] = useState('');
   const [view, setView] = useState<ChartView | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selected, setSelected] = useState<ViewTrack | null>(null);
-  const [song, setSong] = useState<Song | null>(null);
-  const [artist, setArtist] = useState<Artist | null>(null);
-  const [allQuery, setAllQuery] = useState<string | null>(null);
+  const [song, setSong] = useState<Song | null>(() =>
+    link.musica ? songFrom({ name: link.musica, artist: link.artista ?? '', spotifyId: link.spotify, appleId: link.apple }) : null,
+  );
+  const [artist, setArtist] = useState<Artist | null>(() => (!link.musica && !link.album && link.artista ? { name: link.artista } : null));
+  const [allQuery, setAllQuery] = useState<string | null>(link.buscar ?? null);
+  const [kind, setKind] = useState<'songs' | 'albums'>(link.tipo === 'albuns' && isStatic ? 'albums' : 'songs');
+  const [album, setAlbum] = useState<Album | null>(() => (link.album ? albumFrom({ name: link.album, artist: link.artista ?? '' }) : null));
+  const [compact, setCompact] = useState(false);
+  const [safe, setSafe] = useState(false);
+  const follows = useFollows();
+  const { unread } = useAlerts();
   const [cross, setCross] = useState<Map<string, CrossHit[]>>(new Map());
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -82,7 +115,9 @@ export default function Page() {
         const next =
           source === 'spotify'
             ? spotifyView(await getSpotifyChart(spotifyMarket, signal))
-            : appleView(await getAppleChart(country, signal), country);
+            : kind === 'albums'
+              ? appleAlbumView(await getAppleAlbumChart(country, signal), country)
+              : appleView(await getAppleChart(country, signal), country);
         setView(next);
       } catch (e) {
         if ((e as Error).name !== 'AbortError') {
@@ -93,7 +128,7 @@ export default function Page() {
         if (!signal?.aborted) setLoading(false);
       }
     },
-    [source, country, spotifyMarket],
+    [source, country, spotifyMarket, kind],
   );
 
   useEffect(() => {
@@ -130,6 +165,39 @@ export default function Page() {
     return () => c.abort();
   }, [source, country]);
 
+  // Estado da tela na URL (dá pra mandar o link e abre igual). Música/artista abertos não entram: são passageiros.
+  useEffect(() => {
+    const p = new URLSearchParams();
+    if (tab !== 'charts') p.set('aba', tabToParam[tab]);
+    if (source === 'spotify') {
+      p.set('fonte', 'spotify');
+      if (spotifyMarket !== 'global') p.set('mercado', spotifyMarket);
+    } else {
+      if (country !== 'br') p.set('pais', country);
+      if (kind === 'albums') p.set('tipo', 'albuns');
+    }
+    const qs = p.toString();
+    const url = `${location.pathname}${qs ? `?${qs}` : ''}${location.hash}`;
+    if (url !== `${location.pathname}${location.search}${location.hash}`) history.replaceState(null, '', url);
+  }, [tab, source, country, spotifyMarket, kind]);
+
+  // Alertas de quem você segue: compara os charts com a última foto (follow novo só ganha a foto base).
+  useEffect(() => {
+    if (!follows.length) return;
+    loadAllCharts()
+      .then((all) => runAlertCheck(all, follows))
+      .catch(() => {});
+  }, [follows]);
+
+  // Topo vira uma pílula compacta ao rolar; modo seguro desliga a animação pesada.
+  useEffect(() => {
+    setSafe(safeMode());
+    const onScroll = () => setCompact(window.scrollY > 72);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
   // Ctrl/Cmd+K foca a busca
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -142,6 +210,11 @@ export default function Page() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
+
+  // linha do ranking: no Top álbuns abre o álbum; senão, a trajetória da música
+  const albumsView = !!view?.albums;
+  const openTrack = (t: ViewTrack) =>
+    albumsView ? setAlbum(albumFrom({ name: t.name, artist: t.artistName, artwork: t.artworkUrl100, appleId: t.id, appleUrl: t.url, releaseDate: t.releaseDate, genre: t.genre })) : setSelected(t);
 
   const spotify = useMemo(() => (view?.source === 'spotify' ? spotifySummary(view) : null), [view]);
   // Spotify sem login não manda streams: aí os blocos de artistas/lançamentos substituem os de streams.
@@ -164,7 +237,7 @@ export default function Page() {
     const q = query.trim().toLocaleLowerCase();
     return view?.tracks.filter((t) => !q || `${t.name} ${t.artistName}`.toLocaleLowerCase().includes(q)) ?? [];
   }, [view, query]);
-  const hitsFor = (t: ViewTrack) => cross.get(matchKey(t.name, t.artistName)) ?? [];
+  const hitsFor = (t: ViewTrack) => (view?.albums ? [] : (cross.get(matchKey(t.name, t.artistName)) ?? []));
 
   const top = view?.tracks[0];
   const market = markets[country];
@@ -175,24 +248,36 @@ export default function Page() {
   const needsHistory = 'Precisa de 2 dias de registro';
 
   return (
-    <div className="min-h-screen bg-background p-4 font-sans text-slate-100 selection:bg-cyan-500 selection:text-black sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-background px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] font-sans text-slate-100 selection:bg-cyan-500 selection:text-black sm:px-6 sm:pb-6 sm:pt-6 lg:px-8 lg:pb-8 lg:pt-8">
       <div className="pointer-events-none fixed left-1/4 top-0 h-96 w-96 rounded-full bg-cyan-600/10 blur-[120px]" />
       <div className="pointer-events-none fixed bottom-0 right-1/4 h-96 w-96 rounded-full bg-blue-600/10 blur-[120px]" />
 
       <div className="relative z-10 mx-auto max-w-7xl space-y-6">
         {/* Navbar */}
-        <header className="relative z-30 flex flex-col gap-4 rounded-2xl border border-slate-800/80 bg-slate-900/40 p-4 shadow-2xl backdrop-blur-xl lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex w-full items-center gap-3 lg:w-auto">
-            <Link href="/" aria-label="vybe — início" className="flex items-center gap-2">
-              <Logo />
-              <span className="self-start rounded-full border border-cyan-500/20 bg-cyan-500/10 px-2 py-0.5 text-[10px] font-semibold text-cyan-400">BETA</span>
+        <header
+          data-compact={compact || undefined}
+          className={`sticky top-[max(0.5rem,env(safe-area-inset-top))] z-30 flex flex-col border shadow-2xl transition-[padding,gap,border-radius,background-color,box-shadow] duration-300 lg:flex-row lg:items-center lg:justify-between ${
+            compact
+              ? 'gap-2 rounded-[1.4rem] border-slate-700/60 bg-slate-900/75 p-2 shadow-black/30 backdrop-blur-2xl backdrop-saturate-150 lg:px-3'
+              : 'gap-4 rounded-2xl border-slate-800/80 bg-slate-900/40 p-4 backdrop-blur-xl'
+          }`}
+        >
+          <div className="flex w-full items-center gap-2 sm:gap-3 lg:w-auto">
+            <Link href="/" aria-label="vybe — início" className={`flex items-center gap-2 transition-transform duration-300 ${compact ? 'origin-left scale-[0.86]' : ''}`}>
+              <Logo tagline={!compact} />
             </Link>
+            <VersionBadge className={compact ? 'hidden sm:block' : ''} />
             <Segmented
               className="ml-auto lg:ml-6"
               value={tab}
-              onChange={setTab}
+              onChange={(t) => {
+                setTab(t);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
               options={[
                 ['charts', 'Charts', Disc3],
+                ['highlights', 'Destaques', Sparkles],
+                ['following', 'Seguindo', Star, unread],
                 ['sources', 'Fontes', Database],
               ]}
             />
@@ -200,6 +285,7 @@ export default function Page() {
 
           <div className="flex w-full flex-wrap items-center gap-3 sm:flex-nowrap lg:w-auto">
             <Segmented
+              className={compact ? 'max-sm:hidden' : ''}
               value={source}
               onChange={(s) => {
                 setSource(s);
@@ -222,14 +308,15 @@ export default function Page() {
               onSong={setSong}
               onArtist={setArtist}
               onAll={setAllQuery}
+              onAlbum={setAlbum}
             />
             {isSpotify && spotifyMarkets.length < 2 ? (
-              <span className="flex h-9 shrink-0 items-center rounded-xl border border-slate-700/60 bg-slate-800/60 px-3 text-xs text-slate-300" title="Nesta versão o Spotify só tem o Global">
+              <span className={`${compact ? 'max-sm:hidden ' : ''}flex h-9 shrink-0 items-center rounded-xl border border-slate-700/60 bg-slate-800/60 px-3 text-xs text-slate-300`} title="Nesta versão o Spotify só tem o Global">
                 🌍 Global
               </span>
             ) : (
               <Select value={isSpotify ? spotifyMarket : country} onValueChange={(v) => v && (isSpotify ? setSpotifyMarket(v) : setCountry(v))}>
-                <SelectTrigger aria-label="País do ranking" className="h-9 w-auto shrink-0 rounded-xl border-slate-700/60 bg-slate-800/60 text-xs text-slate-200">
+                <SelectTrigger aria-label="País do ranking" className={`${compact ? 'max-sm:hidden ' : ''}h-9 w-auto shrink-0 rounded-xl border-slate-700/60 bg-slate-800/60 text-xs text-slate-200`}>
                   <SelectValue>{`${place.flag} ${(isSpotify ? spotifyMarket : country).toUpperCase()}`}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
@@ -245,7 +332,17 @@ export default function Page() {
         </header>
 
         {tab === 'sources' ? (
-          <Sources />
+          <ErrorBoundary label="fontes">
+            <Sources />
+          </ErrorBoundary>
+        ) : tab === 'highlights' ? (
+          <ErrorBoundary label="destaques">
+            <Highlights onSong={setSong} onArtist={setArtist} />
+          </ErrorBoundary>
+        ) : tab === 'following' ? (
+          <ErrorBoundary label="seguindo">
+            <Following onSong={setSong} onArtist={setArtist} />
+          </ErrorBoundary>
         ) : error ? (
           <Panel className="flex flex-col items-center gap-3 py-16 text-center">
             <Music2 className="h-10 w-10 text-slate-600" />
@@ -260,9 +357,23 @@ export default function Page() {
             {view?.stale && <Notice>A fonte não respondeu. Exibindo o último ranking salvo, de {shortDate(view.updated)}.</Notice>}
             {view && !view.historyAvailable && !view.stale && <Notice>Histórico indisponível agora. O ranking abre normal, mas este registro não foi salvo.</Notice>}
 
+            {!isSpotify && isStatic && (
+              <div className="flex items-center gap-3">
+                <Segmented
+                  value={kind}
+                  onChange={setKind}
+                  options={[
+                    ['songs', 'Músicas'],
+                    ['albums', 'Álbuns'],
+                  ]}
+                />
+                <span className="text-xs text-slate-500">{kind === 'albums' ? 'Top 100 álbuns mais tocados na Apple Music' : 'Top 100 músicas mais tocadas na Apple Music'}</span>
+              </div>
+            )}
+
             {/* Hero: #1 */}
             <section className="theme-dark relative overflow-hidden rounded-3xl border border-slate-800/80 bg-gradient-to-br from-slate-900 via-[#0a1430] to-slate-950 p-6 text-slate-100 shadow-2xl lg:p-8">
-              <DitherField palette={palettes[source]} className="pointer-events-none absolute inset-0 h-full w-full" />
+              {!safe && <DitherField palette={palettes[source]} className="pointer-events-none absolute inset-0 h-full w-full" />}
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#070a11]/85 via-[#070a11]/35 to-transparent" />
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#070a11]/60 to-transparent md:hidden" />
               <div className="relative z-10 flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
@@ -313,8 +424,8 @@ export default function Page() {
                       <Play className="h-4 w-4 fill-[#020617]" /> Ouvir no {isSpotify ? 'Spotify' : 'Apple Music'}
                     </a>
                     <button
-                      onClick={() => setSelected(top)}
-                      aria-label={`Ver trajetória de ${top.name}`}
+                      onClick={() => openTrack(top)}
+                      aria-label={`${albumsView ? 'Abrir o álbum' : 'Ver trajetória de'} ${top.name}`}
                       className="rounded-xl border border-slate-700/80 bg-slate-800/80 p-3 text-slate-300 transition-all hover:bg-slate-700/80"
                     >
                       <ArrowUpRight className="h-4 w-4" />
@@ -351,7 +462,7 @@ export default function Page() {
                     value={apple ? apple.artistCount : '—'}
                     icon={<Users className="h-4 w-4" />}
                     tone="blue"
-                    badge={apple?.topArtists[0] ? `${apple.topArtists[0].count} faixas` : undefined}
+                    badge={apple?.topArtists[0] ? `${apple.topArtists[0].count} ${albumsView ? "álbuns" : "faixas"}` : undefined}
                     note={apple?.topArtists[0] ? `${apple.topArtists[0].artist} lidera` : undefined}
                   />
                   <MetricCard
@@ -413,7 +524,7 @@ export default function Page() {
                   </>
                 ) : (
                   <>
-                    <PanelTitle icon={<BarChart3 className="h-4 w-4 text-cyan-400" />} title={`Quem domina o Top ${view?.tracks.length || 100}`} hint="Faixas por artista, contando colaborações para cada nome" />
+                    <PanelTitle icon={<BarChart3 className="h-4 w-4 text-cyan-400" />} title={`Quem domina o Top ${view?.tracks.length || 100}`} hint={`${albumsView ? "Álbuns" : "Faixas"} por artista, contando colaborações para cada nome`} />
                     <div className="h-72 w-full">
                       {apple?.topArtists.length ? (
                         <ResponsiveContainer width="100%" height="100%">
@@ -426,7 +537,7 @@ export default function Page() {
                             </defs>
                             <XAxis type="number" allowDecimals={false} stroke="#475569" fontSize={11} tickLine={false} axisLine={false} />
                             <YAxis type="category" dataKey="artist" width={130} stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
-                            <Tooltip cursor={{ fill: 'rgba(6,182,212,0.06)' }} formatter={(v) => [v, 'Faixas']} contentStyle={tooltipStyle} />
+                            <Tooltip cursor={{ fill: 'rgba(6,182,212,0.06)' }} formatter={(v) => [v, albumsView ? "Álbuns" : "Faixas"]} contentStyle={tooltipStyle} />
                             <Bar dataKey="count" fill="url(#barGlow)" radius={[0, 6, 6, 0]} barSize={18} />
                           </BarChart>
                         </ResponsiveContainer>
@@ -447,7 +558,7 @@ export default function Page() {
                     {(climbers.length ? climbers : view?.tracks ?? []).slice(0, 5).map((t) => (
                       <button
                         key={t.id}
-                        onClick={() => setSelected(t)}
+                        onClick={() => openTrack(t)}
                         className="group flex w-full items-center justify-between gap-2 rounded-2xl border border-slate-800/50 bg-slate-950/40 p-3 text-left transition-all hover:border-slate-700/80"
                       >
                         <div className="flex min-w-0 items-center gap-3">
@@ -473,7 +584,7 @@ export default function Page() {
                       {spotify?.veterans.length ? (
                         <div className="grid grid-cols-2 gap-2">
                           {spotify.veterans.map((t) => (
-                            <button key={t.id} onClick={() => setSelected(t)} className="rounded-xl border border-slate-800/60 bg-slate-950/50 p-2.5 text-left hover:border-slate-700">
+                            <button key={t.id} onClick={() => openTrack(t)} className="rounded-xl border border-slate-800/60 bg-slate-950/50 p-2.5 text-left hover:border-slate-700">
                               <span className="block truncate text-[10px] text-slate-400">{t.name}</span>
                               <strong className="text-sm font-black text-white">{t.days}</strong> <span className="text-[10px] text-slate-500">{tenure(t.days ?? 0, weekly).split(' ')[1]}</span>
                             </button>
@@ -510,7 +621,7 @@ export default function Page() {
                         recentReleases.length ? (
                           <div className="grid grid-cols-2 gap-2">
                             {recentReleases.map((t) => (
-                              <button key={t.id} onClick={() => setSelected(t)} className="rounded-xl border border-slate-800/60 bg-slate-950/50 p-2.5 text-left hover:border-slate-700">
+                              <button key={t.id} onClick={() => openTrack(t)} className="rounded-xl border border-slate-800/60 bg-slate-950/50 p-2.5 text-left hover:border-slate-700">
                                 <span className="block truncate text-[10px] text-slate-400">{t.name}</span>
                                 <strong className="text-sm font-black text-white">#{t.rank}</strong>{' '}
                                 <span className="text-[10px] text-slate-500">{shortDate(`${t.releaseDate}T00:00:00Z`)}</span>
@@ -557,7 +668,7 @@ export default function Page() {
                     return (
                       <li key={t.id}>
                         <button
-                          onClick={() => setSelected(t)}
+                          onClick={() => openTrack(t)}
                           className="group flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-800/30 sm:gap-4 sm:px-6"
                         >
                           <span className={`w-8 shrink-0 text-center text-sm font-black tabular-nums ${t.rank <= 3 ? 'text-cyan-400' : 'text-slate-500'}`}>
@@ -626,7 +737,30 @@ export default function Page() {
           setSong(songFrom({ name: t.name, artist: t.artistName, artwork: t.artworkUrl100, ...(isSpotify ? { spotifyId: t.id } : { appleId: t.id }) }));
         }}
       />
-      <SongSheet song={song} onClose={() => setSong(null)} onArtist={(name, artistId) => { setSong(null); setArtist({ name, artistId }); }} />
+      <SongSheet
+        song={song}
+        onClose={() => setSong(null)}
+        onArtist={(name, artistId) => {
+          setSong(null);
+          setArtist({ name, artistId });
+        }}
+        onAlbum={(a) => {
+          setSong(null);
+          setAlbum(a);
+        }}
+      />
+      <AlbumSheet
+        album={album}
+        onClose={() => setAlbum(null)}
+        onSong={(s) => {
+          setAlbum(null);
+          setSong(s);
+        }}
+        onArtist={(name) => {
+          setAlbum(null);
+          setArtist({ name });
+        }}
+      />
       <SearchResults
         query={allQuery}
         onClose={() => setAllQuery(null)}
@@ -638,8 +772,24 @@ export default function Page() {
           setAllQuery(null);
           setArtist(a);
         }}
+        onAlbum={(a) => {
+          setAllQuery(null);
+          setAlbum(a);
+        }}
       />
-      <ArtistSheet artist={artist} onClose={() => setArtist(null)} onSong={(s) => { setArtist(null); setSong(s); }} />
+      <ArtistSheet
+        artist={artist}
+        onClose={() => setArtist(null)}
+        onSong={(s) => {
+          setArtist(null);
+          setSong(s);
+        }}
+        onAlbum={(a) => {
+          setArtist(null);
+          setAlbum(a);
+        }}
+      />
+      <PwaBar />
     </div>
   );
 }
@@ -652,24 +802,29 @@ function Segmented<T extends string>({
 }: {
   value: T;
   onChange: (v: T) => void;
-  options: readonly (readonly [T, string, React.ComponentType<{ className?: string }>?])[];
+  options: readonly (readonly [T, string, React.ComponentType<{ className?: string }>?, number?])[];
   className?: string;
 }) {
   return (
     <div role="tablist" className={`flex shrink-0 items-center rounded-xl border border-slate-800 bg-slate-950/80 p-1 ${className}`}>
-      {options.map(([id, label, Icon]) => (
+      {options.map(([id, label, Icon, badge]) => (
         <button
           key={id}
           role="tab"
           aria-selected={value === id}
           aria-label={label}
           onClick={() => onChange(id)}
-          className={`flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
+          className={`relative flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
             value === id ? 'bg-cyan-500 font-bold text-[#020617] shadow-md' : 'text-slate-400 hover:text-white'
           }`}
         >
           {Icon && <Icon className="h-3.5 w-3.5" />}
-          <span className={Icon ? 'hidden sm:inline' : undefined}>{label}</span>
+          <span className={Icon ? 'hidden md:inline lg:hidden xl:inline' : undefined}>{label}</span>
+          {!!badge && (
+            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-black text-white ring-2 ring-slate-950">
+              {badge > 9 ? '9+' : badge}
+            </span>
+          )}
         </button>
       ))}
     </div>

@@ -7,6 +7,9 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '
 import { artwork, daysSince, fmtCompact, fmtFull, matchKey, releaseLabel, shortDate, tenure, type ChartView, type CrossHit, type ViewTrack } from '@/lib/vybe';
 import { Cover, CrossBadges, Movement } from './ui';
 import { getLastfm, type LastfmRow, type Point } from '@/lib/data-source';
+import { buildDeepLink } from '@/lib/deep-link';
+import { FollowButton } from './follow-button';
+import { ShareButton } from './share-button';
 import { SpotifyAllTime } from './spotify-all-time';
 import { StreamCount } from './stream-count';
 
@@ -35,12 +38,14 @@ export function TrackSheet({
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [period, setPeriod] = useState<number>(30);
+  const [total, setTotal] = useState<number | null>(null);
   const trackId = track?.id;
 
   useEffect(() => {
     if (!trackId || !view) return;
     const c = new AbortController();
     setPoints([]);
+    setTotal(null);
     setError('');
     setLoading(true);
     view
@@ -86,6 +91,30 @@ export function TrackSheet({
                   {!!track.days && <Tag>{tenure(track.days, !!view?.chartKey?.includes('weekly'))} no chart</Tag>}
                 </div>
               </div>
+            </div>
+
+            <div className="flex gap-2">
+              <FollowButton
+                className="flex-1"
+                target={{ kind: 'song', key: matchKey(track.name, track.artistName), name: track.name, artist: track.artistName, artwork: track.artworkUrl100, ...(spotify ? { spotifyId: track.id } : { appleId: track.id }) }}
+              />
+              <ShareButton
+                className="flex-1"
+                link={buildDeepLink({ musica: track.name, artista: track.artistName, ...(spotify ? { spotify: track.id } : { apple: track.id }) })}
+                data={() => ({
+                  kicker: view?.title.split(' · ').reverse().join(' · ') ?? 'vybe',
+                  title: track.name,
+                  subtitle: track.artistName,
+                  artwork: track.artworkUrl100 ? artwork(track.artworkUrl100, 600) : undefined,
+                  stats: [
+                    { label: 'Posição', value: `#${track.rank}`, tone: 'cyan' as const },
+                    ...(best && best !== track.rank ? [{ label: track.peak ? 'Pico' : 'Melhor', value: `#${best}`, tone: 'amber' as const }] : []),
+                    ...(total ? [{ label: 'Streams no Spotify', value: fmtCompact(total), tone: 'green' as const }] : typeof track.streams === 'number' ? [{ label: 'Streams no dia', value: fmtCompact(track.streams), tone: 'green' as const }] : []),
+                  ],
+                  positions: cross.map((c) => ({ label: c.label, rank: c.rank })),
+                  date: view ? shortDate(view.updated) : undefined,
+                })}
+              />
             </div>
 
             <div className="grid grid-cols-3 gap-2">
@@ -136,7 +165,7 @@ export function TrackSheet({
               );
             })()}
 
-            <StreamCount {...(spotify ? { spotifyId: track.id } : { name: track.name, artist: track.artistName, songKey: matchKey(track.name, track.artistName) })} />
+            <StreamCount onTotal={setTotal} {...(spotify ? { spotifyId: track.id } : { name: track.name, artist: track.artistName, songKey: matchKey(track.name, track.artistName) })} />
 
             <SpotifyAllTime {...(spotify ? { spotifyId: track.id } : { name: track.name, artist: track.artistName, songKey: matchKey(track.name, track.artistName) })} />
 

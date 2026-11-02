@@ -63,9 +63,14 @@ async function call(path, id, key) {
 }
 
 /** Usa o caminho configurado/descoberto; senão testa os candidatos. Devolve { res, path, tried }. */
+// Cada tentativa gasta 1 chamada do plano do RapidAPI. Por isso, fora do modo de descoberta
+// (MSC_DISCOVER=1), usa só o caminho configurado ou o primeiro candidato (o que já funciona pro total),
+// e o histórico só é chamado quando MSC_HISTORY_PATH estiver configurado.
 async function resolve(kind, id, env) {
   const configured = kind === 'current' ? env.MSC_CURRENT_PATH : env.MSC_HISTORY_PATH;
-  const list = configured ? [configured] : found[kind] ? [found[kind]] : kind === 'current' ? CURRENT_CANDIDATES : HISTORY_CANDIDATES;
+  const candidates = kind === 'current' ? CURRENT_CANDIDATES : HISTORY_CANDIDATES;
+  const discover = env.MSC_DISCOVER === '1';
+  const list = configured ? [configured] : found[kind] ? [found[kind]] : discover ? candidates : kind === 'current' ? candidates.slice(0, 1) : [];
   const tried = [];
   for (const path of list) {
     const res = await call(path, id, env.RAPIDAPI_KEY);
@@ -138,7 +143,8 @@ export async function trackStreams(query, env, findId) {
   if (!id && query.name && query.artist && findId) id = (await findId(String(query.name).slice(0, 200), String(query.artist).slice(0, 200))) ?? '';
   if (!/^[A-Za-z0-9]{22}$/.test(id)) return out(id ? 400 : 404, { error: id ? 'id do Spotify inválido.' : 'Não achei essa música no Spotify.' });
 
-  const [cur, hist] = await Promise.all([resolve('current', id, env), query.history === '0' ? null : resolve('history', id, env)]);
+  const wantHistory = query.history !== '0' && (env.MSC_HISTORY_PATH || env.MSC_DISCOVER === '1');
+  const [cur, hist] = await Promise.all([resolve('current', id, env), wantHistory ? resolve('history', id, env) : null]);
   if (cur.res && (cur.res.status === 401 || cur.res.status === 403))
     return out(502, { error: 'O RapidAPI recusou a chave (confira a RAPIDAPI_KEY e a assinatura do plano).', detail: cur.res.text }, false);
   if (cur.res?.status === 429) return out(429, { error: 'Limite do plano do MyStreamCount atingido, tenta mais tarde.' }, false);
@@ -156,6 +162,6 @@ export async function trackStreams(query, env, findId) {
     source: 'MyStreamCount',
     paths: { current: cur.path, history: hist?.path ?? null },
     // diagnóstico enquanto o formato do histórico não estiver confirmado
-    ...(history.length ? {} : { historyDebug: hist ? { tried: hist.tried, sample: hist.res?.text ?? null } : null }),
+    ...(history.length || !hist ? {} : { historyDebug: { tried: hist.tried, sample: hist.res?.text ?? null } }),
   });
 }

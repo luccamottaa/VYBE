@@ -1,0 +1,67 @@
+# Validação de todo PR: tipos, testes, build estático e smoke test visual em Chromium e WebKit (Safari).
+name: Validar
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: validate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Ativar pnpm
+        run: corepack enable && corepack prepare --activate
+
+      - name: Instalar dependências
+        run: pnpm install --frozen-lockfile
+        env:
+          SITES_PNPM_SHARED_STORE: ${{ runner.temp }}/pnpm-store
+
+      - name: Tipos (tsc)
+        run: pnpm exec tsc --noEmit -p .
+
+      - name: Testes (node --test)
+        run: node --test tests/*.test.ts
+
+      - name: Build estático
+        run: pnpm exec vite build -c vite.pages.config.ts
+        env:
+          VITE_STATIC: '1'
+          PAGES_BASE: /VYBE/
+
+      - name: Dados de teste + páginas de SEO
+        run: |
+          mkdir -p dist-pages/data
+          cp -r tests/fixtures/data/. dist-pages/data/
+          node scripts/pages/seo.ts dist-pages
+
+      - name: Instalar Playwright (Chromium + WebKit)
+        run: |
+          npm install --no-save --prefix "$RUNNER_TEMP/pw" playwright@1.56.1
+          "$RUNNER_TEMP/pw/node_modules/.bin/playwright" install --with-deps chromium webkit
+
+      - name: Smoke test visual
+        run: |
+          pnpm exec vite preview -c vite.pages.config.ts --port 4173 --strictPort > preview.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf -o /dev/null http://127.0.0.1:4173/VYBE/ && break; sleep 1; done
+          NODE_PATH="$RUNNER_TEMP/pw/node_modules" node tests/e2e/smoke.cjs http://127.0.0.1:4173/VYBE/ chromium webkit
+
+      - name: Screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 7

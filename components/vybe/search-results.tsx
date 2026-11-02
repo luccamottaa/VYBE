@@ -1,7 +1,8 @@
 'use client';
 
+import { albumTypeLabel, searchAlbums, type Album } from '@/lib/albums';
 import { useEffect, useRef, useState } from 'react';
-import { Loader2, Music2, Search, User } from 'lucide-react';
+import { Library, Loader2, Music2, Search, User } from 'lucide-react';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import {
   STOREFRONTS,
@@ -17,7 +18,7 @@ import {
   type Artist,
   type Song,
 } from '@/lib/search';
-import { fmtCompact } from '@/lib/vybe';
+import { artwork, fmtCompact } from '@/lib/vybe';
 import { PreviewButton } from './preview';
 import { Cover } from './ui';
 
@@ -34,14 +35,17 @@ export function SearchResults({
   onClose,
   onSong,
   onArtist,
+  onAlbum,
 }: {
   query: string | null;
   onClose: () => void;
   onSong: (s: Song) => void;
   onArtist: (a: Artist) => void;
+  onAlbum: (a: Album) => void;
 }) {
+  const [albums, setAlbums] = useState<Album[]>([]);
   const [query, setQuery] = useState('');
-  const [tab, setTab] = useState<'songs' | 'artists'>('songs');
+  const [tab, setTab] = useState<'songs' | 'albums' | 'artists'>('songs');
   const [songs, setSongs] = useState<Song[]>([]);
   const [artists, setArtists] = useState<Artist[]>([]);
   const [next, setNext] = useState<number | null>(null);
@@ -65,6 +69,10 @@ export function SearchResults({
     const t = setTimeout(async () => {
       setLoading(true);
       setErrors([]);
+      setAlbums([]);
+      searchAlbums(q, c.signal, 30)
+        .then((a) => !c.signal.aborted && setAlbums(a))
+        .catch(() => {});
       const [spotify, spA, idx, apple, deezer, idxA, apA, dzA] = await Promise.allSettled([
         Promise.all([0, 10, 20].map((o) => searchSpotifySongs(q, o, c.signal))),
         searchSpotifyArtists(q, c.signal),
@@ -145,6 +153,7 @@ export function SearchResults({
               {(
                 [
                   ['songs', `Músicas${songs.length ? ` (${songs.length})` : ''}`],
+                  ['albums', `Álbuns${albums.length ? ` (${albums.length})` : ''}`],
                   ['artists', `Artistas${artists.length ? ` (${artists.length})` : ''}`],
                 ] as const
               ).map(([id, label]) => (
@@ -206,6 +215,23 @@ export function SearchResults({
               </>
             ) : (
               <Empty loading={loading} icon={<Music2 className="h-8 w-8" />} text="Nenhuma música encontrada." />
+            )
+          ) : tab === 'albums' ? (
+            albums.length ? (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {albums.map((a) => (
+                  <button key={a.key} onClick={() => onAlbum(a)} className="group text-left">
+                    <Cover src={a.artwork ? artwork(a.artwork, 300) : ''} alt="" className="aspect-square w-full rounded-2xl transition-transform group-hover:-translate-y-0.5 group-hover:border-cyan-500/40" />
+                    <span className="mt-1.5 block truncate text-xs font-bold text-white group-hover:text-cyan-300">{a.name}</span>
+                    <span className="block truncate text-[10px] text-slate-500">
+                      {a.artist} · {albumTypeLabel(a)}
+                      {a.releaseDate && ` · ${a.releaseDate.slice(0, 4)}`}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <Empty loading={loading} icon={<Library className="h-8 w-8" />} text="Nenhum álbum encontrado." />
             )
           ) : artists.length ? (
             <ul className="space-y-2">

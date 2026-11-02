@@ -2,17 +2,36 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="color-scheme" content="dark light" />
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#070a11" />
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f4f7fb" />
     <script>(()=>{const m=matchMedia('(prefers-color-scheme: dark)');const s=()=>document.documentElement.classList.toggle('dark',m.matches);s();m.addEventListener('change',s)})()</script>
     <title>vybe · do play ao topo</title>
-    <meta name="description" content="Charts do Apple Music e do Spotify, streams, posições e histórico." />
+    <meta name="description" content="Charts do Apple Music e do Spotify, streams, posições e o histórico de cada música, todo dia." />
+    <link rel="canonical" href="%VITE_SITE_URL%" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="vybe" />
+    <meta name="application-name" content="vybe" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="pt_BR" />
+    <meta property="og:site_name" content="vybe" />
+    <meta property="og:title" content="vybe · do play ao topo" />
+    <meta property="og:description" content="Charts do Apple Music e do Spotify, streams e o histórico de cada música." />
+    <meta property="og:url" content="%VITE_SITE_URL%" />
+    <meta property="og:image" content="%VITE_SITE_URL%og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="%VITE_SITE_URL%og.png" />
   </head>
   <body class="antialiased">
+    <noscript>O vybe precisa de JavaScript pra mostrar os charts.</noscript>
     <div id="root"></div>
     <script type="module" src="./main.tsx"></script>
   </body>

@@ -1,17 +1,12 @@
-import { getAppleHistory, getSpotifyHistory, type Point } from './data-source';
+import { getAppleAlbumHistory, getAppleHistory, getSpotifyHistory, type Point } from './data-source';
 import { matchKey, splitArtists } from './sources/match.ts';
 
 export { matchKey, splitArtists };
 
 // Tipos e helpers do lado do cliente. Não importar lib/chart.ts aqui (depende do runtime Cloudflare).
 
-export const markets: Record<string, { name: string; flag: string }> = {
-  br: { name: 'Brasil', flag: '🇧🇷' },
-  us: { name: 'Estados Unidos', flag: '🇺🇸' },
-  kr: { name: 'Coreia do Sul', flag: '🇰🇷' },
-  jp: { name: 'Japão', flag: '🇯🇵' },
-  gb: { name: 'Reino Unido', flag: '🇬🇧' },
-};
+export { markets } from './sources/markets.ts';
+import { markets } from './sources/markets.ts';
 
 export type Track = {
   id: string;
@@ -110,6 +105,8 @@ export type ChartView = {
   loadHistory: (id: string, signal?: AbortSignal) => Promise<Point[]>;
   sourceUrl: string;
   chartKey?: string; // alias do Spotify
+  /** ranking de álbuns (cada linha é um álbum) */
+  albums?: boolean;
 };
 
 export type SpotifyPayload = {
@@ -153,6 +150,17 @@ export function appleView(chart: Chart & { days: number }, country: string): Cha
     }`,
     loadHistory: (id, signal) => getAppleHistory(country, id, signal),
     sourceUrl: `https://rss.marketingtools.apple.com/api/v2/${country}/music/most-played/100/songs.json`,
+  };
+}
+
+export function appleAlbumView(chart: Chart & { days: number }, country: string): ChartView {
+  const m = markets[country];
+  return {
+    ...appleView(chart, country),
+    title: `Top 100 Álbuns Apple Music · ${m.flag} ${m.name}`,
+    loadHistory: (id, signal) => getAppleAlbumHistory(country, id, signal),
+    sourceUrl: `https://rss.marketingtools.apple.com/api/v2/${country}/music/most-played/100/albums.json`,
+    albums: true,
   };
 }
 

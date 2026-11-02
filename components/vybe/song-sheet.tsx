@@ -8,7 +8,11 @@ import { findHits, loadAllCharts, marketLabel, songHistory, type ChartHit } from
 import { getLastfm, type LastfmRow, type Point } from '@/lib/data-source';
 import { findInIndex, searchCatalogSongs, type Song } from '@/lib/search';
 import { artwork, fmtCompact, fmtFull, shortDate } from '@/lib/vybe';
+import { buildDeepLink } from '@/lib/deep-link';
+import { FollowButton } from './follow-button';
 import { PreviewButton } from './preview';
+import { albumFrom, type Album } from '@/lib/albums';
+import { ShareButton } from './share-button';
 import { SpotifyAllTime } from './spotify-all-time';
 import { StreamCount } from './stream-count';
 import { Cover, Movement } from './ui';
@@ -19,12 +23,23 @@ const colors: Record<string, string> = {
   'sp:global': '#10b981', 'sp:br': '#22c55e', 'sp:us': '#14b8a6', 'sp:kr': '#06b6d4', 'sp:jp': '#84cc16', 'sp:gb': '#2dd4bf',
 };
 
-export function SongSheet({ song, onClose, onArtist }: { song: Song | null; onClose: () => void; onArtist: (name: string, artistId?: string) => void }) {
+export function SongSheet({
+  song,
+  onClose,
+  onArtist,
+  onAlbum,
+}: {
+  song: Song | null;
+  onClose: () => void;
+  onArtist: (name: string, artistId?: string) => void;
+  onAlbum?: (a: Album) => void;
+}) {
   const [full, setFull] = useState<Song | null>(null);
   const [hits, setHits] = useState<ChartHit[]>([]);
   const [series, setSeries] = useState<[string, Point[]][]>([]);
   const [loading, setLoading] = useState(false);
   const [lastfm, setLastfm] = useState<Record<string, LastfmRow>>({});
+  const [total, setTotal] = useState<number | null>(null);
 
   useEffect(() => {
     getLastfm().then(setLastfm);
@@ -36,6 +51,7 @@ export function SongSheet({ song, onClose, onArtist }: { song: Song | null; onCl
     setFull(song);
     setHits([]);
     setSeries([]);
+    setTotal(null);
     setLoading(true);
     (async () => {
       // completa com o índice (ids das duas fontes e mercados por onde já passou)
@@ -45,7 +61,7 @@ export function SongSheet({ song, onClose, onArtist }: { song: Song | null; onCl
         try {
           const found = await searchCatalogSongs(`${s.name} ${s.artist.split(/,|&/)[0]}`, undefined, 5);
           const same = found.find((x) => x.key === s.key);
-          if (same) Object.assign(s, { preview: same.preview, appleUrl: s.appleUrl ?? same.appleUrl, album: s.album ?? same.album, releaseDate: s.releaseDate ?? same.releaseDate, artistId: s.artistId ?? same.artistId, artwork: s.artwork ?? same.artwork });
+          if (same) Object.assign(s, { preview: same.preview, appleUrl: s.appleUrl ?? same.appleUrl, album: s.album ?? same.album, albumId: s.albumId ?? same.albumId, releaseDate: s.releaseDate ?? same.releaseDate, artistId: s.artistId ?? same.artistId, artwork: s.artwork ?? same.artwork });
         } catch {
           /* sem prévia, tudo bem */
         }
@@ -106,12 +122,45 @@ export function SongSheet({ song, onClose, onArtist }: { song: Song | null; onCl
                 </button>
                 {(full.album || full.releaseDate) && (
                   <p className="mt-1 truncate text-xs text-slate-500">
-                    {full.album}
+                    {full.album && onAlbum ? (
+                      <button
+                        onClick={() => onAlbum(albumFrom({ name: full.album!, artist: full.artist, artwork: full.artwork, appleId: full.albumId }))}
+                        className="font-semibold text-slate-300 underline decoration-slate-600 underline-offset-2 hover:text-cyan-300"
+                      >
+                        💿 {full.album}
+                      </button>
+                    ) : (
+                      full.album
+                    )}
                     {full.album && full.releaseDate && ' · '}
                     {full.releaseDate && shortDate(`${full.releaseDate}T00:00:00Z`)}
                   </p>
                 )}
               </div>
+            </div>
+
+            <div className="flex gap-2">
+              <FollowButton
+                className="flex-1"
+                target={{ kind: 'song', key: full.key, name: full.name, artist: full.artist, artwork: full.artwork, spotifyId, appleId: full.appleId ?? hits.find((h) => h.market.startsWith('ap:'))?.id }}
+              />
+              <ShareButton
+                className="flex-1"
+                link={buildDeepLink({ musica: full.name, artista: full.artist, spotify: spotifyId })}
+                data={() => ({
+                  kicker: hits.length ? `No vybe · em ${hits.length} ${hits.length === 1 ? 'chart' : 'charts'} agora` : 'No vybe',
+                  title: full.name,
+                  subtitle: full.artist,
+                  artwork: full.artwork ? artwork(full.artwork, 600) : undefined,
+                  stats: [
+                    ...(hits.length ? [{ label: 'Melhor posição agora', value: `#${hits[0].rank}`, tone: 'cyan' as const }] : []),
+                    ...(total ? [{ label: 'Streams no Spotify', value: fmtCompact(total), tone: 'green' as const }] : []),
+                    ...(lf && !('missing' in lf) ? [{ label: 'Ouvintes Last.fm', value: fmtCompact(lf.listeners), tone: 'amber' as const }] : []),
+                  ],
+                  positions: hits.map((h) => ({ label: h.label, rank: h.rank })),
+                  date: new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }),
+                })}
+              />
             </div>
 
             <section>
@@ -145,7 +194,7 @@ export function SongSheet({ song, onClose, onArtist }: { song: Song | null; onCl
               )}
             </section>
 
-            {!loading && <StreamCount spotifyId={spotifyId} name={full.name} artist={full.artist} songKey={full.key} />}
+            {!loading && <StreamCount spotifyId={spotifyId} name={full.name} artist={full.artist} songKey={full.key} onTotal={setTotal} />}
 
             {!loading && (
               <SpotifyAllTime
