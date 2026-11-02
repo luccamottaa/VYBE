@@ -1,1 +1,1 @@
-{"ran":"2026-11-02T04:56:53.683Z","report":["apple:br ok (2026-11-02)","apple:us ok (2026-11-02)","apple:kr ok (2026-11-02)","apple:jp ERRO The operation was aborted due to timeout","apple:gb ok (2026-11-02)","spotify ERRO CSV diário respondeu 404; JSON público sem chart Global"]}
+{"ran":"2026-11-02T05:01:25.513Z","report":["apple:br ok (2026-11-02)","apple:us ok (2026-11-02)","apple:kr ok (2026-11-02)","apple:jp ok (2026-11-02)","apple:gb ERRO The operation was aborted due to timeout (mantido o último)","spotify ok (regional-global-weekly 2026-10-29, via json)"]}
