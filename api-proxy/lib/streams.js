@@ -22,9 +22,14 @@ const CURRENT_CANDIDATES = [
   '/stream-count/{id}',
   '/{id}',
 ];
+// Doc do RapidAPI: o histórico recebe trackId como query param.
 const HISTORY_CANDIDATES = [
-  '/v1/spotify/tracks/{id}/streams/historical',
   '/v1/spotify/tracks/streams/historical?trackId={id}',
+  '/v1/spotify/tracks/historical?trackId={id}',
+  '/v1/spotify/streams/historical?trackId={id}',
+  '/v1/spotify/tracks/streams/history?trackId={id}',
+  '/v1/spotify/historical?trackId={id}',
+  '/v1/spotify/tracks/{id}/streams/historical',
   '/v1/spotify/tracks/{id}/streams/history',
   '/v1/tracks/{id}/streams/historical',
   '/tracks/{id}/streams/historical',
@@ -66,10 +71,12 @@ async function resolve(kind, id, env) {
     const res = await call(path, id, env.RAPIDAPI_KEY);
     tried.push({ path, status: res.status, sample: res.missing ? 'endpoint inexistente' : res.text.slice(0, 120) });
     if (res.status === 401 || res.status === 403) return { res, path, tried }; // chave/assinatura: não adianta seguir
-    if (!res.missing) {
-      if (!configured && res.status < 500) found[kind] = path;
+    const usable = kind === 'history' ? res.status === 200 : !res.missing;
+    if (usable) {
+      if (!configured) found[kind] = path;
       return { res, path, tried };
     }
+    if (res.status === 429) return { res, path, tried };
   }
   return { res: null, path: null, tried };
 }
@@ -148,5 +155,7 @@ export async function trackStreams(query, env, findId) {
     history,
     source: 'MyStreamCount',
     paths: { current: cur.path, history: hist?.path ?? null },
+    // diagnóstico enquanto o formato do histórico não estiver confirmado
+    ...(history.length ? {} : { historyDebug: hist ? { tried: hist.tried, sample: hist.res?.text ?? null } : null }),
   });
 }
