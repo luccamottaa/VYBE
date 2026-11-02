@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ExternalLink, History, Loader2 } from 'lucide-react';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { findInIndex } from '@/lib/search';
 import { getAllTime, type AllTimeResult } from '@/lib/spotify-history';
 import { fmtCompact, fmtFull, markets } from '@/lib/vybe';
 
@@ -12,7 +13,18 @@ const longDate = (d: string) => new Date(`${d}T00:00:00Z`).toLocaleDateString('p
 const axisDate = (d: string) => new Date(`${d}T00:00:00Z`).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit', timeZone: 'UTC' });
 
 /** Histórico completo da música nos charts do Spotify, desde a primeira vez que entrou. */
-export function SpotifyAllTime({ spotifyId, appleId, deezerId }: { spotifyId?: string; appleId?: string; deezerId?: string }) {
+export function SpotifyAllTime({
+  spotifyId,
+  appleId,
+  deezerId,
+  songKey,
+}: {
+  spotifyId?: string;
+  appleId?: string;
+  deezerId?: string;
+  /** matchKey da música: sem id do Spotify, procura primeiro no índice do vybe */
+  songKey?: string;
+}) {
   const [res, setRes] = useState<AllTimeResult | null>(null);
   const [mode, setMode] = useState<'daily' | 'weekly'>('daily');
   const [market, setMarket] = useState('global');
@@ -20,12 +32,18 @@ export function SpotifyAllTime({ spotifyId, appleId, deezerId }: { spotifyId?: s
   useEffect(() => {
     let alive = true;
     setRes(null);
-    const p = getAllTime({ spotifyId, appleId, deezerId });
-    if (!p) {
-      setRes({ ok: false, notFound: true, error: 'Sem identificação dessa música no Spotify.' });
-      return;
-    }
-    p.then((r) => {
+    (async () => {
+      const fromIndex = !spotifyId && songKey ? (await findInIndex(songKey))?.spotifyId : undefined;
+      return getAllTime({ spotifyId: spotifyId ?? fromIndex, appleId, deezerId });
+    })().then((p) => {
+      if (!alive) return;
+      if (!p) {
+        setRes({ ok: false, notFound: true, error: 'Não deu pra identificar essa música no Spotify.' });
+        return;
+      }
+      return p;
+    }).then((r) => {
+      if (!r) return;
       if (!alive) return;
       setRes(r);
       // começa no que tiver mais história
@@ -41,7 +59,7 @@ export function SpotifyAllTime({ spotifyId, appleId, deezerId }: { spotifyId?: s
     return () => {
       alive = false;
     };
-  }, [spotifyId, appleId, deezerId]);
+  }, [spotifyId, appleId, deezerId, songKey]);
 
   const table = res?.ok ? res.data[mode] : null;
   const marketsHere = table ? Object.keys(table.pos) : [];
@@ -65,7 +83,7 @@ export function SpotifyAllTime({ spotifyId, appleId, deezerId }: { spotifyId?: s
         </p>
       ) : !res.ok ? (
         <p className={`rounded-xl border p-3 text-xs ${res.notFound ? 'border-slate-800 text-slate-400' : 'border-amber-500/30 bg-amber-500/10 text-amber-300'}`}>
-          {res.notFound ? 'Essa música nunca entrou num chart do Spotify (Global, Brasil, EUA, Coreia, Japão ou Reino Unido).' : res.error}
+          {res.notFound && /nunca|sem hist/i.test(res.error) ? 'Essa música nunca entrou num chart do Spotify.' : res.error}
         </p>
       ) : (
         <div className="space-y-3">

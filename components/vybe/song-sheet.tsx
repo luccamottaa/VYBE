@@ -149,6 +149,7 @@ export function SongSheet({ song, onClose, onArtist }: { song: Song | null; onCl
                 spotifyId={spotifyId}
                 appleId={full.appleId ?? hits.find((h) => h.market.startsWith('ap:'))?.id}
                 deezerId={full.deezerId}
+                songKey={full.key}
               />
             )}
 

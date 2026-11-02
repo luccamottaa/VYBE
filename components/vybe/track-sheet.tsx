@@ -7,6 +7,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '
 import { artwork, daysSince, fmtCompact, fmtFull, matchKey, releaseLabel, shortDate, tenure, type ChartView, type CrossHit, type ViewTrack } from '@/lib/vybe';
 import { Cover, CrossBadges, Movement } from './ui';
 import { getLastfm, type LastfmRow, type Point } from '@/lib/data-source';
+import { SpotifyAllTime } from './spotify-all-time';
 
 
 const periods = [7, 30, 90] as const;
@@ -133,6 +134,8 @@ export function TrackSheet({
                 </a>
               );
             })()}
+
+            <SpotifyAllTime {...(spotify ? { spotifyId: track.id } : { appleId: track.id, songKey: matchKey(track.name, track.artistName) })} />
 
             {cross.length > 0 && (
               <div>
