@@ -87,7 +87,7 @@ function upsert(h: History, date: string, rows: { id: string; rank: number; stre
 async function collectApple(country: string) {
   const latestPath = `apple/${country}/latest.json`;
   try {
-    const { date, updated, tracks } = await fetchAppleChart(country, 3); // sem pressa aqui: até 3 tentativas
+    const { date, updated, tracks } = await fetchAppleChart(country, 4); // a Apple às vezes trava com os servidores do GitHub: até 4 tentativas
     const history = (await readJson<History>(`apple/${country}/history.json`)) ?? { dates: [], ranks: {} };
     const { previous, prevDate } = upsert(history, date, tracks, false);
     await writeJson(`apple/${country}/history.json`, history);
@@ -129,7 +129,7 @@ async function collectSpotify() {
   upsert(history, result.date, result.entries.map((e) => ({ id: e.spotifyId, rank: e.rank, streams: e.streams })), true);
   await writeJson(path, history);
   await writeJson('spotify/latest.json', { ...result, fetched: Date.now(), stale: false, historyAvailable: true });
-  return `spotify ok (${result.chart} ${result.date}, via ${result.source})${result.sample ? ` amostra: ${result.sample}` : ''}`;
+  return `spotify ok (${result.chart} ${result.date}, via ${result.source})${result.entries.some((e) => e.streams !== null) ? '' : ' — sem streams (o Spotify esconde sem login)'}`;
 }
 
 // Um país por vez: em paralelo a Apple às vezes segura uma das respostas até estourar o tempo.

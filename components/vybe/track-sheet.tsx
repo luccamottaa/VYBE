@@ -74,7 +74,7 @@ export function TrackSheet({
                 <div className="mt-2 flex flex-wrap gap-1.5 text-[10px]">
                   {track.genre && <Tag>{track.genre}</Tag>}
                   {release && <Tag>{release}</Tag>}
-                  {typeof track.days === 'number' && <Tag>{tenure(track.days, !!view?.chartKey?.includes('weekly'))} no chart</Tag>}
+                  {!!track.days && <Tag>{tenure(track.days, !!view?.chartKey?.includes('weekly'))} no chart</Tag>}
                 </div>
               </div>
             </div>

@@ -44,7 +44,7 @@ export async function fetchAppleChart(country: string, attempts = 1) {
     } catch (e) {
       if (i >= attempts) throw e;
     }
-    await new Promise((r) => setTimeout(r, 2000 * i));
+    await new Promise((r) => setTimeout(r, 4000 * i));
   }
   if (!response?.ok) throw new Error(`Apple respondeu ${response?.status}`);
   const { feed } = (await response.json()) as { feed: any };

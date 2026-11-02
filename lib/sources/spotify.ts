@@ -17,6 +17,9 @@ export interface SpotifyEntry {
   streams: number | null;
   spotifyId: string;
   artworkUrl: string | null;
+  /** NEW_ENTRY, RE_ENTRY, MOVED_UP, MOVED_DOWN, NO_CHANGE (só no JSON público). */
+  entryStatus?: string;
+  releaseDate?: string;
 }
 
 export interface SpotifyChart {
@@ -26,8 +29,6 @@ export interface SpotifyChart {
   fetched: number;
   source: 'csv' | 'json';
   entries: SpotifyEntry[];
-  /** Diagnóstico: amostra crua de uma entrada do JSON público. */
-  sample?: string;
   stale: boolean;
   historyAvailable: boolean;
 }
@@ -146,8 +147,11 @@ export async function fromJson(): Promise<Omit<SpotifyChart, 'fetched' | 'stale'
       return {
         rank: int(d.currentRank) ?? 0,
         previousRank: (int(d.previousRank) ?? 0) > 0 ? int(d.previousRank) : null,
-        peakRank: int(d.peakRank),
-        daysOnChart: int(d.appearancesOnChart),
+        // Sem login o Spotify zera pico e permanência: 0 vira "sem dado".
+        peakRank: int(d.peakRank) || null,
+        daysOnChart: int(d.appearancesOnChart) || null,
+        entryStatus: typeof d.entryStatus === 'string' ? d.entryStatus : undefined,
+        releaseDate: typeof t.releaseDate === 'string' && t.releaseDate ? t.releaseDate.slice(0, 10) : undefined,
         trackName: String(t.trackName ?? ''),
         artist: Array.isArray(t.artists) ? t.artists.map((a: any) => String(a?.name ?? '')).filter(Boolean).join(', ') : '',
         streams: d.rankingMetric?.type === 'STREAMS' ? int(d.rankingMetric.value) : null,
@@ -161,10 +165,7 @@ export async function fromJson(): Promise<Omit<SpotifyChart, 'fetched' | 'stale'
   // Chave canônica, pra o histórico e os rótulos não dependerem de como o Spotify escreve o alias.
   const chart = /daily/.test(describe(view)) ? 'regional-global-daily' : 'regional-global-weekly';
   const date = String(view.displayChart?.date ?? view.date ?? '').slice(0, 10) || new Date().toISOString().slice(0, 10);
-  // Amostra crua da 1ª faixa (sem a parte de metadados), pra diagnosticar campos que mudarem de nome.
-  const first = Array.isArray(view.entries) ? view.entries[0] : null;
-  const sample = first ? JSON.stringify({ ...first, trackMetadata: Object.keys(first.trackMetadata ?? {}) }).slice(0, 1500) : undefined;
-  return { chart, label: spotifyLabels[chart] ?? 'Top Global', date, source: 'json', entries, sample };
+  return { chart, label: spotifyLabels[chart] ?? 'Top Global', date, source: 'json', entries };
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 

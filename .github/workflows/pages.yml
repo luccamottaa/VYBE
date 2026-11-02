@@ -7,9 +7,10 @@ on:
   push:
     branches: [main]
   schedule:
-    # 06:17 UTC pega o feed novo da Apple; 15:17 UTC pega o diário do Spotify já publicado.
+    # 06:17 UTC pega o feed novo da Apple; 15:17 e 21:17 UTC repescam o que falhou.
     - cron: '17 6 * * *'
     - cron: '17 15 * * *'
+    - cron: '17 21 * * *'
   workflow_dispatch:
 
 permissions:

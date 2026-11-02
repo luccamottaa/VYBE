@@ -131,8 +131,18 @@ export default function Page() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  const apple = useMemo(() => (view?.source === 'apple' ? summarize(view) : null), [view]);
   const spotify = useMemo(() => (view?.source === 'spotify' ? spotifySummary(view) : null), [view]);
+  // Spotify sem login não manda streams: aí os blocos de artistas/lançamentos substituem os de streams.
+  const streamMode = !!spotify?.hasStreams;
+  const apple = useMemo(() => (view && !streamMode ? summarize(view) : null), [view, streamMode]);
+  const recentReleases = useMemo(
+    () =>
+      [...(view?.tracks ?? [])]
+        .filter((t) => t.releaseDate)
+        .sort((a, b) => (b.releaseDate ?? '').localeCompare(a.releaseDate ?? '') || a.rank - b.rank)
+        .slice(0, 4),
+    [view],
+  );
   const climbers = useMemo(
     () => (view?.hasMovement ? view.tracks.filter((t) => (t.change ?? 0) > 0).sort((a, b) => (b.change ?? 0) - (a.change ?? 0)) : []),
     [view],
@@ -275,7 +285,7 @@ export default function Page() {
                       <p className="text-xs text-slate-400">
                         <span className="font-medium text-slate-200">{top.artistName}</span>
                         {typeof top.streams === 'number' && <> • {fmtFull(top.streams)} streams</>}
-                        {typeof top.days === 'number' && <> • {tenure(top.days, weekly)} no chart</>}
+                        {!!top.days && <> • {tenure(top.days, weekly)} no chart</>}
                         {topRelease && <> • {topRelease}</>}
                       </p>
                     )}
@@ -306,7 +316,7 @@ export default function Page() {
 
             {/* Métricas */}
             <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {isSpotify ? (
+              {streamMode ? (
                 <>
                   <MetricCard
                     label="Streams no chart"
@@ -327,7 +337,7 @@ export default function Page() {
               ) : (
                 <>
                   <MetricCard
-                    label="Artistas no Top 100"
+                    label={`Artistas no Top ${view?.tracks.length || 100}`}
                     value={apple ? apple.artistCount : '—'}
                     icon={<Users className="h-4 w-4" />}
                     tone="blue"
@@ -365,7 +375,7 @@ export default function Page() {
             {/* Grid principal */}
             <section className="grid grid-cols-1 gap-6 lg:grid-cols-3">
               <Panel className="lg:col-span-2">
-                {isSpotify ? (
+                {streamMode ? (
                   <>
                     <PanelTitle icon={<BarChart3 className="h-4 w-4 text-emerald-400" />} title="Top 10 em streams" hint="Reproduções contadas pelo Spotify nesta parada" />
                     <div className="h-72 w-full">
@@ -393,7 +403,7 @@ export default function Page() {
                   </>
                 ) : (
                   <>
-                    <PanelTitle icon={<BarChart3 className="h-4 w-4 text-cyan-400" />} title="Quem domina o Top 100" hint="Faixas por artista, contando colaborações para cada nome" />
+                    <PanelTitle icon={<BarChart3 className="h-4 w-4 text-cyan-400" />} title={`Quem domina o Top ${view?.tracks.length || 100}`} hint="Faixas por artista, contando colaborações para cada nome" />
                     <div className="h-72 w-full">
                       {apple?.topArtists.length ? (
                         <ResponsiveContainer width="100%" height="100%">
@@ -445,7 +455,7 @@ export default function Page() {
                 </div>
 
                 <div className="mt-6 border-t border-slate-800/60 pt-4">
-                  {isSpotify ? (
+                  {spotify?.veterans.length ? (
                     <>
                       <h4 className="mb-3 flex items-center gap-1.5 text-xs font-bold text-slate-300">
                         <Hourglass className="h-3.5 w-3.5 text-cyan-400" /> Mais tempo no chart
@@ -466,7 +476,8 @@ export default function Page() {
                   ) : (
                     <>
                       <h4 className="mb-3 flex items-center gap-1.5 text-xs font-bold text-slate-300">
-                        <Tags className="h-3.5 w-3.5 text-cyan-400" /> Gêneros no chart
+                        {apple?.genres.length ? <Tags className="h-3.5 w-3.5 text-cyan-400" /> : <CalendarClock className="h-3.5 w-3.5 text-cyan-400" />}
+                        {apple?.genres.length ? 'Gêneros no chart' : 'Lançadas mais recentemente'}
                       </h4>
                       {apple?.genres.length ? (
                         <div className="grid grid-cols-2 gap-2">
@@ -486,7 +497,19 @@ export default function Page() {
                           })}
                         </div>
                       ) : (
-                        <p className="text-[11px] text-slate-500">Gêneros aparecem na próxima atualização do feed.</p>
+                        recentReleases.length ? (
+                          <div className="grid grid-cols-2 gap-2">
+                            {recentReleases.map((t) => (
+                              <button key={t.id} onClick={() => setSelected(t)} className="rounded-xl border border-slate-800/60 bg-slate-950/50 p-2.5 text-left hover:border-slate-700">
+                                <span className="block truncate text-[10px] text-slate-400">{t.name}</span>
+                                <strong className="text-sm font-black text-white">#{t.rank}</strong>{' '}
+                                <span className="text-[10px] text-slate-500">{shortDate(`${t.releaseDate}T00:00:00Z`)}</span>
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-[11px] text-slate-500">Sem dados de gênero ou lançamento nesta fonte.</p>
+                        )
                       )}
                     </>
                   )}

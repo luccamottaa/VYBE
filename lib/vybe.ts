@@ -129,6 +129,8 @@ export type SpotifyPayload = {
     previousRank: number | null;
     peakRank: number | null;
     daysOnChart: number | null;
+    entryStatus?: string;
+    releaseDate?: string;
     trackName: string;
     artist: string;
     streams: number | null;
@@ -169,17 +171,20 @@ export function spotifyView(p: SpotifyPayload): ChartView {
       url: `https://open.spotify.com/track/${e.spotifyId}`,
       rank: e.rank,
       change: e.previousRank === null ? null : e.previousRank - e.rank,
-      isNew: e.previousRank === null,
+      isNew: e.entryStatus ? e.entryStatus === 'NEW_ENTRY' || e.entryStatus === 'RE_ENTRY' : e.previousRank === null,
+      releaseDate: e.releaseDate,
       streams: e.streams,
-      peak: e.peakRank,
-      days: e.daysOnChart,
+      peak: e.peakRank || null,
+      days: e.daysOnChart || null,
     })),
     updated: `${p.date}T00:00:00Z`,
     stale: p.stale,
     historyAvailable: p.historyAvailable,
     hasMovement: true,
     compareLabel: weekly ? 'vs semana anterior' : 'vs dia anterior',
-    footnote: `Parada de ${shortDate(`${p.date}T00:00:00Z`)}${weekly ? ' · sem login, o Spotify só libera o semanal' : ''}`,
+    footnote: `Parada de ${shortDate(`${p.date}T00:00:00Z`)}${
+      p.entries.some((e) => e.streams !== null) ? '' : ` · sem login o Spotify libera só o Top ${p.entries.length}${weekly ? ' semanal' : ''}, sem streams`
+    }`,
     loadHistory: (id, signal) => getSpotifyHistory(p.chart, id, signal),
     sourceUrl: 'https://charts.spotify.com/charts/overview/global',
     chartKey: p.chart,
