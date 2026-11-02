@@ -84,6 +84,11 @@ jobs:
           rsync -a --exclude .git data-store/ dist-pages/data/
           cp dist-pages/index.html dist-pages/404.html
 
+      - name: Páginas de SEO (música/artista), sitemap e robots
+        run: node scripts/pages/seo.ts dist-pages
+        env:
+          SITE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist-pages

@@ -4,6 +4,10 @@ import { useEffect, useState } from 'react';
 import { Disc3, ExternalLink, Radar } from 'lucide-react';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { artistHits, loadAllCharts } from '@/lib/all-charts';
+import { buildDeepLink } from '@/lib/deep-link';
+import { artistKey } from '@/lib/follow';
+import { FollowButton } from './follow-button';
+import { ShareButton } from './share-button';
 import { catalogSongsByArtist, matchesWords, mergeSongs, songFrom, type Artist, type Song } from '@/lib/search';
 import { artwork, shortDate } from '@/lib/vybe';
 import { PreviewButton } from './preview';
@@ -65,6 +69,28 @@ export function ArtistSheet({ artist, onClose, onSong }: { artist: Artist | null
                   </a>
                 )}
               </div>
+            </div>
+
+            <div className="flex gap-2">
+              <FollowButton className="flex-1" target={{ kind: 'artist', key: artistKey(artist.name), name: artist.name, artwork: cover, artistId: artist.artistId }} />
+              <ShareButton
+                className="flex-1"
+                link={buildDeepLink({ artista: artist.name })}
+                data={() => ({
+                  kicker: charted.length ? `No vybe · ${markets.size} ${markets.size === 1 ? 'chart' : 'charts'}` : 'No vybe',
+                  title: artist.name,
+                  subtitle: charted.length ? `${charted.length} ${charted.length === 1 ? 'música' : 'músicas'} nos charts agora` : artist.genre ?? 'Artista',
+                  artwork: cover ? artwork(cover, 600) : undefined,
+                  round: true,
+                  stats: [
+                    ...(charted.length ? [{ label: 'Músicas nos charts', value: String(charted.length), tone: 'cyan' as const }] : []),
+                    ...(charted.length ? [{ label: 'Melhor posição', value: `#${Math.min(...charted.map((s) => s.hits[0].rank))}`, tone: 'amber' as const }] : []),
+                    ...(catalog.length ? [{ label: 'No catálogo', value: String(catalog.length), tone: 'green' as const }] : []),
+                  ],
+                  positions: charted.slice(0, 6).map((s) => ({ label: s.name.length > 18 ? `${s.name.slice(0, 17)}…` : s.name, rank: s.hits[0].rank })),
+                  date: new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }),
+                })}
+              />
             </div>
 
             <section>

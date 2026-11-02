@@ -1,0 +1,49 @@
+# Saúde do vybe em produção: site no ar, dados frescos e vybe-api respondendo.
+# Se falhar, o GitHub manda e-mail pro dono do repositório (notificação padrão de Actions).
+name: Saúde
+
+on:
+  schedule:
+    - cron: '41 */6 * * *'
+  workflow_dispatch:
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Checar site, dados e API
+        env:
+          SITE: https://luccamottaa.github.io/VYBE/
+          API: https://vybe-api-taupe.vercel.app
+        run: |
+          node --input-type=module <<'JS'
+          const { SITE, API } = process.env;
+          const problems = [];
+          const get = async (url, json = true) => {
+            const r = await fetch(url, { signal: AbortSignal.timeout(20000), headers: { 'cache-control': 'no-cache' } });
+            if (!r.ok) throw new Error(`${url} → HTTP ${r.status}`);
+            return json ? r.json() : r.text();
+          };
+          const check = async (label, fn) => {
+            try { console.log(`✓ ${label}: ${await fn()}`); } catch (e) { problems.push(`${label}: ${e.message}`); console.log(`✗ ${label}: ${e.message}`); }
+          };
+          const days = (d) => (Date.now() - Date.parse(d)) / 86400000;
+          await check('site', async () => ((await get(SITE, false)).includes('id="root"') ? 'no ar' : Promise.reject(new Error('HTML sem #root'))));
+          await check('manifest + sw', async () => { await get(`${SITE}manifest.webmanifest`); await get(`${SITE}sw.js`, false); return 'ok'; });
+          await check('coleta', async () => {
+            const m = await get(`${SITE}data/meta.json`);
+            const h = (Date.now() - Date.parse(m.ran)) / 3600000;
+            if (h > 30) throw new Error(`última coleta há ${h.toFixed(0)} h`);
+            const bad = (m.report ?? []).filter((l) => /^(apple|spotify)/.test(l) && !/ ok /.test(l));
+            return `há ${h.toFixed(1)} h${bad.length ? ` · avisos: ${bad.join('; ')}` : ''}`;
+          });
+          await check('Apple BR', async () => { const d = await get(`${SITE}data/apple/br/latest.json`); if (days(d.date) > 3) throw new Error(`parado em ${d.date}`); return `${d.tracks.length} faixas de ${d.date}`; });
+          await check('Spotify Global', async () => { const d = await get(`${SITE}data/spotify/global/latest.json`); if (days(d.date) > 4) throw new Error(`parado em ${d.date}`); return `${d.entries.length} faixas de ${d.date} (${d.source})`; });
+          await check('vybe-api', async () => { const d = await get(`${API}/api/health`); if (!d.ok) throw new Error(JSON.stringify(d)); return `spotify=${d.spotify} streams=${d.streams}`; });
+          if (problems.length) { console.log(`\n${problems.length} problema(s):\n- ${problems.join('\n- ')}`); process.exit(1); }
+          console.log('\nTudo saudável.');
+          JS

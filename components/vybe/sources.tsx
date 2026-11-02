@@ -28,8 +28,8 @@ const sources = [
   },
   {
     name: 'MyStreamCount',
-    status: 'pending' as const,
-    desc: 'Streams acumulados por faixa e por país. Aguardando acesso à API.',
+    status: 'connected' as const,
+    desc: 'Total de streams de qualquer música no Spotify (com mais de 1.000 plays), pela API no RapidAPI. Aparece no painel de cada música.',
     link: 'https://www.mystreamcount.com/',
   },
   {

@@ -7,11 +7,14 @@ import tailwindcss from '@tailwindcss/postcss';
 import { defineConfig } from 'vite';
 
 const here = (p: string) => fileURLToPath(new URL(p, import.meta.url));
+const base = process.env.PAGES_BASE ?? '/VYBE/';
+// endereço público (og:image, canonical). Com domínio próprio, troque por VITE_SITE_URL=https://seu.dominio/
+process.env.VITE_SITE_URL ??= `https://luccamottaa.github.io${base}`;
 
 export default defineConfig({
   root: here('./pages'),
   // Repositório luccamottaa/VYBE → https://luccamottaa.github.io/VYBE/
-  base: process.env.PAGES_BASE ?? '/VYBE/',
+  base,
   publicDir: here('./public'),
   envDir: here('.'),
   plugins: [react()],

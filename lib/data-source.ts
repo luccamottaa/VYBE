@@ -74,3 +74,9 @@ export async function getSpotifyHistory(chart: string, id: string, signal?: Abor
   if (isStatic) return pick(await staticHistory(`spotify/${chart}/history.json`, signal), id);
   return (await getJson<{ points: Point[] }>(`/api/spotify/history?chart=${chart}&id=${id}`, signal)).points;
 }
+
+/** Arquivo de histórico inteiro de um chart (só no Pages): base da retrospectiva do mês. */
+export function getHistoryFile(path: string, signal?: AbortSignal): Promise<StaticHistory> {
+  if (!isStatic) return Promise.reject(new Error('Retrospectiva disponível só na versão do GitHub Pages'));
+  return staticHistory(path, signal);
+}

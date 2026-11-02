@@ -19,7 +19,20 @@ const longDate = (d: string) => new Date(`${d}T00:00:00Z`).toLocaleDateString('p
 const axisDate = (d: string) => new Date(`${d}T00:00:00Z`).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', timeZone: 'UTC' });
 
 /** Streams totais da música no Spotify (qualquer música com mais de 1.000 plays) e a evolução por dia. */
-export function StreamCount({ spotifyId, name, artist, songKey }: { spotifyId?: string; name?: string; artist?: string; songKey?: string }) {
+export function StreamCount({
+  spotifyId,
+  name,
+  artist,
+  songKey,
+  onTotal,
+}: {
+  spotifyId?: string;
+  name?: string;
+  artist?: string;
+  songKey?: string;
+  /** avisa o total quando chega (usado no card de compartilhar) */
+  onTotal?: (n: number | null) => void;
+}) {
   const [res, setRes] = useState<StreamsResult | null>(null);
   const [zoom, setZoom] = useState<number>(30);
 
@@ -30,11 +43,14 @@ export function StreamCount({ spotifyId, name, artist, songKey }: { spotifyId?: 
       const fromIndex = !spotifyId && songKey ? (await findInIndex(songKey))?.spotifyId : undefined;
       const p = getStreams({ spotifyId: spotifyId ?? fromIndex, name, artist });
       const r = p ? await p : ({ ok: false, error: 'Não deu pra identificar essa música no Spotify.' } as StreamsResult);
-      if (alive) setRes(r);
+      if (!alive) return;
+      setRes(r);
+      onTotal?.(r.ok ? r.data.total : null);
     })();
     return () => {
       alive = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [spotifyId, name, artist, songKey]);
 
   // streams ganhos por dia = diferença entre totais de dias seguidos

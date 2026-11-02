@@ -285,3 +285,37 @@ a:hover .vy-anim .vy-rise,
 .font-brand {
   font-family: "Montserrat", ui-sans-serif, system-ui, sans-serif;
 }
+
+/* ---------- App (PWA) ---------- */
+@keyframes vy-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+}
+@keyframes vy-fade {
+  from {
+    opacity: 0;
+  }
+}
+/* no app instalado: sem seleção de texto ao segurar, sem "puxar pra atualizar" acidental, respeita notch */
+@media (display-mode: standalone) {
+  body {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    overscroll-behavior-y: none;
+  }
+  input,
+  textarea {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+}
+html {
+  -webkit-tap-highlight-color: transparent;
+  scroll-padding-top: 6rem;
+}
+.pt-safe {
+  padding-top: max(1rem, env(safe-area-inset-top));
+}

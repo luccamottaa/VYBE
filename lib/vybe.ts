@@ -5,13 +5,8 @@ export { matchKey, splitArtists };
 
 // Tipos e helpers do lado do cliente. Não importar lib/chart.ts aqui (depende do runtime Cloudflare).
 
-export const markets: Record<string, { name: string; flag: string }> = {
-  br: { name: 'Brasil', flag: '🇧🇷' },
-  us: { name: 'Estados Unidos', flag: '🇺🇸' },
-  kr: { name: 'Coreia do Sul', flag: '🇰🇷' },
-  jp: { name: 'Japão', flag: '🇯🇵' },
-  gb: { name: 'Reino Unido', flag: '🇬🇧' },
-};
+export { markets } from './sources/markets.ts';
+import { markets } from './sources/markets.ts';
 
 export type Track = {
   id: string;
