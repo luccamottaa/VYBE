@@ -15,6 +15,12 @@ const sources = [
     link: 'https://kworb.net/spotify/',
   },
   {
+    name: 'Spotify Web API',
+    status: 'connected' as const,
+    desc: 'Busca oficial do Spotify (músicas e artistas) e identificação de faixas pra montar o histórico completo de charts desde a primeira entrada, via kworb.',
+    link: 'https://developer.spotify.com/documentation/web-api',
+  },
+  {
     name: 'Last.fm',
     status: 'connected' as const,
     desc: 'Ouvintes e scrobbles de todos os tempos das faixas do topo, pela API oficial e gratuita. Aparece no painel de cada música.',

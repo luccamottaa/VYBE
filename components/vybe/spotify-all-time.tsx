@@ -15,13 +15,14 @@ const axisDate = (d: string) => new Date(`${d}T00:00:00Z`).toLocaleDateString('p
 /** Histórico completo da música nos charts do Spotify, desde a primeira vez que entrou. */
 export function SpotifyAllTime({
   spotifyId,
-  appleId,
-  deezerId,
+  name,
+  artist,
   songKey,
 }: {
   spotifyId?: string;
-  appleId?: string;
-  deezerId?: string;
+  /** sem id do Spotify, a API procura por nome + artista */
+  name?: string;
+  artist?: string;
   /** matchKey da música: sem id do Spotify, procura primeiro no índice do vybe */
   songKey?: string;
 }) {
@@ -34,7 +35,7 @@ export function SpotifyAllTime({
     setRes(null);
     (async () => {
       const fromIndex = !spotifyId && songKey ? (await findInIndex(songKey))?.spotifyId : undefined;
-      return getAllTime({ spotifyId: spotifyId ?? fromIndex, appleId, deezerId });
+      return getAllTime({ spotifyId: spotifyId ?? fromIndex, name, artist });
     })().then((p) => {
       if (!alive) return;
       if (!p) {
@@ -59,7 +60,7 @@ export function SpotifyAllTime({
     return () => {
       alive = false;
     };
-  }, [spotifyId, appleId, deezerId, songKey]);
+  }, [spotifyId, name, artist, songKey]);
 
   const table = res?.ok ? res.data[mode] : null;
   const marketsHere = table ? Object.keys(table.pos) : [];

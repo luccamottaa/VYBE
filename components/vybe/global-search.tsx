@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { Disc3, Loader2, Music2, Radar, Search, User } from 'lucide-react';
-import { matchesWords, mergeSongs, searchDeezerSongs, searchCatalogArtists, searchCatalogSongs, searchIndex, searchIndexArtists, type Artist, type Song } from '@/lib/search';
+import { matchesWords, mergeSongs, searchDeezerSongs, searchSpotifySongs, searchCatalogArtists, searchCatalogSongs, searchIndex, searchIndexArtists, type Artist, type Song } from '@/lib/search';
 import type { ViewTrack } from '@/lib/vybe';
 import { PreviewButton } from './preview';
 import { Cover } from './ui';
@@ -74,11 +74,16 @@ export function GlobalSearch({
     const t = setTimeout(async () => {
       setBusy(true);
       try {
-        const [ap, dz, ca] = await Promise.allSettled([searchCatalogSongs(q, c.signal, 12), searchDeezerSongs(q, 0, c.signal, 12), searchCatalogArtists(q, c.signal, 5)]);
+        const [sp, ap, dz, ca] = await Promise.allSettled([
+          searchSpotifySongs(q, 0, c.signal),
+          searchCatalogSongs(q, c.signal, 12),
+          searchDeezerSongs(q, 0, c.signal, 12),
+          searchCatalogArtists(q, c.signal, 5),
+        ]);
         if (c.signal.aborted) return;
-        if (ap.status === 'rejected' && dz.status === 'rejected') throw ap.reason;
+        if (ap.status === 'rejected' && dz.status === 'rejected' && sp.status === 'rejected') throw ap.reason;
         setCatalogDown(false);
-        setSongs(mergeSongs(local, ap.status === 'fulfilled' ? ap.value : [], dz.status === 'fulfilled' ? dz.value.songs : []).slice(0, 12));
+        setSongs(mergeSongs(local, sp.status === 'fulfilled' ? sp.value.songs : [], ap.status === 'fulfilled' ? ap.value : [], dz.status === 'fulfilled' ? dz.value.songs : []).slice(0, 12));
         const cs = ca.status === 'fulfilled' ? ca.value : [];
         const seen = new Set<string>();
         setArtists(

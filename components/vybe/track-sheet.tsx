@@ -135,7 +135,7 @@ export function TrackSheet({
               );
             })()}
 
-            <SpotifyAllTime {...(spotify ? { spotifyId: track.id } : { appleId: track.id, songKey: matchKey(track.name, track.artistName) })} />
+            <SpotifyAllTime {...(spotify ? { spotifyId: track.id } : { name: track.name, artist: track.artistName, songKey: matchKey(track.name, track.artistName) })} />
 
             {cross.length > 0 && (
               <div>

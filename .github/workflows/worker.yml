@@ -1,0 +1,95 @@
+# vybe-api na Cloudflare (Worker): histórico completo de charts do Spotify + busca oficial do Spotify.
+#
+# Segredos necessários (Settings → Secrets and variables → Actions):
+#   CLOUDFLARE_API_TOKEN   token com o modelo "Edit Cloudflare Workers"
+#   CLOUDFLARE_ACCOUNT_ID  id da conta (painel da Cloudflare, barra lateral)
+#   SPOTIFY_CLIENT_ID      app em developer.spotify.com (dono com Premium)
+#   SPOTIFY_CLIENT_SECRET
+name: Worker (vybe-api)
+
+on:
+  push:
+    branches: [main]
+    paths: ['worker/**', 'api-proxy/lib/**', '.github/workflows/worker.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write # gravar o endereço da API na branch `data`
+  actions: write # disparar a publicação do site depois
+
+concurrency:
+  group: worker
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Conferir segredos
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          SP_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
+          SP_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}
+        run: |
+          missing=""
+          [ -z "$CF_TOKEN" ] && missing="$missing CLOUDFLARE_API_TOKEN"
+          [ -z "$CF_ACCOUNT" ] && missing="$missing CLOUDFLARE_ACCOUNT_ID"
+          [ -z "$SP_ID" ] && missing="$missing SPOTIFY_CLIENT_ID"
+          [ -z "$SP_SECRET" ] && missing="$missing SPOTIFY_CLIENT_SECRET"
+          if [ -n "$missing" ]; then
+            echo "::error::Faltam segredos no repositório:$missing (Settings → Secrets and variables → Actions)"
+            exit 1
+          fi
+
+      - name: Publicar Worker
+        id: deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          wranglerVersion: '4.92.0'
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: worker
+          command: deploy --config wrangler.toml
+          secrets: |
+            SPOTIFY_CLIENT_ID
+            SPOTIFY_CLIENT_SECRET
+        env:
+          SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
+          SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}
+
+      - name: Testar a API publicada
+        id: test
+        env:
+          URL: ${{ steps.deploy.outputs.deployment-url }}
+        run: |
+          URL="${URL%/}"
+          [ -z "$URL" ] && { echo "::error::O wrangler não informou o endereço do Worker"; exit 1; }
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "Endereço: $URL"
+          sleep 5
+          echo "== health";  curl -sS -m 30 "$URL/api/health"; echo
+          echo "== busca";   curl -sS -m 30 "$URL/api/spotify/search?q=housewife%20tate%20mcrae" | cut -c1-300; echo
+          echo "== histórico por nome"; curl -sS -m 30 "$URL/api/track?name=Housewife&artist=Tate%20McRae&m=global" | cut -c1-300; echo
+          curl -sfS -m 30 "$URL/api/health" | grep -q '"spotify":true' || { echo "::error::Worker no ar, mas sem as chaves do Spotify"; exit 1; }
+
+      - name: Guardar endereço da API pro site (branch data)
+        env:
+          URL: ${{ steps.test.outputs.url }}
+        run: |
+          git clone --depth 1 --branch data "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" data-store
+          printf '{"api":"%s","deployed":"%s"}\n' "$URL" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > data-store/api.json
+          cd data-store
+          git config user.name "vybe-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add api.json
+          git diff --cached --quiet || { git commit -q -m "api: $URL" && git push -q origin data; }
+
+      - name: Republicar o site com o endereço novo
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run pages.yml --ref main

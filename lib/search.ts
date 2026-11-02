@@ -1,4 +1,5 @@
 // Busca global: índice do vybe (faixas que passaram pelos charts) + catálogo do iTunes (todas as músicas).
+import { getApi } from './api-base';
 import { isStatic } from './data-source';
 import { matchKey, splitArtists } from './sources/match.ts';
 
@@ -21,10 +22,10 @@ export type Song = {
   /** prévia de 30 s (Apple ou Deezer) */
   preview?: string;
   /** catálogos onde foi encontrada */
-  from?: ('apple' | 'deezer' | 'vybe')[];
+  from?: ('apple' | 'deezer' | 'vybe' | 'spotify')[];
 };
 
-export type Artist = { name: string; artistId?: string; deezerId?: string; genre?: string; url?: string; picture?: string; fans?: number };
+export type Artist = { name: string; artistId?: string; deezerId?: string; spotifyId?: string; genre?: string; url?: string; picture?: string; fans?: number };
 
 type IndexRow = { n: string; a: string; img?: string; ap?: string; sp?: string; mk: string[]; seen: string };
 
@@ -240,10 +241,11 @@ export async function catalogSongsByArtist(artist: Artist, signal?: AbortSignal,
     }
     return (await searchCatalogSongs(artist.name, signal, limit)).filter(byArtist);
   })();
-  const [ap, dz] = await Promise.allSettled([apple, deezerArtistTop(artist, signal)]);
-  if (ap.status === 'rejected' && dz.status === 'rejected') throw ap.reason;
-  // Deezer primeiro: vem ordenado por popularidade
-  return mergeSongs(dz.status === 'fulfilled' ? dz.value.filter(byArtist) : [], ap.status === 'fulfilled' ? ap.value : []);
+  const [ap, dz, sp] = await Promise.allSettled([apple, deezerArtistTop(artist, signal), spotifySongsByArtist(artist, signal)]);
+  if (ap.status === 'rejected' && dz.status === 'rejected' && sp.status === 'rejected') throw ap.reason;
+  const ok = (r: PromiseSettledResult<Song[]>) => (r.status === 'fulfilled' ? r.value : []);
+  // Spotify e Deezer primeiro: vêm ordenados por popularidade
+  return mergeSongs(ok(sp), ok(dz).filter(byArtist), ok(ap));
 }
 
 /** Junta listas sem repetir a mesma música (mesma chave), mantendo a primeira e completando ids. */
@@ -275,4 +277,50 @@ export function mergeSongs(...lists: Song[][]): Song[] {
       });
     }
   return [...out.values()];
+}
+
+/* ---------- Spotify (busca oficial, via vybe-api no Cloudflare) ---------- */
+
+type SpTrack = { spotifyId: string; name: string; artist: string; album: string | null; artwork: string | null; releaseDate: string | null; preview: string | null; url: string };
+type SpArtist = { spotifyId: string; name: string; picture: string | null; genres: string[]; followers: number | null; url: string };
+
+async function spotifyApi<T>(params: Record<string, string>, signal?: AbortSignal): Promise<T> {
+  const api = await getApi();
+  if (!api.spotifySearch) throw new Error('Busca do Spotify ainda não configurada');
+  const r = await fetch(`${api.url}/api/spotify/search?${new URLSearchParams(params)}`, { signal });
+  const d = (await r.json()) as T & { error?: string };
+  if (!r.ok) throw new Error(d.error ?? `Spotify ${r.status}`);
+  return d;
+}
+
+const fromSpotify = (t: SpTrack): Song =>
+  songFrom({
+    name: t.name,
+    artist: t.artist,
+    artwork: t.artwork ?? undefined,
+    album: t.album ?? undefined,
+    releaseDate: t.releaseDate?.slice(0, 10),
+    spotifyId: t.spotifyId,
+    preview: t.preview ?? undefined,
+    from: ['spotify'],
+  });
+
+/** Uma página (10 músicas) da busca do Spotify. `next` é o offset da próxima página. */
+export async function searchSpotifySongs(query: string, offset = 0, signal?: AbortSignal) {
+  const d = await spotifyApi<{ items: SpTrack[]; total: number; next: number | null }>({ q: query, type: 'track', offset: String(offset) }, signal);
+  return { songs: d.items.map(fromSpotify), total: d.total, next: d.next };
+}
+
+export async function searchSpotifyArtists(query: string, signal?: AbortSignal): Promise<Artist[]> {
+  const d = await spotifyApi<{ items: SpArtist[] }>({ q: query, type: 'artist' }, signal);
+  return d.items.map((a) => ({ name: a.name, spotifyId: a.spotifyId, picture: a.picture ?? undefined, genre: a.genres[0], fans: a.followers ?? undefined, url: a.url }));
+}
+
+/** Músicas de um artista no Spotify (até 3 páginas de 10). */
+export async function spotifySongsByArtist(artist: Artist, signal?: AbortSignal, pages = 3): Promise<Song[]> {
+  const a = norm(artist.name);
+  const res = await Promise.allSettled(
+    Array.from({ length: pages }, (_, i) => searchSpotifySongs(`artist:"${artist.name}"`, i * 10, signal)),
+  );
+  return mergeSongs(...res.map((r) => (r.status === 'fulfilled' ? r.value.songs : []))).filter((s) => splitArtists(s.artist).some((x) => norm(x) === a));
 }

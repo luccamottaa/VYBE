@@ -12,6 +12,8 @@ import {
   searchDeezerSongs,
   searchIndex,
   searchIndexArtists,
+  searchSpotifyArtists,
+  searchSpotifySongs,
   type Artist,
   type Song,
 } from '@/lib/search';
@@ -43,6 +45,8 @@ export function SearchResults({
   const [songs, setSongs] = useState<Song[]>([]);
   const [artists, setArtists] = useState<Artist[]>([]);
   const [next, setNext] = useState<number | null>(null);
+  const [spNext, setSpNext] = useState<number | null>(null);
+  const [spotifyOn, setSpotifyOn] = useState(false);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [more, setMore] = useState(false);
@@ -61,7 +65,9 @@ export function SearchResults({
     const t = setTimeout(async () => {
       setLoading(true);
       setErrors([]);
-      const [idx, apple, deezer, idxA, apA, dzA] = await Promise.allSettled([
+      const [spotify, spA, idx, apple, deezer, idxA, apA, dzA] = await Promise.allSettled([
+        Promise.all([0, 10, 20].map((o) => searchSpotifySongs(q, o, c.signal))),
+        searchSpotifyArtists(q, c.signal),
         searchIndex(q, 50),
         searchCatalogSongs(q, c.signal, 50, STOREFRONTS),
         searchDeezerSongs(q, 0, c.signal, 50),
@@ -72,18 +78,21 @@ export function SearchResults({
       if (c.signal.aborted) return;
       const ok = <T,>(r: PromiseSettledResult<T>, fallback: T) => (r.status === 'fulfilled' ? r.value : fallback);
       const dz = ok(deezer, { songs: [], total: 0, next: null });
-      setSongs(mergeSongs(ok(idx, []), ok(apple, []), dz.songs));
+      const sp = ok(spotify, []);
+      setSongs(mergeSongs(ok(idx, []), ...sp.map((p) => p.songs), ok(apple, []), dz.songs));
       setNext(dz.next);
-      setTotal(dz.total);
+      setSpNext(sp.length ? sp[sp.length - 1].next : null);
+      setTotal(Math.max(dz.total, sp[0]?.total ?? 0));
       // artistas: junta Apple e Deezer pelo nome
       const byName = new Map<string, Artist>();
-      for (const a of [...ok(apA, []), ...ok(dzA, []), ...ok(idxA, [])]) {
+      for (const a of [...ok(spA, []), ...ok(apA, []), ...ok(dzA, []), ...ok(idxA, [])]) {
         const k = norm(a.name);
         const prev = byName.get(k);
-        byName.set(k, prev ? { ...a, ...prev, deezerId: prev.deezerId ?? a.deezerId, picture: prev.picture ?? a.picture, fans: prev.fans ?? a.fans, artistId: prev.artistId ?? a.artistId } : a);
+        byName.set(k, prev ? { ...a, ...prev, spotifyId: prev.spotifyId ?? a.spotifyId, deezerId: prev.deezerId ?? a.deezerId, picture: prev.picture ?? a.picture, fans: prev.fans ?? a.fans, artistId: prev.artistId ?? a.artistId } : a);
       }
       setArtists([...byName.values()]);
       setErrors([apple.status === 'rejected' && 'Apple', deezer.status === 'rejected' && 'Deezer'].filter(Boolean) as string[]);
+      setSpotifyOn(spotify.status === 'fulfilled');
       setLoading(false);
     }, 350);
     return () => {
@@ -92,18 +101,20 @@ export function SearchResults({
     };
   }, [q, initial]);
 
+  // "Carregar mais": próximas páginas do Spotify (30 por vez) e do Deezer (50)
   const loadMore = async () => {
-    if (next === null || !ctrl.current) return;
+    if ((next === null && spNext === null) || !ctrl.current) return;
+    const signal = ctrl.current.signal;
     setMore(true);
-    try {
-      const page = await searchDeezerSongs(q, next, ctrl.current.signal, 50);
-      setSongs((s) => mergeSongs(s, page.songs));
-      setNext(page.next);
-    } catch {
-      setNext(null);
-    } finally {
-      setMore(false);
-    }
+    const [sp, dz] = await Promise.allSettled([
+      spNext !== null ? Promise.all([0, 10, 20].map((d) => searchSpotifySongs(q, spNext + d, signal))) : Promise.resolve([]),
+      next !== null ? searchDeezerSongs(q, next, signal, 50) : Promise.resolve(null),
+    ]);
+    const spPages = sp.status === 'fulfilled' ? sp.value : [];
+    setSongs((s) => mergeSongs(s, ...spPages.map((p) => p.songs), dz.status === 'fulfilled' && dz.value ? dz.value.songs : []));
+    setSpNext(spPages.length ? spPages[spPages.length - 1].next : null);
+    setNext(dz.status === 'fulfilled' && dz.value ? dz.value.next : null);
+    setMore(false);
   };
 
   return (
@@ -111,7 +122,7 @@ export function SearchResults({
       <SheetContent className="w-full overflow-y-auto border-slate-800 bg-popover text-slate-100 sm:max-w-xl">
         <SheetHeader>
           <SheetTitle className="text-white">Buscar no catálogo</SheetTitle>
-          <SheetDescription className="text-slate-400">Charts do vybe + Apple Music (5 países) + Deezer</SheetDescription>
+          <SheetDescription className="text-slate-400">Charts do vybe + Spotify + Apple Music (5 países) + Deezer</SheetDescription>
         </SheetHeader>
 
         <div className="space-y-4 px-4 pb-8">
@@ -148,7 +159,7 @@ export function SearchResults({
                 </button>
               ))}
             </div>
-            {total > 0 && <span className="text-[11px] text-slate-500">~{fmtCompact(total)} no Deezer</span>}
+            {total > 0 && <span className="text-[11px] text-slate-500">~{fmtCompact(total)} resultados</span>}
           </div>
 
           {errors.length > 0 && <p className="text-[11px] text-amber-300">Fora do ar agora: {errors.join(' e ')}. Mostrando o resto.</p>}
@@ -170,6 +181,9 @@ export function SearchResults({
                             {s.album && ` · ${s.album}`}
                           </span>
                         </span>
+                        {s.from?.includes('spotify') && !s.markets?.length && (
+                          <span className="shrink-0 rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-400">Spotify</span>
+                        )}
                         {s.markets?.length ? (
                           <span className="shrink-0 rounded-md bg-cyan-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-cyan-400">
                             {s.markets.length} {s.markets.length === 1 ? 'chart' : 'charts'}
@@ -180,7 +194,7 @@ export function SearchResults({
                     </li>
                   ))}
                 </ul>
-                {next !== null && (
+                {(next !== null || spNext !== null) && (
                   <button
                     onClick={loadMore}
                     disabled={more}
@@ -214,7 +228,9 @@ export function SearchResults({
             <Empty loading={loading} icon={<User className="h-8 w-8" />} text="Nenhum artista encontrado." />
           )}
 
-          <p className="text-[10px] text-slate-500">Catálogo via iTunes Search API e Deezer API. Prévias de 30 segundos fornecidas por eles.</p>
+          <p className="text-[10px] text-slate-500">
+            Catálogo via {spotifyOn ? 'Spotify Web API, ' : ''}iTunes Search API e Deezer API. Prévias de 30 segundos fornecidas por eles.
+          </p>
         </div>
       </SheetContent>
     </Sheet>
