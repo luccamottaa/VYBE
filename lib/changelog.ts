@@ -10,6 +10,7 @@ export const releases: Release[] = [
       'Início redesenhado: cards de destaque com a capa inteira (maior alta, estreia, mais ouvida, lançamento fresco, veterana) e artistas do momento em bolinhas com foto.',
       'Grupos e duplas com "x" ou "&" no nome (TOMORROW X TOGETHER, Henrique & Juliano…) não se partem mais: catálogo, discografia e charts aparecem certinho.',
       'O topo não fica mais pulando ao rolar a página.',
+      'Ranking mais enxuto: começa no top 10 e abre o top 100 completo num toque.',
     ],
   },
   {

@@ -46,6 +46,17 @@ async function step(label, fn) {
           await page.locator('ol > li').nth(9).waitFor({ timeout: 15000 });
           await shot('home');
         });
+        await step('ranking começa no top 10 e expande', async () => {
+          const rows = page.locator('#ranking ol > li');
+          if ((await rows.count()) !== 10) throw new Error(`esperava 10 linhas, veio ${await rows.count()}`);
+          await page.getByRole('button', { name: /^Ver o top \d+ completo/ }).click();
+          await page.waitForFunction(() => document.querySelectorAll('#ranking ol > li').length > 10);
+          await page.getByRole('button', { name: 'Mostrar só o top 10' }).click();
+          await page.waitForFunction(() => document.querySelectorAll('#ranking ol > li').length === 10);
+          // volta pro topo (no celular, com o topo compacto, o seletor de país fica escondido)
+          await page.evaluate(() => scrollTo({ top: 0, behavior: 'instant' }));
+          await page.waitForFunction(() => !document.querySelector('header[data-compact]'));
+        });
         await step('trocar pro Brasil e abrir uma música do ranking', async () => {
           await page.getByRole('combobox', { name: 'Mercado do ranking' }).click();
           await page.getByRole('option', { name: /Brasil/ }).click();

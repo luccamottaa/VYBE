@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
   ArrowUpRight,
+  ChevronDown,
   Database,
   Disc3,
   ExternalLink,
@@ -224,6 +225,9 @@ function Dashboard() {
     else setSong(songFrom({ name: t.name, artist: t.artistName, artwork: t.artworkUrl100, appleId: ids.appleId, spotifyId: ids.spotifyId, releaseDate: t.releaseDate }));
   };
 
+  // ranking começa com 10; "ver completo" abre o resto (buscando, mostra tudo que bater)
+  const [expanded, setExpanded] = useState(false);
+  useEffect(() => setExpanded(false), [market, kind]);
   const filtered = useMemo(() => {
     const q = query.trim().toLocaleLowerCase();
     return view?.tracks.filter((t) => !q || `${t.name} ${t.artistName}`.toLocaleLowerCase().includes(q)) ?? [];
@@ -357,7 +361,6 @@ function Dashboard() {
                     ['albums', 'Álbuns'],
                   ]}
                 />
-                <span className="hidden text-xs text-slate-400 sm:inline">{kind === 'albums' ? 'Álbuns mais tocados na Apple Music' : 'Apple Music + Spotify num ranking só'}</span>
               </div>
             )}
 
@@ -430,7 +433,7 @@ function Dashboard() {
             {!albumsView && <ArtistBubbles view={view} onArtist={setArtist} />}
 
             {/* Ranking completo */}
-            <Panel className="p-0 sm:p-0">
+            <Panel id="ranking" className="p-0 sm:p-0">
               <div className="flex items-start justify-between gap-3 p-5 sm:p-6">
                 <div className="min-w-0">
                   <h3 className="flex items-center gap-2 text-base font-bold text-white">
@@ -453,8 +456,9 @@ function Dashboard() {
                   <Skeleton rows={8} />
                 </div>
               ) : filtered.length ? (
+                <>
                 <ol className="divide-y divide-slate-800/60 border-t border-slate-800/60">
-                  {filtered.map((t) => {
+                  {(expanded || query.trim() ? filtered : filtered.slice(0, 10)).map((t) => {
                     const hits = hitsFor(t);
                     return (
                       <li key={t.id}>
@@ -498,6 +502,19 @@ function Dashboard() {
                     );
                   })}
                 </ol>
+                {!query.trim() && filtered.length > 10 && (
+                  <button
+                    onClick={() => {
+                      if (expanded) document.getElementById('ranking')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      setExpanded((e) => !e);
+                    }}
+                    className="flex w-full items-center justify-center gap-2 border-t border-slate-800/60 py-4 text-sm font-bold text-cyan-400 transition-colors hover:bg-slate-800/30 hover:text-cyan-300"
+                  >
+                    {expanded ? 'Mostrar só o top 10' : `Ver o top ${filtered.length} completo`}
+                    <ChevronDown className={`h-4 w-4 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+                  </button>
+                )}
+                </>
               ) : (
                 <div className="flex flex-col items-center gap-2 border-t border-slate-800/60 p-10 text-center">
                   <h4 className="font-bold text-white">Nenhuma música encontrada</h4>
