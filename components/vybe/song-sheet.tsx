@@ -40,6 +40,7 @@ export function SongSheet({
   const [loading, setLoading] = useState(false);
   const [lastfm, setLastfm] = useState<Record<string, LastfmRow>>({});
   const [total, setTotal] = useState<number | null>(null);
+  const [chartTotal, setChartTotal] = useState<number | null>(null); // total do kworb, plano B do contador
 
   useEffect(() => {
     getLastfm().then(setLastfm);
@@ -50,6 +51,7 @@ export function SongSheet({
     let alive = true;
     setFull(song);
     setHits([]);
+    setChartTotal(null);
     setSeries([]);
     setTotal(null);
     setLoading(true);
@@ -71,6 +73,7 @@ export function SongSheet({
       if (!alive) return;
       setFull({ ...s, artwork: s.artwork ?? h.find((x) => x.artwork)?.artwork });
       setHits(h);
+      setChartTotal(all.spotify.global?.entries.find((e) => h.some((x) => x.market === 'sp:global' && x.id === e.spotifyId))?.totalStreams ?? null);
       const hist = await songHistory(all, s, h);
       if (alive) setSeries(hist);
     })()
@@ -194,7 +197,7 @@ export function SongSheet({
               )}
             </section>
 
-            {!loading && <StreamCount spotifyId={spotifyId} name={full.name} artist={full.artist} songKey={full.key} onTotal={setTotal} />}
+            {!loading && <StreamCount spotifyId={spotifyId} name={full.name} artist={full.artist} songKey={full.key} fallbackTotal={chartTotal} onTotal={setTotal} />}
 
             {!loading && (
               <SpotifyAllTime

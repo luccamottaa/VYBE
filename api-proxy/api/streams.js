@@ -9,6 +9,11 @@ export default async function handler(req, res) {
   const { status, body, cache } = await trackStreams(req.query, env, findId);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
-  res.setHeader('Cache-Control', cache ? 'public, max-age=600, s-maxage=43200, stale-while-revalidate=86400' : 'no-store');
+  // sucesso: 24 h na borda (o Spotify só atualiza o total uma vez por dia, e cada chamada gasta a cota do plano).
+  // Se o RapidAPI falhar depois, continua entregando a última boa por até 7 dias. Cota estourada: 5 min.
+  res.setHeader(
+    'Cache-Control',
+    cache === 'short' ? 'public, max-age=60, s-maxage=300' : cache ? 'public, max-age=600, s-maxage=86400, stale-while-revalidate=604800, stale-if-error=604800' : 'no-store',
+  );
   res.status(status).end(JSON.stringify(body));
 }
