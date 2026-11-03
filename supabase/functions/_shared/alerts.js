@@ -350,4 +350,54 @@ function computeAlerts(all, follows, prev, now = Date.now()) {
 	};
 }
 //#endregion
-export { MILESTONES, computeAlerts, milestoneLabel, snapshotOf };
+//#region lib/daily.ts
+/** Melhor posição de um follow (e em qual mercado) nos charts de agora, ou null se estiver fora de todos. */
+function best(all, f) {
+	const { ranks } = snapshotOf(all, f);
+	let top = null;
+	let charts = 0;
+	const songs = /* @__PURE__ */ new Set();
+	for (const [k, rank] of Object.entries(ranks)) {
+		charts++;
+		const market = f.kind === "artist" ? k.slice(k.lastIndexOf("|") + 1) : k;
+		if (f.kind === "artist") songs.add(k.slice(0, k.lastIndexOf("|")));
+		if (!top || rank < top.rank) top = {
+			rank,
+			market
+		};
+	}
+	return top ? {
+		...top,
+		charts,
+		songs: songs.size
+	} : null;
+}
+/** Texto do push diário. Null quando ninguém que a pessoa segue está em chart nenhum (aí não manda nada). */
+function dailySummary(all, follows) {
+	const rows = follows.map((f) => ({
+		f,
+		b: best(all, f)
+	})).filter((r) => !!r.b).sort((a, b) => a.b.rank - b.b.rank || a.f.name.localeCompare(b.f.name));
+	if (!rows.length) return null;
+	const line = ({ f, b }) => {
+		const where = `#${b.rank} ${marketName(b.market)}`;
+		return f.kind === "artist" && b.songs > 1 ? `${f.name}: ${b.songs} músicas, melhor ${where}` : `${f.name} ${where}`;
+	};
+	const shown = rows.slice(0, 3).map(line);
+	const more = rows.length - shown.length;
+	return {
+		title: rows.length === 1 ? "Seu resumo do dia 🎧" : `${rows.length} dos seus estão nos charts hoje 🎧`,
+		body: shown.join(" · ") + (more > 0 ? ` · +${more}` : ""),
+		count: rows.length
+	};
+}
+/** Data (AAAA-MM-DD) e hora em Brasília: o resumo sai de manhã no horário do Brasil, não do servidor. */
+function brasiliaNow(now = Date.now()) {
+	const d = /* @__PURE__ */ new Date(now - 3 * 36e5);
+	return {
+		date: d.toISOString().slice(0, 10),
+		hour: d.getUTCHours()
+	};
+}
+//#endregion
+export { brasiliaNow, computeAlerts, dailySummary };
