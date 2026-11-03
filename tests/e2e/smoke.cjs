@@ -177,7 +177,9 @@ const sizes = [
             const reply = (status, body) => Promise.resolve(new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } }));
             window.fetch = (u, o) => {
               const url = String(u instanceof Request ? u.url : u);
-              if (url.includes('vybe-api-taupe.vercel.app/api/health')) return reply(200, { spotify: false, streams: true });
+              if (url.includes('vybe-api-taupe.vercel.app/api/health')) return reply(200, { spotify: true, streams: true });
+              if (url.includes('vybe-api-taupe.vercel.app/api/track'))
+                return reply(200, { spotifyId: 'T'.padEnd(22, 'x'), name: 'Ghostbusters', artist: 'Ray Parker Jr.', source: 'https://kworb.net/spotify/track/x.html', firstDate: '2026-10-01', lastDate: '2026-11-02', daily: { dates: ['2026-11-02'], pos: { global: [50] }, streams: { global: [1] }, total: { global: 987654321 }, peak: {} }, weekly: null });
               if (url.includes('vybe-api-taupe.vercel.app/api/streams')) {
                 if (sessionStorage.getItem('pw:modo') === 'ok')
                   return reply(200, { spotifyId: 'S2'.padEnd(22, 'x'), total: 111111111, history: [{ date: '2026-11-01', streams: 111000000 }, { date: '2026-11-02', streams: 111111111 }] });
@@ -214,6 +216,12 @@ const sizes = [
             await p5.goto(url, { waitUntil: 'networkidle' });
             await p5.getByText('111.111.111').first().waitFor({ timeout: 20000 });
             await p5.getByText(/guardado de .*o contador está no limite/).waitFor({ timeout: 5000 });
+            // 3) cota estourada e a música NÃO está no chart global de agora: usa o total da página dela no kworb
+            await modo('quota');
+            await p5.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith('vybe:streams:')).forEach((k) => localStorage.removeItem(k)));
+            await p5.goto(`${base}?musica=Ghostbusters&artista=Ray%20Parker%20Jr.`, { waitUntil: 'networkidle' });
+            await p5.getByText('987.654.321').first().waitFor({ timeout: 20000 });
+            await p5.getByText(/soma os dias em que a música esteve no chart/).waitFor({ timeout: 5000 });
           } finally {
             await c5.close();
           }
