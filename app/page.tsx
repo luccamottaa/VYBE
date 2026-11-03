@@ -4,24 +4,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
   ArrowUpRight,
-  BarChart3,
-  CalendarClock,
   Database,
   Disc3,
   ExternalLink,
-  Flame,
   Globe2,
-  Hourglass,
   Music2,
   Play,
   RefreshCw,
   Sparkles,
   Star,
-  Tags,
-  TrendingUp,
-  Users,
 } from 'lucide-react';
-import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TrackSheet } from '@/components/vybe/track-sheet';
 import { Sources } from '@/components/vybe/sources';
@@ -37,6 +29,7 @@ import { Highlights } from '@/components/vybe/highlights';
 import { Following } from '@/components/vybe/following';
 import { PwaBar } from '@/components/vybe/pwa';
 import { AmbientBackground } from '@/components/vybe/ambient-background';
+import { ArtistBubbles, SpotlightTiles } from '@/components/vybe/home';
 import { VersionBadge } from '@/components/vybe/changelog';
 import { ErrorBoundary, safeMode } from '@/components/vybe/error-boundary';
 import { loadAllCharts } from '@/lib/all-charts';
@@ -46,7 +39,7 @@ import { useFollows } from '@/lib/follow';
 import { songFrom, type Artist, type Song } from '@/lib/search';
 import { getAppleAlbumChart, getAppleChart, getSpotifyChart, isStatic, spotifyMarkets } from '@/lib/data-source';
 import { combineCharts, type SourceRanks } from '@/lib/combined';
-import { Cover, CrossBadges, MetricCard, Movement, Panel, PanelTitle } from '@/components/vybe/ui';
+import { Cover, CrossBadges, Movement, Panel } from '@/components/vybe/ui';
 import {
   combinedView,
   artwork,
@@ -54,12 +47,8 @@ import {
   fmtCompact,
   fmtFull,
   markets,
-  matchKey,
   releaseLabel,
   shortDate,
-  spotifySummary,
-  spotifyView,
-  summarize,
   tenure,
   type ChartView,
   type CrossHit,
@@ -68,8 +57,6 @@ import {
 } from '@/lib/vybe';
 
 const globalMarket = { flag: '🌍', name: 'Global' };
-const genreColors = ['#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'];
-const tooltipStyle = { backgroundColor: 'var(--popover)', borderColor: 'var(--border)', color: 'var(--popover-foreground)', borderRadius: '0.75rem', fontSize: 12 };
 type View = 'charts' | 'highlights' | 'following' | 'sources';
 const tabToParam: Record<View, NonNullable<DeepLink['aba']>> = { charts: 'charts', highlights: 'destaques', following: 'seguindo', sources: 'fontes' };
 const paramToTab = Object.fromEntries(Object.entries(tabToParam).map(([k, v]) => [v, k])) as Record<string, View>;
@@ -105,6 +92,21 @@ function Dashboard() {
   const [kind, setKind] = useState<'songs' | 'albums'>(link.tipo === 'albuns' && isStatic ? 'albums' : 'songs');
   const [album, setAlbum] = useState<Album | null>(() => (link.album ? albumFrom({ name: link.album, artist: link.artista ?? '' }) : null));
   const [compact, setCompact] = useState(false);
+  const headerRef = useRef<HTMLElement>(null);
+  const [headerGap, setHeaderGap] = useState(0);
+  // guarda a altura do topo aberto; quando encolhe, a diferença vira margem embaixo: o conteúdo não dá tranco
+  const fullHeader = useRef(0);
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => {
+      const h = el.offsetHeight;
+      if (!compact) fullHeader.current = h;
+      setHeaderGap(compact ? Math.max(0, fullHeader.current - h) : 0);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [compact]);
   const [safe, setSafe] = useState(false);
   const follows = useFollows();
   const { unread } = useAlerts();
@@ -193,7 +195,8 @@ function Dashboard() {
   // Topo vira uma pílula compacta ao rolar; modo seguro desliga a animação pesada.
   useEffect(() => {
     setSafe(safeMode());
-    const onScroll = () => setCompact(window.scrollY > 72);
+    // histerese: encolhe depois de 140 px e só volta perto do topo (senão o encolher muda a página e ela fica pulando)
+    const onScroll = () => setCompact((c) => (c ? window.scrollY > 24 : window.scrollY > 140));
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
@@ -221,23 +224,6 @@ function Dashboard() {
     else setSong(songFrom({ name: t.name, artist: t.artistName, artwork: t.artworkUrl100, appleId: ids.appleId, spotifyId: ids.spotifyId, releaseDate: t.releaseDate }));
   };
 
-  const spotify = useMemo(() => (view?.source === 'spotify' ? spotifySummary(view) : null), [view]);
-  // Spotify sem login não manda streams: aí os blocos de artistas/lançamentos substituem os de streams.
-  const streamMode = !!spotify?.hasStreams;
-  const apple = useMemo(() => (view && !streamMode ? summarize(view) : null), [view, streamMode]);
-  const recentReleases = useMemo(
-    () =>
-      [...(view?.tracks ?? [])]
-        .filter((t) => t.releaseDate)
-        .sort((a, b) => (b.releaseDate ?? '').localeCompare(a.releaseDate ?? '') || a.rank - b.rank)
-        .slice(0, 4),
-    [view],
-  );
-  const climbers = useMemo(
-    () => (view?.hasMovement ? view.tracks.filter((t) => (t.change ?? 0) > 0).sort((a, b) => (b.change ?? 0) - (a.change ?? 0)) : []),
-    [view],
-  );
-  const debuts = useMemo(() => (view?.hasMovement ? view.tracks.filter((t) => t.isNew) : []), [view]);
   const filtered = useMemo(() => {
     const q = query.trim().toLocaleLowerCase();
     return view?.tracks.filter((t) => !q || `${t.name} ${t.artistName}`.toLocaleLowerCase().includes(q)) ?? [];
@@ -257,7 +243,6 @@ function Dashboard() {
   const topOnSpotify = !!(top as (ViewTrack & { spotifyId?: string }) | undefined)?.spotifyId;
   const weekly = !!view?.chartKey?.includes('weekly');
   const topRelease = top && view ? releaseLabel(daysSince(top.releaseDate, view.updated)) : null;
-  const needsHistory = 'Precisa de 2 dias de registro';
 
   return (
     <div className="min-h-screen bg-background px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[calc(env(safe-area-inset-top)+1rem)] font-sans text-slate-100 selection:bg-cyan-500 selection:text-black sm:px-6 sm:pb-6 sm:pt-6 lg:px-8 lg:pb-8 lg:pt-8">
@@ -269,6 +254,8 @@ function Dashboard() {
       <div className="relative z-10 mx-auto max-w-7xl space-y-6">
         {/* Navbar */}
         <header
+          ref={headerRef}
+          style={headerGap ? { marginBottom: `calc(1.5rem + ${headerGap}px)` } : undefined}
           data-compact={compact || undefined}
           className={`sticky top-[calc(env(safe-area-inset-top)+0.5rem)] z-30 flex flex-col border shadow-2xl transition-[padding,gap,border-radius,background-color,box-shadow] duration-300 lg:flex-row lg:items-center lg:justify-between ${
             compact
@@ -370,7 +357,7 @@ function Dashboard() {
                     ['albums', 'Álbuns'],
                   ]}
                 />
-                <span className="text-xs text-slate-500">{kind === 'albums' ? 'Álbuns mais tocados na Apple Music' : 'Apple Music + Spotify num ranking só'}</span>
+                <span className="hidden text-xs text-slate-400 sm:inline">{kind === 'albums' ? 'Álbuns mais tocados na Apple Music' : 'Apple Music + Spotify num ranking só'}</span>
               </div>
             )}
 
@@ -438,213 +425,14 @@ function Dashboard() {
               </div>
             </section>
 
-            {/* Métricas */}
-            <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {streamMode ? (
-                <>
-                  <MetricCard
-                    label="Streams no chart"
-                    value={spotify?.hasStreams ? fmtCompact(spotify.totalStreams) : '—'}
-                    icon={<BarChart3 className="h-4 w-4" />}
-                    tone="emerald"
-                    badge={view ? `Top ${view.tracks.length}` : undefined}
-                    note={spotify?.hasStreams ? 'somados nesta parada' : 'Sem contagem nesta fonte'}
-                  />
-                  <MetricCard
-                    label="#1 em streams"
-                    value={spotify?.topStreams[0] ? fmtCompact(spotify.topStreams[0].streams) : '—'}
-                    icon={<Flame className="h-4 w-4" />}
-                    tone="orange"
-                    note={spotify?.topStreams[0]?.name}
-                  />
-                </>
-              ) : (
-                <>
-                  <MetricCard
-                    label={`Artistas no Top ${view?.tracks.length || 100}`}
-                    value={apple ? apple.artistCount : '—'}
-                    icon={<Users className="h-4 w-4" />}
-                    tone="blue"
-                    badge={apple?.topArtists[0] ? `${apple.topArtists[0].count} ${albumsView ? "álbuns" : "faixas"}` : undefined}
-                    note={apple?.topArtists[0] ? `${apple.topArtists[0].artist} lidera` : undefined}
-                  />
-                  <MetricCard
-                    label="Lançamentos da semana"
-                    value={apple ? apple.recent.length : '—'}
-                    icon={<CalendarClock className="h-4 w-4" />}
-                    tone="purple"
-                    badge={apple ? 'até 7 dias' : undefined}
-                    note={apple?.recent[0] ? `melhor: #${apple.recent[0].rank} ${apple.recent[0].name}` : undefined}
-                  />
-                </>
-              )}
-              <MetricCard
-                label="Maior alta"
-                value={climbers[0]?.name ?? '—'}
-                icon={<TrendingUp className="h-4 w-4" />}
-                tone="emerald"
-                badge={climbers[0] ? `+${climbers[0].change}` : undefined}
-                note={climbers[0] ? `agora #${climbers[0].rank}` : view?.hasMovement ? 'Ninguém subiu' : needsHistory}
-              />
-              <MetricCard
-                label="Estreias"
-                value={view?.hasMovement ? debuts.length : '—'}
-                icon={<Sparkles className="h-4 w-4" />}
-                tone="cyan"
-                badge={view?.hasMovement ? 'novas no chart' : undefined}
-                note={view?.compareLabel ?? needsHistory}
-              />
-            </section>
-
-            {/* Grid principal */}
-            <section className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-              <Panel className="lg:col-span-2">
-                {streamMode ? (
-                  <>
-                    <PanelTitle icon={<BarChart3 className="h-4 w-4 text-emerald-400" />} title="Top 10 em streams" hint="Reproduções contadas pelo Spotify nesta parada" />
-                    <div className="h-72 w-full">
-                      {spotify?.topStreams.length ? (
-                        <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={spotify.topStreams.map((t) => ({ name: t.name.length > 22 ? `${t.name.slice(0, 21)}…` : t.name, streams: t.streams }))} layout="vertical" margin={{ left: 0, right: 16 }}>
-                            <defs>
-                              <linearGradient id="barGreen" x1="0" y1="0" x2="1" y2="0">
-                                <stop offset="0%" stopColor="#0891b2" />
-                                <stop offset="100%" stopColor="#10b981" />
-                              </linearGradient>
-                            </defs>
-                            <XAxis type="number" stroke="#475569" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => fmtCompact(Number(v))} />
-                            <YAxis type="category" dataKey="name" width={150} stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
-                            <Tooltip cursor={{ fill: 'rgba(16,185,129,0.06)' }} formatter={(v) => [fmtFull(Number(v)), 'Streams']} contentStyle={tooltipStyle} />
-                            <Bar dataKey="streams" fill="url(#barGreen)" radius={[0, 6, 6, 0]} barSize={18} />
-                          </BarChart>
-                        </ResponsiveContainer>
-                      ) : loading ? (
-                        <Skeleton />
-                      ) : (
-                        <Empty>Esta parada veio sem contagem de streams.</Empty>
-                      )}
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <PanelTitle icon={<BarChart3 className="h-4 w-4 text-cyan-400" />} title={`Quem domina o Top ${view?.tracks.length || 100}`} hint={`${albumsView ? "Álbuns" : "Faixas"} por artista, contando colaborações para cada nome`} />
-                    <div className="h-72 w-full">
-                      {apple?.topArtists.length ? (
-                        <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={apple.topArtists} layout="vertical" margin={{ left: 0, right: 16 }}>
-                            <defs>
-                              <linearGradient id="barGlow" x1="0" y1="0" x2="1" y2="0">
-                                <stop offset="0%" stopColor="#3b82f6" />
-                                <stop offset="100%" stopColor="#06b6d4" />
-                              </linearGradient>
-                            </defs>
-                            <XAxis type="number" allowDecimals={false} stroke="#475569" fontSize={11} tickLine={false} axisLine={false} />
-                            <YAxis type="category" dataKey="artist" width={130} stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
-                            <Tooltip cursor={{ fill: 'rgba(6,182,212,0.06)' }} formatter={(v) => [v, albumsView ? "Álbuns" : "Faixas"]} contentStyle={tooltipStyle} />
-                            <Bar dataKey="count" fill="url(#barGlow)" radius={[0, 6, 6, 0]} barSize={18} />
-                          </BarChart>
-                        </ResponsiveContainer>
-                      ) : (
-                        <Skeleton />
-                      )}
-                    </div>
-                  </>
-                )}
-              </Panel>
-
-              <Panel className="flex flex-col justify-between">
-                <div>
-                  <PanelTitle icon={<Flame className="h-4 w-4 text-orange-400" />} title={climbers.length ? 'Subindo rápido' : 'Top 5 agora'}>
-                    <span className="text-xs font-medium text-slate-500">{climbers.length ? view?.compareLabel : 'Top hits'}</span>
-                  </PanelTitle>
-                  <div className="space-y-3">
-                    {(climbers.length ? climbers : view?.tracks ?? []).slice(0, 5).map((t) => (
-                      <button
-                        key={t.id}
-                        onClick={() => openTrack(t)}
-                        className="group flex w-full items-center justify-between gap-2 rounded-2xl border border-slate-800/50 bg-slate-950/40 p-3 text-left transition-all hover:border-slate-700/80"
-                      >
-                        <div className="flex min-w-0 items-center gap-3">
-                          <span className="w-7 text-center text-xs font-bold text-slate-500">#{t.rank}</span>
-                          <Cover src={t.artworkUrl100} alt="" className="h-9 w-9 shrink-0 group-hover:border-cyan-500/40" />
-                          <div className="min-w-0">
-                            <h4 className="truncate text-xs font-bold text-white group-hover:text-cyan-300">{t.name}</h4>
-                            <p className="truncate text-[10px] text-slate-400">{t.artistName}</p>
-                          </div>
-                        </div>
-                        <Movement change={view?.hasMovement ? t.change : null} isNew={view?.hasMovement && t.isNew} />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="mt-6 border-t border-slate-800/60 pt-4">
-                  {spotify?.veterans.length ? (
-                    <>
-                      <h4 className="mb-3 flex items-center gap-1.5 text-xs font-bold text-slate-300">
-                        <Hourglass className="h-3.5 w-3.5 text-cyan-400" /> Mais tempo no chart
-                      </h4>
-                      {spotify?.veterans.length ? (
-                        <div className="grid grid-cols-2 gap-2">
-                          {spotify.veterans.map((t) => (
-                            <button key={t.id} onClick={() => openTrack(t)} className="rounded-xl border border-slate-800/60 bg-slate-950/50 p-2.5 text-left hover:border-slate-700">
-                              <span className="block truncate text-[10px] text-slate-400">{t.name}</span>
-                              <strong className="text-sm font-black text-white">{t.days}</strong> <span className="text-[10px] text-slate-500">{tenure(t.days ?? 0, weekly).split(' ')[1]}</span>
-                            </button>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-[11px] text-slate-500">Sem dado de permanência nesta parada.</p>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      <h4 className="mb-3 flex items-center gap-1.5 text-xs font-bold text-slate-300">
-                        {apple?.genres.length ? <Tags className="h-3.5 w-3.5 text-cyan-400" /> : <CalendarClock className="h-3.5 w-3.5 text-cyan-400" />}
-                        {apple?.genres.length ? 'Gêneros no chart' : 'Lançadas mais recentemente'}
-                      </h4>
-                      {apple?.genres.length ? (
-                        <div className="grid grid-cols-2 gap-2">
-                          {apple.genres.slice(0, 4).map((g, i) => {
-                            const pct = Math.round((g.count / view!.tracks.length) * 100);
-                            return (
-                              <div key={g.genre} className="rounded-xl border border-slate-800/60 bg-slate-950/50 p-2.5">
-                                <div className="mb-1 flex items-center justify-between gap-1 text-[10px] text-slate-400">
-                                  <span className="truncate">{g.genre}</span>
-                                  <span className="font-bold text-white">{pct}%</span>
-                                </div>
-                                <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
-                                  <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: genreColors[i % genreColors.length] }} />
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        recentReleases.length ? (
-                          <div className="grid grid-cols-2 gap-2">
-                            {recentReleases.map((t) => (
-                              <button key={t.id} onClick={() => openTrack(t)} className="rounded-xl border border-slate-800/60 bg-slate-950/50 p-2.5 text-left hover:border-slate-700">
-                                <span className="block truncate text-[10px] text-slate-400">{t.name}</span>
-                                <strong className="text-sm font-black text-white">#{t.rank}</strong>{' '}
-                                <span className="text-[10px] text-slate-500">{shortDate(`${t.releaseDate}T00:00:00Z`)}</span>
-                              </button>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-[11px] text-slate-500">Sem dados de gênero ou lançamento nesta fonte.</p>
-                        )
-                      )}
-                    </>
-                  )}
-                </div>
-              </Panel>
-            </section>
+            {/* Destaques visuais e artistas do momento */}
+            <SpotlightTiles view={view} onOpen={openTrack} />
+            {!albumsView && <ArtistBubbles view={view} onArtist={setArtist} />}
 
             {/* Ranking completo */}
             <Panel className="p-0 sm:p-0">
-              <div className="flex flex-wrap items-center justify-between gap-3 p-5 sm:p-6">
-                <div>
+              <div className="flex items-start justify-between gap-3 p-5 sm:p-6">
+                <div className="min-w-0">
                   <h3 className="flex items-center gap-2 text-base font-bold text-white">
                     <Globe2 className="h-4 w-4 text-cyan-400" /> {view?.title ?? 'Top 100 vybe'}
                   </h3>
@@ -847,10 +635,6 @@ function Chip({ children }: { children: React.ReactNode }) {
 
 function Notice({ children }: { children: React.ReactNode }) {
   return <p className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-300">{children}</p>;
-}
-
-function Empty({ children }: { children: React.ReactNode }) {
-  return <div className="flex h-full items-center justify-center text-sm text-slate-500">{children}</div>;
 }
 
 function Skeleton({ rows = 6 }: { rows?: number }) {

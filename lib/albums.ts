@@ -1,7 +1,7 @@
 // Álbuns: busca (Apple + Deezer), discografia do artista, faixas do álbum e Top 100 álbuns da Apple.
 import { getAppleAlbumChart, isStatic } from './data-source';
 import { itunesMany, jsonp, mergeSongs, norm, toSong, fromDeezer, type Artist, type DzTrack, type ItunesItem, type Song } from './search';
-import { matchKey, splitArtists } from './sources/match.ts';
+import { creditIncludes, matchKey, splitArtists } from './sources/match.ts';
 import { markets } from './sources/markets.ts';
 import type { Chart } from './vybe';
 
@@ -88,7 +88,7 @@ export async function searchAlbums(q: string, signal?: AbortSignal, limit = 10):
 /** Discografia: Apple (por id do artista ou busca) + Deezer, mais novo primeiro. */
 export async function albumsByArtist(artist: Artist, signal?: AbortSignal): Promise<Album[]> {
   const a = norm(artist.name);
-  const mine = (x: Album) => splitArtists(x.artist).some((n) => norm(n) === a);
+  const mine = (x: Album) => creditIncludes(x.artist, artist.name);
   const apple = (async () => {
     if (artist.artistId) {
       const items = await itunesMany('lookup', { id: artist.artistId, entity: 'album', limit: '200' }, signal, ['BR', 'US']);

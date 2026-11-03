@@ -1,6 +1,6 @@
 // Onde cada música está nos charts carregados (Apple 5 países + Spotify por mercado). Módulo puro:
 // não toca em rede nem em navegador, então dá pra testar no Node.
-import { matchKey, splitArtists } from './sources/match.ts';
+import { creditIncludes, matchKey } from './sources/match.ts';
 import { marketLabel } from './sources/markets.ts';
 import type { Chart, SpotifyPayload } from './vybe';
 import type { Song } from './search';
@@ -52,16 +52,9 @@ export function findHits(all: All, song: Pick<Song, 'key' | 'appleId' | 'spotify
   return hits.sort((a, b) => a.rank - b.rank);
 }
 
-const norm = (s: string) =>
-  s
-    .normalize('NFD')
-    .replace(/\p{M}/gu, '')
-    .toLowerCase()
-    .trim();
 
 /** Faixas de um artista nos charts agora, agrupadas por música. */
 export function artistHits(all: All, artist: string) {
-  const a = norm(artist);
   const songs = new Map<string, { key: string; name: string; artist: string; artwork?: string; appleId?: string; spotifyId?: string; hits: ChartHit[] }>();
   const add = (key: string, base: { name: string; artist: string; artwork?: string; appleId?: string; spotifyId?: string }, hit: ChartHit) => {
     const row = songs.get(key) ?? { key, ...base, hits: [] };
@@ -73,11 +66,11 @@ export function artistHits(all: All, artist: string) {
   };
   for (const [cc, chart] of Object.entries(all.apple))
     for (const t of chart.tracks)
-      if (splitArtists(t.artistName).some((x) => norm(x) === a))
+      if (creditIncludes(t.artistName, artist))
         add(matchKey(t.name, t.artistName), { name: t.name, artist: t.artistName, artwork: t.artworkUrl100, appleId: t.id }, { market: `ap:${cc}`, label: marketLabel(`ap:${cc}`), rank: t.rank, change: t.change, isNew: !!t.isNew, id: t.id, name: t.name, artist: t.artistName });
   for (const [m, chart] of Object.entries(all.spotify))
     for (const e of chart.entries)
-      if (splitArtists(e.artist).some((x) => norm(x) === a))
+      if (creditIncludes(e.artist, artist))
         add(matchKey(e.trackName, e.artist), { name: e.trackName, artist: e.artist, artwork: e.artworkUrl ?? undefined, spotifyId: e.spotifyId }, { market: `sp:${m}`, label: marketLabel(`sp:${m}`), rank: e.rank, change: e.previousRank === null ? null : e.previousRank - e.rank, isNew: e.previousRank === null, streams: e.streams, id: e.spotifyId, name: e.trackName, artist: e.artist });
   return [...songs.values()]
     .map((s) => ({ ...s, hits: s.hits.sort((x, y) => x.rank - y.rank) }))
