@@ -71,7 +71,7 @@ export function Highlights({ onSong, onArtist }: { onSong: (s: Song) => void; on
       {/* #1 de cada chart */}
       <Panel className="p-0 sm:p-0">
         <SectionTitle icon={<Crown className="h-4 w-4 text-amber-300" />} title="Quem manda em cada chart" className="px-5 pt-5 sm:px-6 sm:pt-6" />
-        <div className="flex snap-x gap-3 overflow-x-auto px-5 pb-5 [scrollbar-width:none] sm:px-6 sm:pb-6">
+        <div className="hscroll snap-x gap-3 pb-5 [--hs-gap:0.75rem] [--hs-pad:1.25rem] sm:pb-6 sm:[--hs-pad:1.5rem]">
           {data
             ? data.numberOnes.map((s) => (
                 <button

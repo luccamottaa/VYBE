@@ -152,7 +152,7 @@ export function ArtistSheet({ artist, onClose, onSong, onAlbum }: { artist: Arti
                     </div>
                   )}
                 </div>
-                <div className="-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
+                <div className="hscroll -mx-4 snap-x gap-3 pb-1 [--hs-gap:0.75rem] [--hs-pad:1rem]">
                   {albums === null
                     ? Array.from({ length: 4 }, (_, i) => <div key={i} className="h-44 w-32 shrink-0 animate-pulse rounded-2xl bg-slate-800/50" />)
                     : albums

@@ -332,3 +332,27 @@ html {
 .pt-safe {
   padding-top: max(1rem, env(safe-area-inset-top));
 }
+
+/* ---------- Faixas que deslizam pro lado ----------
+ * O Safari alinha o card "encaixado" na borda da área de rolagem e ignora o padding: o primeiro card ficava
+ * cortado na beira da tela. scroll-padding diz onde o encaixe acontece; o ::after substitui o padding da
+ * direita (que o Safari também ignora dentro de flex com rolagem). --hs-pad = respiro, --hs-gap = gap. */
+@layer components {
+.hscroll {
+  display: flex;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  padding-left: var(--hs-pad, 1rem);
+  padding-right: 0;
+  scroll-padding-inline: var(--hs-pad, 1rem);
+  -webkit-overflow-scrolling: touch;
+}
+.hscroll::-webkit-scrollbar {
+  display: none;
+}
+.hscroll::after {
+  content: '';
+  flex: 0 0 max(1px, calc(var(--hs-pad, 1rem) - var(--hs-gap, 0.75rem)));
+}
+}

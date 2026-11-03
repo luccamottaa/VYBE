@@ -42,7 +42,7 @@ export function SpotlightTiles({ view, onOpen }: { view: ChartView | null; onOpe
   return (
     <section aria-label="Destaques de agora">
       <SectionHead title="Agora no vybe" hint="O que tá mexendo no ranking" />
-      <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0 lg:grid-cols-5 [&::-webkit-scrollbar]:hidden">
+      <div className="hscroll -mx-4 snap-x snap-mandatory gap-3 pb-2 [--hs-gap:0.75rem] [--hs-pad:1rem] sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0 sm:after:hidden lg:grid-cols-5 [&::-webkit-scrollbar]:hidden">
         {tiles.map((x, i) => (
           <button
             key={x.id}
@@ -108,7 +108,7 @@ export function ArtistBubbles({ view, onArtist }: { view: ChartView | null; onAr
   return (
     <section aria-label="Artistas do momento">
       <SectionHead title="Artistas do momento" hint="Quem tem mais músicas no ranking" />
-      <div className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-2 [scrollbar-width:none] sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden">
+      <div className="hscroll -mx-4 gap-4 pb-2 [--hs-gap:1rem] [--hs-pad:1rem] sm:mx-0 sm:[--hs-pad:0.25rem]">
         {top.map((a, i) => (
           <button key={a.name} onClick={() => onArtist({ name: a.name, picture: photos[a.name] })} className="group flex w-[72px] shrink-0 flex-col items-center gap-1.5 text-center">
             <span className="relative rounded-full bg-[conic-gradient(from_200deg,#22d3ee,#3b82f6,#a855f7,#ec4899,#22d3ee)] p-[2.5px] transition-transform group-active:scale-90">
