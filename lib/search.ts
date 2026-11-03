@@ -171,10 +171,16 @@ export function jsonp<T>(url: string, signal?: AbortSignal, timeout = 10000): Pr
     const cb = `__vybeDz${Date.now().toString(36)}${jsonpSeq++}`;
     const script = document.createElement('script');
     const w = window as unknown as Record<string, unknown>;
+    let settled = false;
     const done = (fn: () => void) => {
+      if (settled) return;
+      settled = true;
       clearTimeout(timer);
       script.remove();
-      delete w[cb];
+      // Cancelada ou estourou o tempo: a resposta ainda pode chegar (o Safari não para o download ao tirar o
+      // <script>). Deixa um callback vazio no lugar por um tempo, senão vira "Can't find variable" no console.
+      w[cb] = () => delete w[cb];
+      setTimeout(() => delete w[cb], 60000);
       signal?.removeEventListener('abort', onAbort);
       fn();
     };

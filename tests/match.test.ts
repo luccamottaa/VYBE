@@ -18,3 +18,9 @@ test('rótulos de mercado', () => {
   assert.equal(marketLabel('sp:global'), 'Spotify 🌍');
   assert.equal(marketName('ap:br'), 'Apple Music Brasil');
 });
+
+test('matchKey não junta músicas diferentes com título em coreano/japonês', () => {
+  assert.notEqual(matchKey('체포하겠어', '아일릿'), matchKey('행복하지 말아요', 'M.C the MAX'));
+  assert.notEqual(matchKey('夜に駆ける', 'YOASOBI'), matchKey('マリーゴールド', 'あいみょん'));
+  assert.equal(matchKey('체포하겠어', '아일릿'), matchKey('체포하겠어 (feat. X)', '아일릿'));
+});

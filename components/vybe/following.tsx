@@ -135,7 +135,7 @@ export function Following({ onSong, onArtist }: { onSong: (s: Song) => void; onA
                   return (
                     <div key={f.key} className="flex items-center gap-2 rounded-2xl border border-slate-800/60 bg-slate-950/40 p-2 pr-2.5">
                       <button onClick={() => onSong(songFrom(f))} className="group flex min-w-0 flex-1 items-center gap-3 text-left">
-                        <Cover src={f.artwork ? artwork(f.artwork, 160) : ''} alt="" className="h-12 w-12 shrink-0" />
+                        <Cover eager src={f.artwork ? artwork(f.artwork, 160) : ''} alt="" className="h-12 w-12 shrink-0" />
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-bold text-white group-hover:text-cyan-300">{f.name}</p>
                           <p className="truncate text-[11px] text-slate-400">{f.artist}</p>
@@ -180,7 +180,7 @@ export function Following({ onSong, onArtist }: { onSong: (s: Song) => void; onA
                     <div key={f.key} className="rounded-2xl border border-slate-800/60 bg-slate-950/40 p-3">
                       <div className="flex items-center gap-3">
                         <button onClick={() => onArtist({ name: f.name, artistId: f.artistId, picture: f.artwork })} className="group flex min-w-0 flex-1 items-center gap-3 text-left">
-                          <Cover src={f.artwork ? artwork(f.artwork, 160) : ''} alt="" className="h-12 w-12 shrink-0 rounded-full" />
+                          <Cover eager src={f.artwork ? artwork(f.artwork, 160) : ''} alt="" className="h-12 w-12 shrink-0 rounded-full" />
                           <div className="min-w-0">
                             <p className="truncate text-sm font-bold text-white group-hover:text-purple-300">{f.name}</p>
                             <p className="text-[11px] text-slate-400">{all ? (hs.length ? `${hs.length} ${hs.length === 1 ? 'música' : 'músicas'} nos charts` : 'fora dos charts agora') : '…'}</p>
@@ -213,7 +213,7 @@ export function Following({ onSong, onArtist }: { onSong: (s: Song) => void; onA
                 <div className="flex flex-wrap gap-2">
                   {suggestions.map((a) => (
                     <div key={a.name} className="flex items-center gap-2 rounded-full border border-slate-800 bg-slate-950/50 py-1 pl-1 pr-1">
-                      <Cover src={a.artwork ?? ''} alt="" className="h-7 w-7 rounded-full" />
+                      <Cover eager src={a.artwork ?? ''} alt="" className="h-7 w-7 rounded-full" />
                       <span className="max-w-32 truncate text-xs font-semibold text-slate-200">{a.name}</span>
                       <FollowButton compact className="h-7 w-7 rounded-full" target={{ kind: 'artist', key: artistKey(a.name), name: a.name, artwork: a.artwork }} />
                     </div>
@@ -234,7 +234,7 @@ function AlertRow({ a, fresh, onOpen }: { a: Alert; fresh: boolean; onOpen: () =
     <li>
       <button onClick={onOpen} className={cn('flex w-full items-start gap-3 rounded-2xl border p-2.5 text-left transition-colors hover:bg-slate-800/40', fresh ? 'border-cyan-500/30 bg-cyan-500/5' : 'border-slate-800/60')}>
         <div className="relative shrink-0">
-          <Cover src={a.song?.artwork ? artwork(a.song.artwork, 160) : ''} alt="" className="h-11 w-11" />
+          <Cover eager src={a.song?.artwork ? artwork(a.song.artwork, 160) : ''} alt="" className="h-11 w-11" />
           <span className={cn('absolute -bottom-1.5 -right-1.5 rounded-lg border p-1', k.cls)}>
             <k.icon className="h-3 w-3" />
           </span>

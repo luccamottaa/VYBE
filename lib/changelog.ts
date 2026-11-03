@@ -3,6 +3,19 @@ export type Release = { version: string; date: string; title: string; items: str
 
 export const releases: Release[] = [
   {
+    version: '2.1',
+    date: '2026-11-03',
+    title: 'Um ranking só',
+    items: [
+      'Apple Music e Spotify juntos no Top 100 vybe: cada plataforma dá pontos pela posição e a soma ordena a lista. Escolha Global ou um país.',
+      'Cada música mostra a posição na Apple e no Spotify; tocar abre todos os charts, streams e histórico dela.',
+      'iPhone: o X dos painéis fica sempre visível abaixo do relógio, dá pra fechar arrastando pro lado e o topo não fica mais embaixo da Dynamic Island.',
+      'Mais leve no celular: menos efeito de vidro e a animação do #1 em 30 quadros.',
+      'Fundo vivo: manchas de cor que flutuam devagar com as cores da capa do #1 (ou da música/álbum aberto).',
+      'Músicas com título em coreano ou japonês não se misturam mais.',
+    ],
+  },
+  {
     version: '2.0',
     date: '2026-11-02',
     title: 'vybe vira app',

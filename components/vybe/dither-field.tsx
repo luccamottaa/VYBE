@@ -13,7 +13,8 @@ import { useEffect, useRef } from 'react';
 
 export type Palette = [string, string, string, string]; // fundo profundo, base, destaque, brilho
 
-export const palettes: Record<'apple' | 'spotify', Palette> = {
+export const palettes: Record<'apple' | 'spotify' | 'all', Palette> = {
+  all: ['#0b1f4d', '#2563eb', '#06b6d4', '#10b981'],
   apple: ['#172554', '#2563eb', '#06b6d4', '#a855f7'],
   spotify: ['#064e3b', '#0891b2', '#10b981', '#2dd4bf'],
 };
@@ -147,7 +148,11 @@ export function DitherField({ palette, background = '#070a11', cell = 7, classNa
     gl.uniform3fv(u('uBg'), bg.current);
 
     const current = target.current.map((c) => [...c]);
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    // celular: resolução e quadros menores (o efeito é pixelado, ninguém nota; a bateria e a rolagem agradecem)
+    const touch = window.matchMedia('(pointer: coarse)').matches;
+    const dpr = Math.min(window.devicePixelRatio || 1, touch ? 1.25 : 2);
+    const frameMs = touch ? 1000 / 30 : 0;
+    let lastFrame = 0;
 
     const resize = () => {
       const { width, height } = canvas.getBoundingClientRect();
@@ -178,7 +183,10 @@ export function DitherField({ palette, background = '#070a11', cell = 7, classNa
       gl.drawArrays(gl.TRIANGLES, 0, 6);
     };
     const loop = (now: number) => {
-      draw(now);
+      if (now - lastFrame >= frameMs) {
+        lastFrame = now;
+        draw(now);
+      }
       raf = requestAnimationFrame(loop);
     };
     const play = () => {

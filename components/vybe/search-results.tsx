@@ -182,7 +182,7 @@ export function SearchResults({
                   {songs.map((s) => (
                     <li key={s.key} className="flex items-center gap-3 px-3 py-2 transition-colors hover:bg-slate-800/30">
                       <button onClick={() => onSong(s)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
-                        <Cover src={s.artwork ?? ''} alt="" className="h-10 w-10 shrink-0" />
+                        <Cover eager src={s.artwork ?? ''} alt="" className="h-10 w-10 shrink-0" />
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-sm text-white">{s.name}</span>
                           <span className="block truncate text-[11px] text-slate-500">
@@ -221,7 +221,7 @@ export function SearchResults({
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {albums.map((a) => (
                   <button key={a.key} onClick={() => onAlbum(a)} className="group text-left">
-                    <Cover src={a.artwork ? artwork(a.artwork, 300) : ''} alt="" className="aspect-square w-full rounded-2xl transition-transform group-hover:-translate-y-0.5 group-hover:border-cyan-500/40" />
+                    <Cover eager src={a.artwork ? artwork(a.artwork, 300) : ''} alt="" className="aspect-square w-full rounded-2xl transition-transform group-hover:-translate-y-0.5 group-hover:border-cyan-500/40" />
                     <span className="mt-1.5 block truncate text-xs font-bold text-white group-hover:text-cyan-300">{a.name}</span>
                     <span className="block truncate text-[10px] text-slate-500">
                       {a.artist} · {albumTypeLabel(a)}
@@ -238,7 +238,7 @@ export function SearchResults({
               {artists.map((a) => (
                 <li key={a.artistId ?? a.deezerId ?? a.name}>
                   <button onClick={() => onArtist(a)} className="flex w-full items-center gap-3 rounded-2xl border border-slate-800/50 bg-slate-950/40 p-2.5 text-left hover:border-slate-700">
-                    <Cover src={a.picture ?? ''} alt="" className="h-11 w-11 shrink-0 rounded-full" />
+                    <Cover eager round src={a.picture ?? ''} alt="" className="h-11 w-11 shrink-0" />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-bold text-white">{a.name}</span>
                       <span className="block truncate text-[11px] text-slate-500">

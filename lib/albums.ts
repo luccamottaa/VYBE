@@ -37,13 +37,13 @@ const fromItunes = (i: ItunesItem & { collectionId?: number; collectionViewUrl?:
     appleUrl: i.collectionViewUrl,
   });
 
-type DzAlbum = { id: number; title: string; cover_medium?: string; cover_xl?: string; nb_tracks?: number; link?: string; record_type?: string; release_date?: string; artist?: { id: number; name: string }; genres?: { data?: { name: string }[] }; tracks?: { data?: DzTrack[] } };
+type DzAlbum = { id: number; title: string; cover_medium?: string; cover_big?: string; cover_xl?: string; nb_tracks?: number; link?: string; record_type?: string; release_date?: string; artist?: { id: number; name: string }; genres?: { data?: { name: string }[] }; tracks?: { data?: DzTrack[] } };
 
 const fromDz = (a: DzAlbum, artist?: string): Album =>
   albumFrom({
     name: a.title,
     artist: a.artist?.name ?? artist ?? '',
-    artwork: a.cover_xl ?? a.cover_medium,
+    artwork: a.cover_big ?? a.cover_medium ?? a.cover_xl,
     deezerId: String(a.id),
     trackCount: a.nb_tracks,
     deezerUrl: a.link,
@@ -142,7 +142,7 @@ export async function albumTracks(album: Album, signal?: AbortSignal): Promise<{
   const d = await jsonp<DzAlbum>(`https://api.deezer.com/album/${dzId}`, signal);
   const tracks = (d.tracks?.data ?? []).map((t, i) => ({ ...fromDeezer({ ...t, album: { title: d.title, cover_medium: d.cover_medium } }), number: i + 1, ms: (t as DzTrack & { duration?: number }).duration ? (t as DzTrack & { duration?: number }).duration! * 1000 : undefined }));
   return {
-    album: { ...a, deezerId: dzId, deezerUrl: a.deezerUrl ?? d.link, trackCount: d.nb_tracks ?? a.trackCount, releaseDate: a.releaseDate ?? d.release_date, genre: a.genre ?? d.genres?.data?.[0]?.name, artwork: a.artwork ?? d.cover_xl },
+    album: { ...a, deezerId: dzId, deezerUrl: a.deezerUrl ?? d.link, trackCount: d.nb_tracks ?? a.trackCount, releaseDate: a.releaseDate ?? d.release_date, genre: a.genre ?? d.genres?.data?.[0]?.name, artwork: a.artwork ?? d.cover_big ?? d.cover_xl },
     tracks,
   };
 }
