@@ -3,6 +3,20 @@ export type Release = { version: string; date: string; title: string; items: str
 
 export const releases: Release[] = [
   {
+    version: '2.5',
+    date: '2026-11-03',
+    title: 'Mais vivo, mais seguro',
+    items: [
+      'Abertura animada com a logo ao entrar no vybe (uma vez por sessão; um toque pula).',
+      'Link compartilhado de música ou artista agora abre direto, mesmo na primeira vez que a pessoa entra.',
+      'Painel do artista com a foto dele no fundo, em movimento, e topo e barra de abas com animações mais suaves.',
+      'O site acompanha o tamanho do texto do celular (iPhone e Android).',
+      'Resumo do dia (opcional): uma notificação de manhã com onde quem você segue está. Os avisos também ficaram mais confiáveis.',
+      'Excluir minha conta direto no app, e estatísticas anônimas só se você aceitar (dá pra mudar no rodapé).',
+      'Se o contador de streams estiver no limite, o vybe mostra o último valor guardado ou o total do kworb em vez de ficar vazio.',
+    ],
+  },
+  {
     version: '2.4',
     date: '2026-11-03',
     title: 'Conta e avisos com o app fechado',
