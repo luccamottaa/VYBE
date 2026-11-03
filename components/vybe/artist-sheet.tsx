@@ -166,7 +166,7 @@ export function ArtistSheet({ artist, onClose, onSong, onAlbum }: { artist: Arti
 
             {(albums === null || albums.length > 0) && (
               <section>
-                <div className="mb-2 flex items-center justify-between gap-2">
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5">
                   <h3 className="flex items-center gap-1.5 text-sm font-bold text-white">
                     <Library className="h-4 w-4 text-cyan-400" /> Discografia {albums && <span className="text-xs font-medium text-slate-500">{albums.length}</span>}
                   </h3>
