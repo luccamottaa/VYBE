@@ -16,6 +16,11 @@ import { Cover, CrossBadges } from './ui';
 
 type Charted = Awaited<ReturnType<typeof artistHits>>[number];
 
+/** Imagem que falhou some em vez de mostrar o ícone de imagem quebrada. */
+const hideBroken = (e: React.SyntheticEvent<HTMLImageElement>) => {
+  e.currentTarget.style.display = 'none';
+};
+
 export function ArtistSheet({ artist, onClose, onSong, onAlbum }: { artist: Artist | null; onClose: () => void; onSong: (s: Song) => void; onAlbum?: (a: Album) => void }) {
   const [albums, setAlbums] = useState<Album[] | null>(null);
   const [albumType, setAlbumType] = useState<'all' | 'album' | 'single'>('all');
@@ -74,14 +79,14 @@ export function ArtistSheet({ artist, onClose, onSong, onAlbum }: { artist: Arti
         {artist && cover && (
           <div ref={backdrop} aria-hidden className="vy-artist-bg pointer-events-none absolute inset-x-0 top-0 h-[44rem] overflow-hidden">
             {/* manchas de cor da foto flutuando devagar (aurora) */}
-            <img src={artwork(cover, 100)} alt="" className="vy-aurora-a absolute left-[-30%] top-[-10%] h-[70%] w-[110%] rounded-full object-cover opacity-70 blur-3xl saturate-200" />
-            <img src={artwork(cover, 100)} alt="" className="vy-aurora-b absolute right-[-35%] top-[20%] h-[60%] w-[100%] rounded-full object-cover opacity-60 mix-blend-screen blur-3xl saturate-200 [transform:scaleX(-1)]" />
-            <img src={artwork(cover, 100)} alt="" className="vy-aurora-c absolute bottom-[0%] left-[0%] h-[50%] w-[90%] rounded-full object-cover opacity-50 blur-3xl saturate-150 [transform:rotate(180deg)]" />
+            <img src={artwork(cover, 100)} alt="" onError={hideBroken} className="vy-aurora-a absolute left-[-30%] top-[-10%] h-[70%] w-[110%] rounded-full object-cover opacity-70 blur-3xl saturate-200" />
+            <img src={artwork(cover, 100)} alt="" onError={hideBroken} className="vy-aurora-b absolute right-[-35%] top-[20%] h-[60%] w-[100%] rounded-full object-cover opacity-60 mix-blend-screen blur-3xl saturate-200 [transform:scaleX(-1)]" />
+            <img src={artwork(cover, 100)} alt="" onError={hideBroken} className="vy-aurora-c absolute bottom-[0%] left-[0%] h-[50%] w-[90%] rounded-full object-cover opacity-50 blur-3xl saturate-150 [transform:rotate(180deg)]" />
             <div className="vy-artist-photo absolute inset-x-0 top-0 h-[26rem]">
             <img
               key={cover}
               src={artwork(cover, 600)}
-              alt=""
+              alt="" onError={hideBroken}
               className="vy-artist-backdrop absolute inset-x-0 top-0 h-[26rem] w-full object-cover object-[50%_20%] opacity-70"
               style={{ maskImage: 'linear-gradient(to bottom, black 35%, transparent)', WebkitMaskImage: 'linear-gradient(to bottom, black 35%, transparent)' }}
             />

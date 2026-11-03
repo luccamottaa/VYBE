@@ -25,6 +25,19 @@ async function step(label, fn) {
   }
 }
 
+// [nome, largura, altura, celular?, tamanho do texto em px (padrão = 16)]
+const sizes = [
+  ['iPhone SE', 320, 568, true],
+  ['iPhone 14', 390, 844, true],
+  ['iPhone Pro Max', 430, 932, true],
+  ['celular deitado', 844, 390, true],
+  ['iPhone com texto grande', 390, 844, true, 21.6],
+  ['iPhone com texto pequeno', 390, 844, true, 13.6],
+  ['tablet', 768, 1024, true],
+  ['notebook', 1366, 768, false],
+  ['monitor grande', 2560, 1440, false],
+];
+
 (async () => {
   let failed = 0;
   for (const name of browsers) {
@@ -142,6 +155,54 @@ async function step(label, fn) {
         await shot('falha').catch(() => {});
         if (!String(e.message).startsWith('erros')) console.log(`  erros de JS: ${errors.join(' | ') || 'nenhum'}`);
         else console.log(`  ${e.message}`);
+      }
+      await ctx.close();
+    }
+    // matriz de telas: do iPhone SE ao monitor grande, com o texto do sistema pequeno e grande
+    console.log(`${name} · matriz de telas`);
+    for (const [label, width, height, mobile, scale] of sizes) {
+      const ctx = await browser.newContext({
+        viewport: { width, height },
+        isMobile: mobile && name !== 'webkit',
+        hasTouch: mobile && name !== 'webkit',
+        colorScheme: 'dark',
+      });
+      await ctx.route((url) => !url.href.startsWith(new URL(base).origin), (r) => r.abort());
+      const page = await ctx.newPage();
+      const errors = [];
+      page.on('pageerror', (e) => errors.push(e.message));
+      try {
+        await step(`${label} (${width}×${height}${scale ? `, texto ${scale}px` : ''})`, async () => {
+          await page.goto(base, { waitUntil: 'networkidle' });
+          if (scale) await page.evaluate((px) => (document.documentElement.style.fontSize = `${px}px`), scale);
+          await page.getByText('Top 100 vybe', { exact: false }).first().waitFor({ timeout: 15000 });
+          await page.waitForTimeout(400);
+          const over = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+          if (over > 1) throw new Error(`a página vaza ${over}px pro lado`);
+          const tabs = page.locator('nav[aria-label="Seções"]');
+          if (width < 1024 && !(await tabs.isVisible())) throw new Error('barra de abas sumiu no celular/tablet');
+          if (width >= 1024 && (await tabs.isVisible())) throw new Error('barra de abas flutuante apareceu no desktop');
+          await page.screenshot({ path: `${out}/matriz-${name}-${label.replace(/\s+/g, '-')}${scale ? `-${scale}` : ''}.png` });
+
+          // painel do artista: cabe na tela e o X de fechar fica à vista
+          await page.goto(`${base}?artista=Tate%20McRae`, { waitUntil: 'networkidle' });
+          if (scale) await page.evaluate((px) => (document.documentElement.style.fontSize = `${px}px`), scale);
+          const dialog = page.getByRole('dialog');
+          await dialog.waitFor({ timeout: 15000 });
+          await page.waitForTimeout(700);
+          const sheet = await dialog.evaluate((el) => ({ over: el.scrollWidth - el.clientWidth, w: el.getBoundingClientRect().width, vw: innerWidth }));
+          if (sheet.over > 1) throw new Error(`o painel do artista vaza ${sheet.over}px`);
+          if (sheet.w > sheet.vw + 1) throw new Error('o painel do artista é mais largo que a tela');
+          const broken = await dialog.evaluate((el) => [...el.querySelectorAll('img')].filter((i) => i.complete && i.naturalWidth === 0 && getComputedStyle(i).display !== 'none' && i.getBoundingClientRect().width > 0).length);
+          if (broken) throw new Error(`${broken} imagem(ns) quebrada(s) à mostra no painel do artista`);
+          const close = await dialog.getByRole('button', { name: 'Fechar' }).boundingBox();
+          if (!close || close.y < 0 || close.x < 0 || close.x + close.width > width + 1 || close.y + close.height > height) throw new Error('o X de fechar saiu da tela');
+          await page.screenshot({ path: `${out}/matriz-${name}-${label.replace(/\s+/g, '-')}${scale ? `-${scale}` : ''}-artista.png` });
+        });
+        if (errors.length) throw new Error(`erros de JS: ${errors.join(' | ')}`);
+      } catch (e) {
+        failed++;
+        console.log(`  ${e.message}`);
       }
       await ctx.close();
     }
