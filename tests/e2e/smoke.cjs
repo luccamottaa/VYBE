@@ -25,6 +25,26 @@ async function step(label, fn) {
   }
 }
 
+// Quando algo vaza pro lado, diz QUEM (sem isso o CI só dizia "vaza 24px" e eu tinha que adivinhar).
+async function offenders(root) {
+  return root.evaluate((el) => {
+    const rootRight = el === document.documentElement ? innerWidth : el.getBoundingClientRect().right;
+    const clipped = (n) => {
+      for (let a = n.parentElement; a && a !== el; a = a.parentElement) {
+        const cs = getComputedStyle(a);
+        if (cs.overflowX !== 'visible' || cs.contain.includes('paint')) return true;
+      }
+      return false;
+    };
+    const out = [];
+    for (const n of el.querySelectorAll('*')) {
+      const r = n.getBoundingClientRect();
+      if (r.width > 0 && r.right > rootRight + 1 && !clipped(n)) out.push({ tag: n.tagName.toLowerCase(), cls: String(n.getAttribute('class') ?? '').slice(0, 70), txt: (n.textContent ?? '').trim().slice(0, 24), right: Math.round(r.right), w: Math.round(r.width) });
+    }
+    return out.sort((a, b) => b.right - a.right).slice(0, 6);
+  });
+}
+
 // [nome, largura, altura, celular?, tamanho do texto em px (padrão = 16)]
 const sizes = [
   ['iPhone SE', 320, 568, true],
@@ -267,7 +287,7 @@ const sizes = [
           await page.getByText('Top 100 vybe', { exact: false }).first().waitFor({ timeout: 15000 });
           await page.waitForTimeout(400);
           const over = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
-          if (over > 1) throw new Error(`a página vaza ${over}px pro lado`);
+          if (over > 1) throw new Error(`a página vaza ${over}px pro lado: ${JSON.stringify(await offenders(page.locator('html')))}`);
           const tabs = page.locator('nav[aria-label="Seções"]');
           if (width < 1024 && !(await tabs.isVisible())) throw new Error('barra de abas sumiu no celular/tablet');
           if (width >= 1024 && (await tabs.isVisible())) throw new Error('barra de abas flutuante apareceu no desktop');
@@ -280,7 +300,7 @@ const sizes = [
           await dialog.waitFor({ timeout: 15000 });
           await page.waitForTimeout(700);
           const sheet = await dialog.evaluate((el) => ({ over: el.scrollWidth - el.clientWidth, w: el.getBoundingClientRect().width, vw: innerWidth }));
-          if (sheet.over > 1) throw new Error(`o painel do artista vaza ${sheet.over}px`);
+          if (sheet.over > 1) throw new Error(`o painel do artista vaza ${sheet.over}px: ${JSON.stringify(await offenders(dialog))}`);
           if (sheet.w > sheet.vw + 1) throw new Error('o painel do artista é mais largo que a tela');
           const broken = await dialog.evaluate((el) => [...el.querySelectorAll('img')].filter((i) => i.complete && i.naturalWidth === 0 && getComputedStyle(i).display !== 'none' && i.getBoundingClientRect().width > 0).length);
           if (broken) throw new Error(`${broken} imagem(ns) quebrada(s) à mostra no painel do artista`);
