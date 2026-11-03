@@ -136,6 +136,21 @@ async function step(label, fn) {
           const sw = await page.evaluate(async (b) => (await fetch(`${b}sw.js`)).status, base);
           if (sw !== 200) throw new Error(`sw.js ${sw}`);
         });
+        await step('link direto numa PRIMEIRA visita abre a música (contexto novo, sem home antes)', async () => {
+          // quem recebe um link compartilhado nunca abriu o vybe antes: o service worker se instala na hora
+          // e a página não pode recarregar sozinha perdendo o link
+          const c6 = await browser.newContext(opts);
+          await c6.route((url) => !url.href.startsWith(new URL(base).origin), (r) => r.abort());
+          try {
+            const p6 = await c6.newPage();
+            await p6.goto(`${base}?musica=Housewife&artista=Tate%20McRae`, { waitUntil: 'networkidle' });
+            await p6.getByText('Charts da música').waitFor({ timeout: 15000 });
+            await p6.waitForTimeout(2500); // dá tempo de um reload indevido acontecer
+            if (!(await p6.getByText('Charts da música').count())) throw new Error('o painel da música sumiu depois da primeira visita (a página recarregou?)');
+          } finally {
+            await c6.close();
+          }
+        });
         await step('abertura animada aparece uma vez por sessão e some sozinha', async () => {
           // o Playwright se anuncia como robô (navigator.webdriver) e a abertura pula robôs: aqui fingimos ser gente
           const c2 = await browser.newContext(opts);
