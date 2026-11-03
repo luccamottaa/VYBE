@@ -46,6 +46,21 @@ async function step(label, fn) {
           await page.locator('ol > li').nth(9).waitFor({ timeout: 15000 });
           await shot('home');
         });
+        await step('cards que deslizam não encostam na borda', async () => {
+          const gap = await page.evaluate(async () => {
+            const c = document.querySelector('section[aria-label="Destaques de agora"] .hscroll');
+            if (!c || getComputedStyle(c).display !== 'flex') return null; // desktop: grade, sem rolagem
+            c.scrollLeft = 0;
+            await new Promise((r) => setTimeout(r, 300));
+            const first = c.firstElementChild.getBoundingClientRect().left;
+            c.scrollLeft = 1e6;
+            await new Promise((r) => setTimeout(r, 300));
+            const last = innerWidth - c.lastElementChild.getBoundingClientRect().right;
+            c.scrollLeft = 0;
+            return { first, last };
+          });
+          if (gap && (gap.first < 8 || gap.last < 8)) throw new Error(`card colado na borda: ${JSON.stringify(gap)}`);
+        });
         await step('ranking começa no top 10 e expande', async () => {
           const rows = page.locator('#ranking ol > li');
           if ((await rows.count()) !== 10) throw new Error(`esperava 10 linhas, veio ${await rows.count()}`);
