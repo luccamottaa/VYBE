@@ -83,11 +83,11 @@ export function StreamCount({
         <>
           {/* Total, no estilo do MyStreamCount */}
           <div className="rounded-2xl border border-slate-700/60 bg-slate-900/80 px-5 py-4 shadow-lg">
-            <span className="block text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">Total de streams</span>
+            <span className="block text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-slate-400">Total de streams</span>
             <strong className="mt-1 block text-4xl font-black tabular-nums tracking-tight text-emerald-400 sm:text-[2.6rem]">
               {res.data.total !== null ? fmtFull(res.data.total) : '—'}
             </strong>
-            <span className="mt-1 flex flex-wrap items-center gap-x-3 text-[11px] text-slate-400">
+            <span className="mt-1 flex flex-wrap items-center gap-x-3 text-[0.6875rem] text-slate-400">
               {lastDaily !== null && <span className="font-semibold text-emerald-300">+{fmtFull(lastDaily)} no último dia</span>}
               {last && <span>atualizado em {longDate(last.date)}</span>}
               <span>Spotify</span>
@@ -101,7 +101,7 @@ export function StreamCount({
                 <TrendingUp className="h-4 w-4 text-emerald-400" /> Histórico de streams
               </h3>
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-1 text-[11px] text-slate-500">
+                <div className="flex items-center gap-1 text-[0.6875rem] text-slate-500">
                   <span className="mr-1">Zoom</span>
                   {ZOOMS.map(([d, label]) => (
                     <button
@@ -114,7 +114,7 @@ export function StreamCount({
                   ))}
                 </div>
                 {zoomed.length > 0 && (
-                  <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+                  <div className="flex items-center gap-1.5 text-[0.6875rem] text-slate-500">
                     De <span className="rounded-md border border-slate-700 px-1.5 py-0.5 text-slate-300">{longDate(zoomed[0].date)}</span>
                     Até <span className="rounded-md border border-slate-700 px-1.5 py-0.5 text-slate-300">{longDate(zoomed[zoomed.length - 1].date)}</span>
                   </div>
@@ -142,7 +142,7 @@ export function StreamCount({
               </div>
             </div>
           )}
-          <p className="text-[10px] text-slate-500">Contagem pública do Spotify, via MyStreamCount. Aparece pra músicas com mais de 1.000 plays.</p>
+          <p className="text-[0.625rem] text-slate-500">Contagem pública do Spotify, via MyStreamCount. Aparece pra músicas com mais de 1.000 plays.</p>
         </>
       )}
     </section>

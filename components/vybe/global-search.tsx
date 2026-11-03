@@ -238,14 +238,14 @@ export function GlobalSearch({
               <p className="px-2 py-3 text-xs text-slate-500">{busy ? 'Procurando no catálogo…' : 'Nenhuma música encontrada.'}</p>
             )}
           </Group>
-          {catalogDown && <p className="px-2 pb-1 text-[10px] text-amber-300">Catálogo completo fora do ar agora: mostrando só o que passou pelos charts.</p>}
+          {catalogDown && <p className="px-2 pb-1 text-[0.625rem] text-amber-300">Catálogo completo fora do ar agora: mostrando só o que passou pelos charts.</p>}
           <button
             onClick={() => pick(() => onAll(q))}
             className="mt-1 flex w-full items-center justify-center gap-1.5 rounded-xl border border-cyan-500/30 bg-cyan-500/10 py-2 text-xs font-bold text-cyan-300 hover:bg-cyan-500/20"
           >
             <Search className="h-3.5 w-3.5" /> Ver todos os resultados de “{q}”
           </button>
-          <p className="flex items-center gap-1 px-2 pt-2 text-[10px] text-slate-500">
+          <p className="flex items-center gap-1 px-2 pt-2 text-[0.625rem] text-slate-500">
             <Disc3 className="h-3 w-3" /> Clique numa música pra ver os charts dela em todos os mercados.
           </p>
         </div>
@@ -257,7 +257,7 @@ export function GlobalSearch({
 function Group({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
   return (
     <div className="mb-1">
-      <p className="flex items-center gap-1.5 px-2 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+      <p className="flex items-center gap-1.5 px-2 pb-1 pt-2 text-[0.625rem] font-semibold uppercase tracking-wider text-slate-500">
         {icon} {title}
       </p>
       {children}
@@ -272,9 +272,9 @@ function Row({ onClick, cover, title, sub, badge, round, preview }: { onClick: (
       <Cover src={cover ?? ''} alt="" eager round={round} className="h-9 w-9 shrink-0" />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-sm text-white">{title}</span>
-        <span className="block truncate text-[11px] text-slate-500">{sub}</span>
+        <span className="block truncate text-[0.6875rem] text-slate-500">{sub}</span>
       </span>
-      {badge && <span className="shrink-0 rounded-md bg-cyan-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-cyan-400">{badge}</span>}
+      {badge && <span className="shrink-0 rounded-md bg-cyan-500/10 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-400">{badge}</span>}
     </button>
     <PreviewButton src={preview} label={title} />
     </div>

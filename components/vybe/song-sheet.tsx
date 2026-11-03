@@ -173,12 +173,12 @@ export function SongSheet({
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                   {hits.map((h) => (
                     <div key={h.market} className="rounded-xl border border-slate-800/60 bg-slate-950/50 p-2.5">
-                      <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-500">{h.label}</span>
+                      <span className="block text-[0.625rem] font-semibold uppercase tracking-wider text-slate-500">{h.label}</span>
                       <div className="mt-1 flex items-center justify-between gap-1">
                         <strong className="text-lg font-black text-white">#{h.rank}</strong>
                         <Movement change={h.change} isNew={h.isNew} compact />
                       </div>
-                      {typeof h.streams === 'number' && <span className="text-[10px] text-emerald-400">{fmtCompact(h.streams)} streams</span>}
+                      {typeof h.streams === 'number' && <span className="text-[0.625rem] text-emerald-400">{fmtCompact(h.streams)} streams</span>}
                     </div>
                   ))}
                 </div>
@@ -188,7 +188,7 @@ export function SongSheet({
                 </p>
               )}
               {past.length > 0 && (
-                <p className="mt-2 text-[11px] text-slate-500">
+                <p className="mt-2 text-[0.6875rem] text-slate-500">
                   Já passou por: {past.map((m) => `${marketLabel(m)}${best[m] ? ` (melhor #${best[m]})` : ''}`).join(', ')}
                 </p>
               )}
@@ -207,7 +207,7 @@ export function SongSheet({
 
             {lf && !('missing' in lf) && (
               <a href={lf.url} target="_blank" rel="noreferrer" className="block rounded-xl border border-rose-500/20 bg-rose-500/5 p-3 transition-colors hover:border-rose-500/40">
-                <span className="mb-1 flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-rose-400/90">
+                <span className="mb-1 flex items-center gap-1.5 text-[0.625rem] uppercase tracking-wider text-rose-400/90">
                   <Headphones className="h-3 w-3" /> Last.fm · todos os tempos
                 </span>
                 <span className="text-lg font-black text-white">{fmtCompact(lf.listeners)}</span> <span className="text-xs text-slate-400">ouvintes</span>
@@ -231,7 +231,7 @@ export function SongSheet({
                         formatter={(v, name) => [`#${v}`, marketLabel(String(name))]}
                         contentStyle={{ backgroundColor: 'var(--popover)', borderColor: 'var(--border)', color: 'var(--popover-foreground)', borderRadius: '0.75rem', fontSize: 12 }}
                       />
-                      <Legend formatter={(v) => <span className="text-[10px] text-slate-400">{marketLabel(String(v))}</span>} iconSize={8} />
+                      <Legend formatter={(v) => <span className="text-[0.625rem] text-slate-400">{marketLabel(String(v))}</span>} iconSize={8} />
                       {series.map(([m]) => (
                         <Line key={m} dataKey={m} stroke={colors[m] ?? '#94a3b8'} strokeWidth={2} dot={{ r: 2 }} connectNulls={false} strokeDasharray={m.startsWith('sp:') ? undefined : '5 3'} />
                       ))}
@@ -241,7 +241,7 @@ export function SongSheet({
               ) : (
                 <p className="text-xs text-slate-400">{loading ? 'Carregando histórico…' : 'Ainda não há registros suficientes pra desenhar a trajetória.'}</p>
               )}
-              <p className="mt-1 text-[10px] text-slate-500">Linha cheia = Spotify · tracejada = Apple Music. Buraco = fora do chart naquele dia.</p>
+              <p className="mt-1 text-[0.625rem] text-slate-500">Linha cheia = Spotify · tracejada = Apple Music. Buraco = fora do chart naquele dia.</p>
             </section>
 
             <div className="grid grid-cols-2 gap-2">
@@ -250,7 +250,7 @@ export function SongSheet({
               {full.deezerUrl && <ListenLink href={full.deezerUrl}>Deezer</ListenLink>}
             </div>
             {hits.some((h) => typeof h.streams === 'number') && (
-              <p className="text-[10px] text-slate-500">Streams do Spotify via kworb.net · maior número do dia: {fmtFull(Math.max(...hits.map((h) => h.streams ?? 0)))}</p>
+              <p className="text-[0.625rem] text-slate-500">Streams do Spotify via kworb.net · maior número do dia: {fmtFull(Math.max(...hits.map((h) => h.streams ?? 0)))}</p>
             )}
           </div>
         )}

@@ -168,10 +168,10 @@ export function SearchResults({
                 </button>
               ))}
             </div>
-            {total > 0 && <span className="text-[11px] text-slate-500">~{fmtCompact(total)} resultados</span>}
+            {total > 0 && <span className="text-[0.6875rem] text-slate-500">~{fmtCompact(total)} resultados</span>}
           </div>
 
-          {errors.length > 0 && <p className="text-[11px] text-amber-300">Fora do ar agora: {errors.join(' e ')}. Mostrando o resto.</p>}
+          {errors.length > 0 && <p className="text-[0.6875rem] text-amber-300">Fora do ar agora: {errors.join(' e ')}. Mostrando o resto.</p>}
 
           {q.length < 2 ? (
             <p className="py-8 text-center text-sm text-slate-500">Digite pelo menos 2 letras.</p>
@@ -185,16 +185,16 @@ export function SearchResults({
                         <Cover eager src={s.artwork ?? ''} alt="" className="h-10 w-10 shrink-0" />
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-sm text-white">{s.name}</span>
-                          <span className="block truncate text-[11px] text-slate-500">
+                          <span className="block truncate text-[0.6875rem] text-slate-500">
                             {s.artist}
                             {s.album && ` · ${s.album}`}
                           </span>
                         </span>
                         {s.from?.includes('spotify') && !s.markets?.length && (
-                          <span className="shrink-0 rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-400">Spotify</span>
+                          <span className="shrink-0 rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[0.625rem] font-semibold text-emerald-400">Spotify</span>
                         )}
                         {s.markets?.length ? (
-                          <span className="shrink-0 rounded-md bg-cyan-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-cyan-400">
+                          <span className="shrink-0 rounded-md bg-cyan-500/10 px-1.5 py-0.5 text-[0.625rem] font-semibold text-cyan-400">
                             {s.markets.length} {s.markets.length === 1 ? 'chart' : 'charts'}
                           </span>
                         ) : null}
@@ -223,7 +223,7 @@ export function SearchResults({
                   <button key={a.key} onClick={() => onAlbum(a)} className="group text-left">
                     <Cover eager src={a.artwork ? artwork(a.artwork, 300) : ''} alt="" className="aspect-square w-full rounded-2xl transition-transform group-hover:-translate-y-0.5 group-hover:border-cyan-500/40" />
                     <span className="mt-1.5 block truncate text-xs font-bold text-white group-hover:text-cyan-300">{a.name}</span>
-                    <span className="block truncate text-[10px] text-slate-500">
+                    <span className="block truncate text-[0.625rem] text-slate-500">
                       {a.artist} · {albumTypeLabel(a)}
                       {a.releaseDate && ` · ${a.releaseDate.slice(0, 4)}`}
                     </span>
@@ -241,7 +241,7 @@ export function SearchResults({
                     <Cover eager round src={a.picture ?? ''} alt="" className="h-11 w-11 shrink-0" />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-bold text-white">{a.name}</span>
-                      <span className="block truncate text-[11px] text-slate-500">
+                      <span className="block truncate text-[0.6875rem] text-slate-500">
                         {[a.genre, a.fans ? `${fmtCompact(a.fans)} fãs no Deezer` : null].filter(Boolean).join(' · ') || 'Artista'}
                       </span>
                     </span>
@@ -254,7 +254,7 @@ export function SearchResults({
             <Empty loading={loading} icon={<User className="h-8 w-8" />} text="Nenhum artista encontrado." />
           )}
 
-          <p className="text-[10px] text-slate-500">
+          <p className="text-[0.625rem] text-slate-500">
             Catálogo via {spotifyOn ? 'Spotify Web API, ' : ''}iTunes Search API e Deezer API. Prévias de 30 segundos fornecidas por eles.
           </p>
         </div>

@@ -90,17 +90,17 @@ export function ShareButton({ data, link, className, compact }: { data: () => Ca
             )}
           </div>
           <div className="grid grid-cols-3 gap-2">
-            <button onClick={share} disabled={!canShareFile} className="flex flex-col items-center gap-1 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-2 py-2.5 text-[11px] font-bold text-[#020617] transition-opacity disabled:opacity-40">
+            <button onClick={share} disabled={!canShareFile} className="flex flex-col items-center gap-1 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-2 py-2.5 text-[0.6875rem] font-bold text-[#020617] transition-opacity disabled:opacity-40">
               <Share2 className="h-4 w-4" /> Enviar
             </button>
-            <button onClick={download} disabled={!url} className="flex flex-col items-center gap-1 rounded-xl border border-slate-700 bg-slate-800/70 px-2 py-2.5 text-[11px] font-bold text-slate-200 hover:bg-slate-800 disabled:opacity-40">
+            <button onClick={download} disabled={!url} className="flex flex-col items-center gap-1 rounded-xl border border-slate-700 bg-slate-800/70 px-2 py-2.5 text-[0.6875rem] font-bold text-slate-200 hover:bg-slate-800 disabled:opacity-40">
               <Download className="h-4 w-4" /> Baixar
             </button>
-            <button onClick={copy} className="flex flex-col items-center gap-1 rounded-xl border border-slate-700 bg-slate-800/70 px-2 py-2.5 text-[11px] font-bold text-slate-200 hover:bg-slate-800">
+            <button onClick={copy} className="flex flex-col items-center gap-1 rounded-xl border border-slate-700 bg-slate-800/70 px-2 py-2.5 text-[0.6875rem] font-bold text-slate-200 hover:bg-slate-800">
               {copied ? <Check className="h-4 w-4 text-emerald-400" /> : <Link2 className="h-4 w-4" />} {copied ? 'Copiado' : 'Link'}
             </button>
           </div>
-          {!canShareFile && url && <p className="text-center text-[11px] text-slate-500">Esse navegador não envia imagem direto: baixa e posta 😉</p>}
+          {!canShareFile && url && <p className="text-center text-[0.6875rem] text-slate-500">Esse navegador não envia imagem direto: baixa e posta 😉</p>}
         </DialogContent>
       </Dialog>
     </>

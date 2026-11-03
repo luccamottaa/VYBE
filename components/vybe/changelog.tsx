@@ -35,7 +35,7 @@ export function VersionBadge({ className }: { className?: string }) {
       <button
         onClick={() => onOpen(true)}
         aria-label={`Novidades da versão ${VERSION}`}
-        className={cn('relative self-start rounded-full border border-cyan-500/20 bg-cyan-500/10 px-2 py-0.5 text-[10px] font-semibold text-cyan-400 transition-colors hover:bg-cyan-500/20', className)}
+        className={cn('relative self-start rounded-full border border-cyan-500/20 bg-cyan-500/10 px-2 py-0.5 text-[0.625rem] font-semibold text-cyan-400 transition-colors hover:bg-cyan-500/20', className)}
       >
         v{VERSION}
         {fresh && (
@@ -58,9 +58,9 @@ export function VersionBadge({ className }: { className?: string }) {
               <li key={r.version} className="relative">
                 <span className={cn('absolute -left-[27px] top-1 h-3 w-3 rounded-full border-2 border-popover', i === 0 ? 'bg-cyan-400' : 'bg-slate-600')} />
                 <div className="flex flex-wrap items-baseline gap-2">
-                  <span className={cn('rounded-md px-1.5 py-0.5 text-[10px] font-black', i === 0 ? 'bg-cyan-500 text-[#020617]' : 'bg-slate-800 text-slate-300')}>v{r.version}</span>
+                  <span className={cn('rounded-md px-1.5 py-0.5 text-[0.625rem] font-black', i === 0 ? 'bg-cyan-500 text-[#020617]' : 'bg-slate-800 text-slate-300')}>v{r.version}</span>
                   <h3 className="text-sm font-bold text-white">{r.title}</h3>
-                  <span className="text-[11px] text-slate-500">{new Date(`${r.date}T12:00:00Z`).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                  <span className="text-[0.6875rem] text-slate-500">{new Date(`${r.date}T12:00:00Z`).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
                 </div>
                 <ul className="mt-2 space-y-1.5">
                   {r.items.map((it) => (

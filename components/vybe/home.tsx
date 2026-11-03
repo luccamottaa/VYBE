@@ -56,14 +56,14 @@ export function SpotlightTiles({ view, onOpen }: { view: ChartView | null; onOpe
             <Cover eager src={x.track.artworkUrl100 ? artwork(x.track.artworkUrl100, 400) : ''} alt="" className="absolute inset-0 h-full w-full rounded-none border-0 transition-transform duration-500 group-hover:scale-105" />
             <div className={cn('absolute inset-0 bg-gradient-to-t via-black/45 to-transparent', x.glow)} />
             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
-            <span className="absolute left-2.5 top-2.5 inline-flex items-center gap-1 rounded-full border border-white/15 bg-black/45 px-2 py-1 text-[10px] font-bold text-white backdrop-blur-md">
+            <span className="absolute left-2.5 top-2.5 inline-flex items-center gap-1 rounded-full border border-white/15 bg-black/45 px-2 py-1 text-[0.625rem] font-bold text-white backdrop-blur-md">
               <span aria-hidden>{x.emoji}</span> {x.label}
             </span>
             <div className="absolute inset-x-0 bottom-0 p-3">
               <p className="text-3xl font-black leading-none tracking-tight text-white drop-shadow">{x.stat}</p>
-              <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wider text-white/70">{x.sub}</p>
+              <p className="mt-0.5 text-[0.625rem] font-semibold uppercase tracking-wider text-white/70">{x.sub}</p>
               <p className="mt-2 truncate text-sm font-bold text-white">{x.track.name}</p>
-              <p className="truncate text-[11px] text-white/70">{x.track.artistName}</p>
+              <p className="truncate text-[0.6875rem] text-white/70">{x.track.artistName}</p>
             </div>
           </button>
         ))}
@@ -115,10 +115,10 @@ export function ArtistBubbles({ view, onArtist }: { view: ChartView | null; onAr
               <span className="block rounded-full bg-background p-[2px]">
                 <Cover eager round src={photos[a.name] ?? (a.artwork ? artwork(a.artwork, 160) : '')} alt="" className="h-16 w-16" />
               </span>
-              <span className="absolute -bottom-1 -right-1 rounded-full border-2 border-background bg-cyan-500 px-1.5 text-[10px] font-black text-[#020617]">{a.count}</span>
+              <span className="absolute -bottom-1 -right-1 rounded-full border-2 border-background bg-cyan-500 px-1.5 text-[0.625rem] font-black text-[#020617]">{a.count}</span>
               {i === 0 && <span className="absolute -left-1 -top-2 text-base" aria-hidden>👑</span>}
             </span>
-            <span className="line-clamp-2 text-[11px] font-semibold leading-tight text-slate-200 group-hover:text-cyan-300">{a.name}</span>
+            <span className="line-clamp-2 text-[0.6875rem] font-semibold leading-tight text-slate-200 group-hover:text-cyan-300">{a.name}</span>
           </button>
         ))}
       </div>

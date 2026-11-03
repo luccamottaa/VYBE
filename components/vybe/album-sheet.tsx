@@ -125,7 +125,7 @@ export function AlbumSheet({ album, onClose, onSong, onArtist }: { album: Album 
                 <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
                   {hits.map((h) => (
                     <div key={h.country} className="rounded-xl border border-slate-800/60 bg-slate-950/50 p-2.5">
-                      <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-500">Apple {h.label}</span>
+                      <span className="block text-[0.625rem] font-semibold uppercase tracking-wider text-slate-500">Apple {h.label}</span>
                       <div className="mt-1 flex items-center justify-between gap-1">
                         <strong className="text-lg font-black text-white">#{h.rank}</strong>
                         <Movement change={h.change} isNew={h.isNew} compact />
@@ -146,7 +146,7 @@ export function AlbumSheet({ album, onClose, onSong, onArtist }: { album: Album 
               <h3 className="mb-2 flex items-center gap-1.5 text-sm font-bold text-white">
                 <ListMusic className="h-4 w-4 text-cyan-400" /> Faixas
                 {total > 0 && (
-                  <span className="ml-auto flex items-center gap-1 text-[11px] font-normal text-slate-500">
+                  <span className="ml-auto flex items-center gap-1 text-[0.6875rem] font-normal text-slate-500">
                     <Clock3 className="h-3 w-3" /> {fmtLength(total)}
                   </span>
                 )}
@@ -167,7 +167,7 @@ export function AlbumSheet({ album, onClose, onSong, onArtist }: { album: Album 
                     return (
                       <li key={`${t.disc}-${t.number}-${t.key}`}>
                         {newDisc && (
-                          <p className="flex items-center gap-1.5 bg-slate-900/60 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                          <p className="flex items-center gap-1.5 bg-slate-900/60 px-3 py-1.5 text-[0.625rem] font-bold uppercase tracking-wider text-slate-500">
                             <Disc3 className="h-3 w-3" /> Disco {t.disc ?? 1}
                           </p>
                         )}
@@ -176,14 +176,14 @@ export function AlbumSheet({ album, onClose, onSong, onArtist }: { album: Album 
                             <span className="w-5 shrink-0 text-right text-xs font-bold tabular-nums text-slate-500">{t.number ?? i + 1}</span>
                             <div className="min-w-0 flex-1">
                               <p className="truncate text-sm font-semibold text-white group-hover:text-cyan-300">{t.name}</p>
-                              {t.artist !== full.artist && <p className="truncate text-[11px] text-slate-400">{t.artist}</p>}
+                              {t.artist !== full.artist && <p className="truncate text-[0.6875rem] text-slate-400">{t.artist}</p>}
                             </div>
                             {h.length > 0 && (
-                              <span className="shrink-0 rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-bold text-emerald-400" title={h.map((x) => `${x.label} #${x.rank}`).join(' · ')}>
+                              <span className="shrink-0 rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[0.625rem] font-bold text-emerald-400" title={h.map((x) => `${x.label} #${x.rank}`).join(' · ')}>
                                 #{h[0].rank} {h[0].label.split(' ')[1]}
                               </span>
                             )}
-                            <span className="w-9 shrink-0 text-right text-[11px] tabular-nums text-slate-500">{fmtDuration(t.ms)}</span>
+                            <span className="w-9 shrink-0 text-right text-[0.6875rem] tabular-nums text-slate-500">{fmtDuration(t.ms)}</span>
                           </button>
                           <PreviewButton src={t.preview} label={t.name} />
                         </div>

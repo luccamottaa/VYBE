@@ -62,7 +62,7 @@ export function Sources() {
             <Panel key={s.name} className="flex flex-col gap-3">
               <div className="flex items-center justify-between">
                 <h3 className="text-base font-bold text-white">{s.name}</h3>
-                <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${b.cls}`}>
+                <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[0.625rem] font-semibold ${b.cls}`}>
                   <b.icon className="h-3 w-3" /> {b.label}
                 </span>
               </div>

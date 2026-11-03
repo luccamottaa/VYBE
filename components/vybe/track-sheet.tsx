@@ -85,7 +85,7 @@ export function TrackSheet({
               <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-popover via-popover/80 to-transparent p-4 pt-16">
                 <h2 className="text-2xl font-extrabold leading-tight text-white">{track.name}</h2>
                 <p className="text-sm text-slate-300">{track.artistName}</p>
-                <div className="mt-2 flex flex-wrap gap-1.5 text-[10px]">
+                <div className="mt-2 flex flex-wrap gap-1.5 text-[0.625rem]">
                   {track.genre && <Tag>{track.genre}</Tag>}
                   {release && <Tag>{release}</Tag>}
                   {!!track.days && <Tag>{tenure(track.days, !!view?.chartKey?.includes('weekly'))} no chart</Tag>}
@@ -121,7 +121,7 @@ export function TrackSheet({
               <Stat label="Posição atual" value={`#${track.rank}`} />
               <Stat label={track.peak ? 'Pico' : 'Melhor no VYBE'} value={best ? `#${best}` : '—'} />
               <div className="rounded-xl border border-slate-800/60 bg-slate-950/50 p-3">
-                <span className="block text-[10px] uppercase tracking-wider text-slate-500">Variação</span>
+                <span className="block text-[0.625rem] uppercase tracking-wider text-slate-500">Variação</span>
                 <div className="mt-1.5">
                   <Movement change={view?.hasMovement ? track.change : null} isNew={view?.hasMovement && track.isNew} />
                 </div>
@@ -131,12 +131,12 @@ export function TrackSheet({
             {typeof track.streams === 'number' && (
               <div className="grid grid-cols-2 gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3">
                 <div>
-                  <span className="block text-[10px] uppercase tracking-wider text-emerald-400/80">{view?.chartKey?.includes('weekly') ? 'Streams na semana' : 'Streams no dia'}</span>
+                  <span className="block text-[0.625rem] uppercase tracking-wider text-emerald-400/80">{view?.chartKey?.includes('weekly') ? 'Streams na semana' : 'Streams no dia'}</span>
                   <strong className="text-xl font-black text-white">{fmtFull(track.streams)}</strong>
                 </div>
                 {typeof track.totalStreams === 'number' && (
                   <div>
-                    <span className="block text-[10px] uppercase tracking-wider text-emerald-400/80">Total neste chart</span>
+                    <span className="block text-[0.625rem] uppercase tracking-wider text-emerald-400/80">Total neste chart</span>
                     <strong className="text-xl font-black text-white">{fmtCompact(track.totalStreams)}</strong>
                   </div>
                 )}
@@ -148,17 +148,17 @@ export function TrackSheet({
               if (!lf || 'missing' in lf) return null;
               return (
                 <a href={lf.url} target="_blank" rel="noreferrer" className="block rounded-xl border border-rose-500/20 bg-rose-500/5 p-3 transition-colors hover:border-rose-500/40">
-                  <span className="mb-1 flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-rose-400/90">
+                  <span className="mb-1 flex items-center gap-1.5 text-[0.625rem] uppercase tracking-wider text-rose-400/90">
                     <Headphones className="h-3 w-3" /> Last.fm · todos os tempos
                   </span>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <strong className="text-xl font-black text-white">{fmtCompact(lf.listeners)}</strong>
-                      <span className="block text-[10px] text-slate-400">ouvintes</span>
+                      <span className="block text-[0.625rem] text-slate-400">ouvintes</span>
                     </div>
                     <div>
                       <strong className="text-xl font-black text-white">{fmtCompact(lf.playcount)}</strong>
-                      <span className="block text-[10px] text-slate-400">scrobbles</span>
+                      <span className="block text-[0.625rem] text-slate-400">scrobbles</span>
                     </div>
                   </div>
                 </a>
@@ -227,7 +227,7 @@ export function TrackSheet({
                   </ResponsiveContainer>
                 </div>
               )}
-              <p className="mt-2 text-[11px] text-slate-500">Buraco no gráfico = a faixa não estava no chart naquele registro. Não significa zero reproduções.</p>
+              <p className="mt-2 text-[0.6875rem] text-slate-500">Buraco no gráfico = a faixa não estava no chart naquele registro. Não significa zero reproduções.</p>
             </div>
 
             {onAllCharts && (
@@ -260,7 +260,7 @@ function Tag({ children }: { children: React.ReactNode }) {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-slate-800/60 bg-slate-950/50 p-3">
-      <span className="block text-[10px] uppercase tracking-wider text-slate-500">{label}</span>
+      <span className="block text-[0.625rem] uppercase tracking-wider text-slate-500">{label}</span>
       <strong className="mt-1 block text-xl font-black text-white">{value}</strong>
     </div>
   );
