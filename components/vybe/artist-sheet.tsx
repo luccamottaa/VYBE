@@ -74,7 +74,7 @@ export function ArtistSheet({ artist, onClose, onSong, onAlbum }: { artist: Arti
         {artist && (
           <div className="space-y-5 px-4 pb-8">
             <div className="flex items-center gap-4">
-              <Cover eager src={cover ? artwork(cover, 300) : ''} alt="" className="h-20 w-20 shrink-0 rounded-full" />
+              <Cover eager src={cover ? artwork(cover, 300) : ''} alt="" className="vy-pop h-20 w-20 shrink-0 rounded-full" />
               <div className="min-w-0">
                 <h2 className="text-2xl font-extrabold leading-tight text-white">{artist.name}</h2>
                 <p className="text-xs text-slate-400">

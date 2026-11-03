@@ -448,3 +448,36 @@ html {
 .theme-dark .glass-float {
   --g-tint: 15 23 42;
 }
+
+/* ---------- Movimento dos painéis ----------
+ * Painel lateral entra com a curva de mola do iOS; painel de baixo sobe igual. A capa principal do painel
+ * "nasce" (escala + desfoque saindo). Tudo some com prefers-reduced-motion (regra global lá em cima). */
+[data-slot='sheet-content'][data-state='open'] {
+  animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1) !important;
+  animation-duration: 0.5s !important;
+}
+[data-slot='sheet-content'][data-state='closed'] {
+  animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1) !important;
+  animation-duration: 0.28s !important;
+}
+[data-slot='sheet-overlay'] {
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+.vy-pop {
+  animation: vy-pop 0.6s cubic-bezier(0.32, 0.72, 0, 1) 0.08s backwards;
+}
+@keyframes vy-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.82) translateY(10px);
+    filter: blur(8px);
+  }
+}
+/* toque nas linhas e cards: afunda um tiquinho */
+.vy-press {
+  transition: transform 0.18s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.vy-press:active {
+  transform: scale(0.975);
+}

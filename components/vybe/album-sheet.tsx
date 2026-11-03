@@ -68,7 +68,7 @@ export function AlbumSheet({ album, onClose, onSong, onArtist }: { album: Album 
               {cover && <img src={cover} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-125 object-cover opacity-50 blur-2xl" />}
               <div className="absolute inset-0 bg-gradient-to-b from-[#070a11]/30 to-[#070a11]/90" />
               <div className="relative flex flex-col items-center text-center">
-                <Cover eager src={cover} alt={`Capa de ${full.name}`} className="h-48 w-48 rounded-2xl shadow-2xl shadow-black/50" />
+                <Cover eager src={cover} alt={`Capa de ${full.name}`} className="vy-pop h-48 w-48 rounded-2xl shadow-2xl shadow-black/50" />
                 <h2 className="mt-4 text-2xl font-extrabold leading-tight text-white">{full.name}</h2>
                 <button onClick={() => onArtist(full.artist.split(/,|&| feat/i)[0].trim())} className="mt-1 inline-flex items-center gap-1 text-sm font-semibold text-cyan-300 hover:text-cyan-200">
                   <User className="h-3.5 w-3.5" /> {full.artist}

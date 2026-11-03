@@ -81,7 +81,7 @@ export function TrackSheet({
         {track && (
           <div className="space-y-5 px-4 pb-8">
             <div className="relative overflow-hidden rounded-2xl border border-slate-800">
-              <Cover src={track.artworkUrl100 ? artwork(track.artworkUrl100) : ''} alt={`Capa de ${track.name}`} className="aspect-square w-full rounded-none" />
+              <Cover src={track.artworkUrl100 ? artwork(track.artworkUrl100) : ''} alt={`Capa de ${track.name}`} className="vy-pop aspect-square w-full rounded-none" />
               <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-popover via-popover/80 to-transparent p-4 pt-16">
                 <h2 className="text-2xl font-extrabold leading-tight text-white">{track.name}</h2>
                 <p className="text-sm text-slate-300">{track.artistName}</p>

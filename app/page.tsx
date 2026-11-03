@@ -482,7 +482,7 @@ function Dashboard() {
                       <li key={t.id}>
                         <button
                           onClick={() => openTrack(t)}
-                          className="group flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-800/30 sm:gap-4 sm:px-6"
+                          className="vy-press group flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-800/30 sm:gap-4 sm:px-6"
                         >
                           <span className={`w-8 shrink-0 text-center text-sm font-black tabular-nums ${t.rank <= 3 ? 'text-cyan-400' : 'text-slate-500'}`}>
                             {String(t.rank).padStart(2, '0')}

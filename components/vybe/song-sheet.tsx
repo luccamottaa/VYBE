@@ -112,7 +112,7 @@ export function SongSheet({
           <div className="space-y-5 px-4 pb-8">
             <div className="flex items-center gap-4">
               <div className="relative shrink-0">
-                <Cover eager src={full.artwork ? artwork(full.artwork, 300) : ''} alt={`Capa de ${full.name}`} className="h-24 w-24 rounded-2xl" />
+                <Cover eager src={full.artwork ? artwork(full.artwork, 300) : ''} alt={`Capa de ${full.name}`} className="vy-pop h-24 w-24 rounded-2xl" />
                 <PreviewButton src={full.preview} label={full.name} size="lg" className="absolute -bottom-2 -right-2 shadow-lg" />
               </div>
               <div className="min-w-0">
