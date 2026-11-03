@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState, type RefObject } from 'react';
-import { Disc3, Library, Loader2, Music2, Radar, Search, User } from 'lucide-react';
+import { Disc3, Library, Loader2, Mic, Music2, Radar, Search, User } from 'lucide-react';
+import { listen, voiceSupported } from '@/lib/voice';
 import { albumTypeLabel, searchAlbums, type Album } from '@/lib/albums';
 import { matchesWords, mergeSongs, searchDeezerSongs, searchSpotifySongs, searchCatalogArtists, searchCatalogSongs, searchDeezerArtists, searchSpotifyArtists, searchIndex, searchIndexArtists, type Artist, type Song } from '@/lib/search';
 import type { ViewTrack } from '@/lib/vybe';
@@ -48,6 +49,27 @@ export function GlobalSearch({
   const [busy, setBusy] = useState(false);
   const [catalogDown, setCatalogDown] = useState(false);
   const box = useRef<HTMLDivElement>(null);
+  // busca por voz
+  const [canVoice, setCanVoice] = useState(false);
+  const [listening, setListening] = useState(false);
+  const stopVoice = useRef<(() => void) | null>(null);
+  useEffect(() => setCanVoice(voiceSupported()), []);
+  const toggleVoice = () => {
+    if (listening) {
+      stopVoice.current?.();
+      return;
+    }
+    setListening(true);
+    setOpen(true);
+    stopVoice.current = listen(
+      (text) => text && onQuery(text),
+      () => {
+        setListening(false);
+        stopVoice.current = null;
+        inputRef.current?.focus();
+      },
+    );
+  };
   const q = query.trim();
 
   // fecha ao clicar fora
@@ -155,10 +177,23 @@ export function GlobalSearch({
         }}
         maxLength={200}
         aria-label="Buscar música ou artista"
-        placeholder="Buscar qualquer música ou artista"
-        className="w-full rounded-xl border border-slate-800/80 bg-slate-950/60 py-2 pl-10 pr-9 text-xs text-slate-200 placeholder-slate-500 transition-all focus:border-cyan-500/60 focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
+        placeholder={listening ? 'Pode falar…' : 'Buscar qualquer música ou artista'}
+        className={`w-full rounded-xl border border-slate-800/80 bg-slate-950/60 py-2 pl-10 ${canVoice ? 'pr-16' : 'pr-9'} text-xs text-slate-200 placeholder-slate-500 transition-all focus:border-cyan-500/60 focus:outline-none focus:ring-1 focus:ring-cyan-500/50`}
       />
-      {busy && <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-slate-500" />}
+      {busy && !listening && <Loader2 className={`absolute top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-slate-500 ${canVoice ? 'right-11' : 'right-3'}`} />}
+      {canVoice && (
+        <button
+          type="button"
+          onClick={toggleVoice}
+          aria-label={listening ? 'Parar de ouvir' : 'Buscar por voz'}
+          aria-pressed={listening}
+          className={`absolute right-1.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full transition-all ${
+            listening ? 'bg-rose-500 text-white shadow-[0_0_0_6px_rgb(244_63_94/0.25)] motion-safe:animate-pulse' : 'text-slate-400 hover:bg-slate-800 hover:text-cyan-300'
+          }`}
+        >
+          <Mic className="h-4 w-4" />
+        </button>
+      )}
 
       {open && q.length >= 2 && (
         <div className="absolute inset-x-0 top-full z-50 mt-2 max-h-[70vh] overflow-y-auto sm:left-auto sm:w-[26rem] rounded-2xl border border-slate-800 bg-popover p-2 shadow-2xl">
