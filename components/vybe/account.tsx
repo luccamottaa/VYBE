@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Check, Cloud, LogOut, Pencil } from 'lucide-react';
+import { Check, Cloud, LogOut, Pencil, Trash2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AVATARS, avatarUrl, chooseAvatar, currentAvatar } from '@/lib/avatar';
-import { signInWithGoogle, signOut, useSession } from '@/lib/supabase';
+import { deleteAccount, signInWithGoogle, signOut, useSession } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 
 function GoogleG() {
@@ -68,10 +68,52 @@ export function AvatarPicker({ open, onOpenChange }: { open: boolean; onOpenChan
   );
 }
 
+/** Confirmação de excluir a conta: apaga tudo no servidor e sai. */
+function DeleteAccountDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  return (
+    <Dialog open={open} onOpenChange={(o) => !busy && onOpenChange(o)}>
+      <DialogContent className="border-slate-800 bg-popover text-slate-100 sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-white">Excluir sua conta?</DialogTitle>
+          <DialogDescription className="text-slate-400">
+            Isso apaga na hora quem você segue, seus alertas, o layout do início, o avatar e os avisos com o app fechado. Não dá pra desfazer. O vybe continua funcionando sem conta, só que sem a sincronização.
+          </DialogDescription>
+        </DialogHeader>
+        {error && <p className="text-xs text-rose-400">{error}</p>}
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <button disabled={busy} onClick={() => onOpenChange(false)} className="rounded-full border border-slate-700 px-4 py-2.5 text-sm font-semibold text-slate-200 hover:bg-slate-800">
+            Cancelar
+          </button>
+          <button
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              setError('');
+              try {
+                await deleteAccount();
+                onOpenChange(false);
+              } catch (e) {
+                setError((e as Error).message || 'Não deu pra apagar agora.');
+                setBusy(false);
+              }
+            }}
+            className="inline-flex items-center justify-center gap-1.5 rounded-full bg-rose-600 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60"
+          >
+            <Trash2 className="h-4 w-4" /> {busy ? 'Apagando…' : 'Excluir tudo'}
+          </button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 /** Cartão da conta na aba Seguindo. */
 export function AccountCard() {
   const { session, url } = useAvatar();
   const [picker, setPicker] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const user = session?.user;
@@ -106,9 +148,14 @@ export function AccountCard() {
         {error && <p className="mt-1 text-xs text-rose-400">{error}</p>}
       </div>
       {user ? (
-        <button onClick={() => signOut()} className="inline-flex items-center gap-1.5 rounded-full border border-slate-700 px-3 py-2 text-xs font-semibold text-slate-300 hover:border-rose-400/50 hover:text-rose-300">
-          <LogOut className="h-3.5 w-3.5" /> Sair
-        </button>
+        <div className="flex flex-col items-end gap-1.5">
+          <button onClick={() => signOut()} className="inline-flex items-center gap-1.5 rounded-full border border-slate-700 px-3 py-2 text-xs font-semibold text-slate-300 hover:border-slate-500">
+            <LogOut className="h-3.5 w-3.5" /> Sair
+          </button>
+          <button onClick={() => setConfirmDelete(true)} className="text-[0.6875rem] font-medium text-slate-500 underline-offset-2 hover:text-rose-300 hover:underline">
+            Excluir minha conta
+          </button>
+        </div>
       ) : (
         <button
           disabled={busy}
@@ -128,6 +175,7 @@ export function AccountCard() {
         </button>
       )}
       <AvatarPicker open={picker} onOpenChange={setPicker} />
+      <DeleteAccountDialog open={confirmDelete} onOpenChange={setConfirmDelete} />
     </div>
   );
 }

@@ -20,6 +20,9 @@ import { TrackSheet } from '@/components/vybe/track-sheet';
 import { Sources } from '@/components/vybe/sources';
 import { DitherField, palettes } from '@/components/vybe/dither-field';
 import { Logo, LogoMark } from '@/components/vybe/logo';
+import { ConsentBanner, StatsToggle } from '@/components/vybe/consent';
+import { track } from '@/lib/analytics';
+import { bucket } from '@/lib/analytics-core';
 import { GlobalSearch } from '@/components/vybe/global-search';
 import { SongSheet } from '@/components/vybe/song-sheet';
 import { ArtistSheet } from '@/components/vybe/artist-sheet';
@@ -116,6 +119,24 @@ function Dashboard() {
   const follows = useFollows();
   const { unread } = useAlerts();
   const searchRef = useRef<HTMLInputElement>(null);
+
+  // estatísticas anônimas (só com o consentimento): telas e aberturas, sem nome de música, artista ou busca
+  useEffect(() => track('app_open'), []);
+  useEffect(() => track('tab_view', { tab }), [tab]);
+  const firstMarket = useRef(true);
+  useEffect(() => {
+    if (firstMarket.current) firstMarket.current = false;
+    else track('market_change', { market });
+  }, [market]);
+  useEffect(() => {
+    if (song) track('open_song');
+  }, [!!song]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (artist) track('open_artist');
+  }, [!!artist]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (album) track('open_album');
+  }, [!!album]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const load = useCallback(
     async (signal?: AbortSignal) => {
@@ -308,6 +329,7 @@ function Dashboard() {
             <GlobalSearch
               query={query}
               onQuery={(q) => {
+                if (q && !query) track('search', { len: bucket(q.length) }); // só que buscou; o texto nunca sai
                 setQuery(q);
                 setTab('charts');
               }}
@@ -581,10 +603,13 @@ function Dashboard() {
             <a href={`${import.meta.env.BASE_URL ?? '/'}termos/`} className="hover:text-cyan-400">
               Termos
             </a>
+            <StatsToggle />
             <span>Feito em Manaus</span>
           </span>
         </footer>
       </div>
+
+      <ConsentBanner />
 
       <TrackSheet
         track={selected}

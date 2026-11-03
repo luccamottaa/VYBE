@@ -1,5 +1,6 @@
 'use client';
 
+import { track } from '@/lib/analytics';
 import { useEffect, useMemo, useState } from 'react';
 import { Bell, BellOff, BellRing, Crown, Star, Trash2, TrendingDown, TrendingUp, Sparkles, Trophy, LogOut } from 'lucide-react';
 import { artistHits, findHits, loadAllCharts, type All } from '@/lib/all-charts';
@@ -61,6 +62,7 @@ export function Following({ onSong, onArtist, onAlbum }: { onSong: (s: Song) => 
   const [hint, setHint] = useState('');
   const toggleNotif = async () => {
     setHint('');
+    track('push_toggle', { on: !notif });
     if (notif) {
       disableNotifications();
       await disablePush();

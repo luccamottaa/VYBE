@@ -1,5 +1,6 @@
 // Conta (login com Google) e push com o app fechado, no projeto "vybe" do Supabase.
 // A chave abaixo é a publicável: feita pra ficar no site. O que protege os dados são as regras (RLS) do banco.
+import { track } from '@/lib/analytics';
 import { createClient, type Session } from '@supabase/supabase-js';
 import { useEffect, useState } from 'react';
 
@@ -34,6 +35,7 @@ export function useSession() {
 }
 
 export async function signInWithGoogle() {
+  track('signin_click');
   const base = import.meta.env.BASE_URL ?? '/';
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
@@ -43,3 +45,20 @@ export async function signInWithGoogle() {
 }
 
 export const signOut = () => supabase.auth.signOut();
+
+/** Apaga a conta (e todos os dados dela) no servidor e desconecta este aparelho. */
+export async function deleteAccount() {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) throw new Error('Entre na conta primeiro.');
+  const res = await fetch(fnUrl('account-delete'), { method: 'POST', headers: { Authorization: `Bearer ${token}`, apikey: SUPABASE_KEY } });
+  const body = (await res.json().catch(() => ({}))) as { error?: string };
+  if (!res.ok) throw new Error(body.error || 'Não deu pra apagar agora.');
+  try {
+    localStorage.removeItem('vybe:push');
+    localStorage.removeItem('vybe:avatar');
+  } catch {
+    /* ok */
+  }
+  await supabase.auth.signOut({ scope: 'local' });
+}
