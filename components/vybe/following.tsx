@@ -11,6 +11,8 @@ import { songFrom, type Artist, type Song } from '@/lib/search';
 import { artwork } from '@/lib/vybe';
 import { cn } from '@/lib/utils';
 import { FollowButton } from './follow-button';
+import { FollowedReleases } from './releases';
+import type { Album } from '@/lib/albums';
 import { Switch } from '@/components/ui/switch';
 import { PREFS, setPref, usePrefs } from '@/lib/alert-prefs';
 import { Cover, Panel } from './ui';
@@ -36,7 +38,7 @@ function ago(t: number) {
 }
 
 /** Aba "Seguindo": quem você segue, onde está agora e o feed de alertas. */
-export function Following({ onSong, onArtist }: { onSong: (s: Song) => void; onArtist: (a: Artist) => void }) {
+export function Following({ onSong, onArtist, onAlbum }: { onSong: (s: Song) => void; onArtist: (a: Artist) => void; onAlbum: (a: Album) => void }) {
   const follows = useFollows();
   const { feed, unread, readAt, markRead, clear } = useAlerts();
   const [all, setAll] = useState<All | null>(null);
@@ -126,6 +128,8 @@ export function Following({ onSong, onArtist }: { onSong: (s: Song) => void; onA
         </Panel>
 
         <div className="space-y-6 lg:col-span-3">
+          <FollowedReleases artists={artists} onAlbum={onAlbum} />
+
           {/* músicas */}
           <Panel>
             <h3 className="mb-4 flex items-center gap-2 text-base font-bold text-white">

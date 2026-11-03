@@ -3,6 +3,21 @@ export type Release = { version: string; date: string; title: string; items: str
 
 export const releases: Release[] = [
   {
+    version: '2.3',
+    date: '2026-11-03',
+    title: 'Liquid glass',
+    items: [
+      'Visual de vidro no app todo: topo e barra de abas com vidro de verdade, cards com vidro leve que deixa o fundo vivo aparecer.',
+      'No celular, as abas viram uma barra flutuante embaixo, no alcance do dedão, que encolhe quando você rola.',
+      'Busca por voz: toque no 🎤 e fale o nome da música ou do artista.',
+      'Escolha o que te avisa: #1, top 10, estreias, marcos de streams ou quando sai de um chart.',
+      'Personalize o início: esconda ou mude a ordem das seções.',
+      'Lançamentos de quem você segue, com o que saiu no último mês e o que já tem data.',
+      'Painéis abrem com efeito de mola, e os cards não ficam mais cortados na borda.',
+      'Política de Privacidade e Termos de Uso no rodapé.',
+    ],
+  },
+  {
     version: '2.2',
     date: '2026-11-03',
     title: 'Tela nova',

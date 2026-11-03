@@ -343,7 +343,7 @@ function Dashboard() {
           </ErrorBoundary>
         ) : tab === 'following' ? (
           <ErrorBoundary label="seguindo">
-            <Following onSong={setSong} onArtist={setArtist} />
+            <Following onSong={setSong} onArtist={setArtist} onAlbum={setAlbum} />
           </ErrorBoundary>
         ) : error ? (
           <Panel className="flex flex-col items-center gap-3 py-16 text-center">
