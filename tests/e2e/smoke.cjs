@@ -136,6 +136,50 @@ async function step(label, fn) {
           const sw = await page.evaluate(async (b) => (await fetch(`${b}sw.js`)).status, base);
           if (sw !== 200) throw new Error(`sw.js ${sw}`);
         });
+        await step('estatísticas: só com consentimento, e nada sai antes disso', async () => {
+          // fingimos ser gente (o teste normal é robô e nunca vê o aviso). As requisições externas viram contagem.
+          const posts = [];
+          const c3 = await browser.newContext(opts);
+          await c3.addInitScript(() => Object.defineProperty(navigator, 'webdriver', { get: () => false }));
+          await c3.route((url) => !url.href.startsWith(new URL(base).origin), (r) => {
+            if (r.request().url().includes('posthog.com')) posts.push(r.request().postData() ?? '');
+            return r.abort();
+          });
+          try {
+            const p3 = await c3.newPage();
+            await p3.goto(base, { waitUntil: 'networkidle' });
+            await p3.waitForSelector('[data-consent]', { timeout: 15000 }); // aparece depois da abertura
+            if (posts.length) throw new Error('mandou evento antes de a pessoa responder');
+            await p3.getByRole('button', { name: 'Agora não' }).click();
+            await p3.waitForSelector('[data-consent]', { state: 'detached' });
+            await p3.getByRole('tab', { name: 'Destaques' }).click();
+            await p3.waitForTimeout(2600);
+            if (posts.length) throw new Error('mandou evento depois de "agora não"');
+            if ((await p3.evaluate(() => localStorage.getItem('vybe:analytics'))) !== 'no') throw new Error('não guardou a escolha');
+            // ligar pelo rodapé: passa a medir, sem conteúdo
+            await p3.getByRole('button', { name: /Estatísticas: desligadas/ }).click();
+            await p3.getByRole('tab', { name: 'Seguindo' }).click();
+            await p3.waitForTimeout(2600);
+            if (!posts.length) throw new Error('aceitou e nada foi enviado');
+            const sent = posts.join('');
+            if (/Tate|Housewife|Olivia/i.test(sent)) throw new Error('nome de música ou artista vazou nos eventos');
+            if (!/"\$ip":null/.test(sent) || !/\$geoip_disable":true/.test(sent)) throw new Error('faltam as travas de IP/GeoIP');
+            // "Não rastrear" nem pergunta
+            const c4 = await browser.newContext({ ...opts });
+            await c4.addInitScript(() => {
+              Object.defineProperty(navigator, 'webdriver', { get: () => false });
+              Object.defineProperty(navigator, 'doNotTrack', { get: () => '1' });
+            });
+            await c4.route((url) => !url.href.startsWith(new URL(base).origin), (r) => r.abort());
+            const p4 = await c4.newPage();
+            await p4.goto(base, { waitUntil: 'networkidle' });
+            await p4.waitForTimeout(6000);
+            if (await p4.locator('[data-consent]').count()) throw new Error('perguntou mesmo com "Não rastrear" ligado');
+            await c4.close();
+          } finally {
+            await c3.close();
+          }
+        });
         if (errors.length) throw new Error(`erros de JS: ${errors.join(' | ')}`);
       } catch (e) {
         failed++;

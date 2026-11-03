@@ -1,5 +1,6 @@
 // Conta (login com Google) e push com o app fechado, no projeto "vybe" do Supabase.
 // A chave abaixo é a publicável: feita pra ficar no site. O que protege os dados são as regras (RLS) do banco.
+import { track } from '@/lib/analytics';
 import { createClient, type Session } from '@supabase/supabase-js';
 import { useEffect, useState } from 'react';
 
@@ -34,6 +35,7 @@ export function useSession() {
 }
 
 export async function signInWithGoogle() {
+  track('signin_click');
   const base = import.meta.env.BASE_URL ?? '/';
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'google',

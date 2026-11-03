@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Política de Privacidade · vybe</title>
-<meta name="description" content="Como o vybe trata seus dados: sem conta, sem cookies, sem anúncios e sem rastreamento. O que fica no seu aparelho e com quais serviços o site conversa.">
+<meta name="description" content="Como o vybe trata seus dados: conta opcional, sem cookies, sem anúncios e estatísticas anônimas só com o seu consentimento. O que fica no seu aparelho e com quais serviços o site conversa.">
 <meta name="theme-color" content="#070a11">
 <link rel="icon" type="image/svg+xml" href="../favicon.svg">
 <link rel="stylesheet" href="../legal.css">
@@ -17,12 +17,12 @@
   </header>
   <article>
     <h1>Política de Privacidade</h1>
-    <p class="updated">Última atualização: 3 de novembro de 2026 (conta e avisos com o app fechado)</p>
+    <p class="updated">Última atualização: 3 de novembro de 2026 (estatísticas anônimas, só com o seu consentimento)</p>
 
     <div class="tldr">
       <strong>Resumo rápido</strong>
       <ul>
-        <li>O vybe <b>não tem anúncios nem ferramentas de análise ou rastreamento</b>, e usar sem conta continua possível.</li>
+        <li>O vybe <b>não tem anúncios</b> e usar sem conta continua possível. Estatísticas de uso anônimas só existem <b>se você aceitar</b> (seção 5), e dá pra desligar quando quiser.</li>
         <li>Sem conta, o que você segue e suas preferências ficam <b>só no seu aparelho</b>.</li>
         <li><b>Opcional:</b> se você entrar com Google ou ligar os avisos com o app fechado, guardamos o mínimo pra isso funcionar (seções 3 e 4) e você pode apagar quando quiser.</li>
         <li>Pra mostrar charts, capas, prévias e buscas, o seu navegador conversa com serviços de terceiros (Apple, Spotify, Deezer e outros, listados abaixo), que recebem dados técnicos normais de qualquer acesso, como o seu endereço IP.</li>
@@ -40,6 +40,7 @@
       <tr><td>Artistas e músicas que você segue</td><td>Aba “Seguindo” e alertas</td></tr>
       <tr><td>Alertas recebidos, o que já foi lido e uma “foto” das posições nos charts</td><td>Saber o que mudou desde a última visita (ex.: entrou no top 10)</td></tr>
       <tr><td>Preferência de notificações</td><td>Lembrar se você ligou os avisos</td></tr>
+      <tr><td>Sua escolha sobre as estatísticas anônimas (aceitou ou não)</td><td>Não perguntar de novo e respeitar a escolha</td></tr>
       <tr><td>Fotos de artistas já buscadas (por 7 dias)</td><td>Carregar mais rápido e gastar menos internet</td></tr>
       <tr><td>Se você dispensou o aviso de instalar o app e qual versão de “Novidades” já viu</td><td>Não ficar mostrando o mesmo aviso</td></tr>
     </table>
@@ -58,7 +59,17 @@
     </ul>
     <p>Pra parar, desligue em “Notificações ligadas” na aba Seguindo (a inscrição é apagada do servidor) ou bloqueie nas configurações do aparelho. Inscrições que o serviço de entrega informa como inválidas são apagadas sozinhas.</p>
 
-    <h2>5. Serviços de terceiros que o site acessa</h2>
+    <h2>5. Estatísticas de uso (só se você aceitar)</h2>
+    <p>Na primeira visita o vybe pergunta se pode contar como é usado. <b>Sem resposta, ou com “Agora não”, nada é enviado.</b> Se você aceitar, o seu navegador manda eventos anônimos pro <b>PostHog</b> (serviço de estatísticas, servidores nos EUA).</p>
+    <ul>
+      <li><b>O que é medido:</b> que aba ou mercado foi aberto, se uma música, artista ou álbum foi aberto, se alguém seguiu, compartilhou, entrou com Google ou ligou notificações, se deu algum erro, a versão do vybe e se é o site ou o app instalado. Só o <i>tipo</i> da ação, nunca o conteúdo.</li>
+      <li><b>O que nunca é enviado:</b> nome de música, artista ou álbum, o que você digitou na busca (só se buscou), e-mail, nome, ID da conta, quem você segue.</li>
+      <li><b>Anônimo:</b> sem cookies, sem perfil de pessoa e com um código aleatório novo a cada visita, que não fica guardado. O vybe pede ao PostHog pra descartar o IP e não descobrir a localização, e o projeto está configurado pra anonimizar IPs. Como em qualquer conexão, o servidor recebe o endereço de rede técnico da requisição.</li>
+      <li><b>Respeito ao navegador:</b> se o seu navegador envia “Não rastrear” ou o Global Privacy Control, o vybe não mede nada e nem pergunta.</li>
+      <li><b>Mudar de ideia:</b> toque em <b>Estatísticas</b> no rodapé do site pra ligar ou desligar. A escolha fica só no seu aparelho.</li>
+    </ul>
+
+    <h2>6. Serviços de terceiros que o site acessa</h2>
     <p>Pra funcionar, o vybe carrega conteúdo de outras empresas. Quando isso acontece, <b>o seu navegador se conecta direto a elas</b>, e elas recebem o que qualquer site recebe numa visita: endereço IP, tipo de navegador e o endereço do conteúdo pedido. Cada uma segue a própria política de privacidade.</p>
     <table>
       <tr><th>Serviço</th><th>O que o vybe pede</th></tr>
@@ -67,25 +78,26 @@
       <tr><td>Deezer</td><td>Busca no catálogo, fotos de artistas e prévias</td></tr>
       <tr><td>Spotify (servidores de imagem)</td><td>Capas e fotos</td></tr>
       <tr><td>Supabase (vybe)</td><td>Login com Google, sincronização e avisos com o app fechado, só se você usar (seções 3 e 4)</td></tr>
+      <tr><td>PostHog (estatísticas)</td><td>Só se você aceitar: eventos anônimos de uso, como descrito na seção 5</td></tr>
       <tr><td>Google (login)</td><td>Só se você escolher “Entrar com Google”: a tela de login é do próprio Google</td></tr>
       <tr><td>vybe-api, hospedada na Vercel</td><td>Busca oficial do Spotify, histórico de charts e contagem de streams; a Vercel pode registrar acessos, como IP, por segurança</td></tr>
     </table>
     <p>A <b>vybe-api</b> é o único serviço nosso que recebe algo que você digita: o texto da busca, ou o nome ou identificador da música aberta. Ela usa isso só pra consultar o Spotify (Web API), o kworb.net e o MyStreamCount (via RapidAPI) e devolver a resposta. A vybe-api não pede nem guarda dados pessoais. Os resultados podem ficar em cache por algumas horas pra responder mais rápido. Esses serviços recebem a consulta feita pela vybe-api, e não o seu IP.</p>
     <p>Os rankings em si (Apple Music, Spotify via kworb.net e Last.fm) são coletados automaticamente pelo próprio vybe, várias vezes ao dia, e publicados junto com o site. Essa coleta não envolve nenhum dado seu.</p>
 
-    <h2>6. Compartilhar</h2>
+    <h2>7. Compartilhar</h2>
     <p>O card de compartilhar é gerado <b>no seu aparelho</b>. Ele só sai de lá se você escolher enviar ou baixar. O link compartilhado leva só o nome da música, do álbum ou do artista.</p>
 
-    <h2>7. Crianças</h2>
+    <h2>8. Crianças</h2>
     <p>O vybe funciona sem pedir dados pessoais. A conta é opcional e segue as regras de idade do próprio Google. Os conteúdos exibidos (títulos, capas e prévias) vêm das plataformas musicais e seguem a classificação delas.</p>
 
-    <h2>8. Seus direitos (LGPD)</h2>
-    <p>A Lei Geral de Proteção de Dados (Lei 13.709/2018) garante, entre outros, o direito de saber quais dados são tratados, de corrigi-los e de pedir que sejam apagados. Sem conta, o que existe sobre você no vybe está no seu aparelho e você apaga quando quiser (seção 2). Com conta ou push, você mesmo apaga os dados do servidor no app (<b>Excluir minha conta</b>, ou desligando as notificações) e pode pedir acesso ou correção pelo contato da seção 10. Sobre os dados tratados pelos serviços de terceiros, fale com cada um deles.</p>
+    <h2>9. Seus direitos (LGPD)</h2>
+    <p>A Lei Geral de Proteção de Dados (Lei 13.709/2018) garante, entre outros, o direito de saber quais dados são tratados, de corrigi-los e de pedir que sejam apagados. Sem conta, o que existe sobre você no vybe está no seu aparelho e você apaga quando quiser (seção 2). Com conta ou push, você mesmo apaga os dados do servidor no app (<b>Excluir minha conta</b>, ou desligando as notificações) e pode pedir acesso ou correção pelo contato da seção 11. Sobre os dados tratados pelos serviços de terceiros, fale com cada um deles.</p>
 
-    <h2>9. Mudanças nesta política</h2>
+    <h2>10. Mudanças nesta política</h2>
     <p>Se o vybe passar a tratar dados de outro jeito, esta página será atualizada antes. A data no topo mostra a versão em vigor.</p>
 
-    <h2>10. Contato</h2>
+    <h2>11. Contato</h2>
     <p>Dúvidas ou pedidos sobre privacidade: abra uma conversa em <a href="https://github.com/luccamottaa/VYBE/issues">github.com/luccamottaa/VYBE/issues</a>.</p>
   </article>
   <footer><a href="../">vybe</a>·<a href="../termos/">Termos de Uso</a></footer>

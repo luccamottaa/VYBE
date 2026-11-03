@@ -1,5 +1,6 @@
 'use client';
 
+import { track } from '@/lib/analytics';
 import { useEffect, useState } from 'react';
 import { Check, Download, Link2, Loader2, Share2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -64,7 +65,10 @@ export function ShareButton({ data, link, className, compact }: { data: () => Ca
     <>
       <button
         type="button"
-        onClick={start}
+        onClick={() => {
+          track('share_open');
+          start();
+        }}
         aria-label="Compartilhar"
         title="Gerar card pra postar"
         className={cn(
