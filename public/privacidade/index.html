@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Política de Privacidade · vybe</title>
+<meta name="description" content="Como o vybe trata seus dados: sem conta, sem cookies, sem anúncios e sem rastreamento. O que fica no seu aparelho e com quais serviços o site conversa.">
+<meta name="theme-color" content="#070a11">
+<link rel="icon" type="image/svg+xml" href="../favicon.svg">
+<link rel="stylesheet" href="../legal.css">
+</head>
+<body>
+<main>
+  <header>
+    <a href="../"><img src="../favicon.svg" alt="">vybe</a>
+    <a class="back" href="../">← Voltar pro vybe</a>
+  </header>
+  <article>
+    <h1>Política de Privacidade</h1>
+    <p class="updated">Última atualização: 3 de novembro de 2026</p>
+
+    <div class="tldr">
+      <strong>Resumo rápido</strong>
+      <ul>
+        <li>O vybe <b>não tem conta, login, cookies, anúncios nem ferramentas de análise ou rastreamento</b>.</li>
+        <li>O que você segue, seus alertas e preferências ficam <b>só no seu aparelho</b>. Não temos um banco de dados com eles.</li>
+        <li>Pra mostrar charts, capas, prévias e buscas, o seu navegador conversa com serviços de terceiros (Apple, Spotify, Deezer e outros, listados abaixo), que recebem dados técnicos normais de qualquer acesso, como o seu endereço IP.</li>
+      </ul>
+    </div>
+
+    <h2>1. Quem somos</h2>
+    <p>O vybe é um projeto independente que reúne rankings musicais públicos (Apple Music, Spotify e outros) num só lugar. Ele não é afiliado, patrocinado nem aprovado pela Apple, Spotify, Deezer, Last.fm ou qualquer outra plataforma citada.</p>
+    <p>Esta política vale para o site <a href="https://luccamottaa.github.io/VYBE/">luccamottaa.github.io/VYBE</a>, para o app instalado a partir dele (PWA) e para a vybe-api, o serviço que o site usa nos bastidores.</p>
+
+    <h2>2. O que fica guardado no seu aparelho</h2>
+    <p>Alguns recursos precisam lembrar coisas entre uma visita e outra. Isso é guardado no armazenamento local do seu navegador (<code>localStorage</code>) e <b>não é enviado pra nenhum servidor nosso</b>:</p>
+    <table>
+      <tr><th>O quê</th><th>Pra quê</th></tr>
+      <tr><td>Artistas e músicas que você segue</td><td>Aba “Seguindo” e alertas</td></tr>
+      <tr><td>Alertas recebidos, o que já foi lido e uma “foto” das posições nos charts</td><td>Saber o que mudou desde a última visita (ex.: entrou no top 10)</td></tr>
+      <tr><td>Preferência de notificações</td><td>Lembrar se você ligou os avisos</td></tr>
+      <tr><td>Fotos de artistas já buscadas (por 7 dias)</td><td>Carregar mais rápido e gastar menos internet</td></tr>
+      <tr><td>Se você dispensou o aviso de instalar o app e qual versão de “Novidades” já viu</td><td>Não ficar mostrando o mesmo aviso</td></tr>
+    </table>
+    <p>Durante a sessão também pode ser guardado um indicador de “modo seguro”, que desliga animações se algo der erro, e o service worker do app guarda uma cópia das páginas e dos rankings pra abrir sem internet.</p>
+    <p><b>Como apagar:</b> limpe os dados do site nas configurações do navegador. No iPhone: Ajustes → Apps → Safari → Avançado → Dados dos Sites. Se instalou o app, remova o app. Isso apaga tudo acima.</p>
+
+    <h2>3. Notificações</h2>
+    <p>As notificações são opcionais e só aparecem se você permitir. Elas são geradas <b>no seu próprio aparelho</b>, comparando os charts novos com o que estava guardado. Não usamos servidor de notificação, não temos seu identificador de push e não enviamos avisos com o app fechado. Você pode desligar no próprio vybe (aba Seguindo) ou nas configurações do aparelho.</p>
+
+    <h2>4. Serviços de terceiros que o site acessa</h2>
+    <p>Pra funcionar, o vybe carrega conteúdo de outras empresas. Quando isso acontece, <b>o seu navegador se conecta direto a elas</b>, e elas recebem o que qualquer site recebe numa visita: endereço IP, tipo de navegador e o endereço do conteúdo pedido. Cada uma segue a própria política de privacidade.</p>
+    <table>
+      <tr><th>Serviço</th><th>O que o vybe pede</th></tr>
+      <tr><td>GitHub Pages (GitHub/Microsoft)</td><td>Hospeda o site; pode registrar acessos, como IP, por segurança</td></tr>
+      <tr><td>Apple (iTunes Search API e servidores de imagem e áudio)</td><td>Busca no catálogo, capas e prévias de 30 segundos</td></tr>
+      <tr><td>Deezer</td><td>Busca no catálogo, fotos de artistas e prévias</td></tr>
+      <tr><td>Spotify (servidores de imagem)</td><td>Capas e fotos</td></tr>
+      <tr><td>vybe-api, hospedada na Vercel</td><td>Busca oficial do Spotify, histórico de charts e contagem de streams; a Vercel pode registrar acessos, como IP, por segurança</td></tr>
+    </table>
+    <p>A <b>vybe-api</b> é o único serviço nosso que recebe algo que você digita: o texto da busca, ou o nome ou identificador da música aberta. Ela usa isso só pra consultar o Spotify (Web API), o kworb.net e o MyStreamCount (via RapidAPI) e devolver a resposta. A vybe-api não pede nem guarda dados pessoais. Os resultados podem ficar em cache por algumas horas pra responder mais rápido. Esses serviços recebem a consulta feita pela vybe-api, e não o seu IP.</p>
+    <p>Os rankings em si (Apple Music, Spotify via kworb.net e Last.fm) são coletados automaticamente pelo próprio vybe, várias vezes ao dia, e publicados junto com o site. Essa coleta não envolve nenhum dado seu.</p>
+
+    <h2>5. Compartilhar</h2>
+    <p>O card de compartilhar é gerado <b>no seu aparelho</b>. Ele só sai de lá se você escolher enviar ou baixar. O link compartilhado leva só o nome da música, do álbum ou do artista.</p>
+
+    <h2>6. Crianças</h2>
+    <p>O vybe não pede dados pessoais de ninguém, de nenhuma idade. Os conteúdos exibidos (títulos, capas e prévias) vêm das plataformas musicais e seguem a classificação delas.</p>
+
+    <h2>7. Seus direitos (LGPD)</h2>
+    <p>A Lei Geral de Proteção de Dados (Lei 13.709/2018) garante, entre outros, o direito de saber quais dados são tratados, de corrigi-los e de pedir que sejam apagados. Como o vybe não mantém dados pessoais em servidores, o que existe sobre você no vybe é o que está no seu aparelho, e você pode apagar quando quiser (seção 2). Sobre os dados tratados pelos serviços de terceiros, fale com cada um deles.</p>
+
+    <h2>8. Mudanças nesta política</h2>
+    <p>Se o vybe passar a tratar dados de outro jeito (por exemplo, se um dia tiver contas ou notificações com o app fechado), esta página será atualizada antes. A data no topo mostra a versão em vigor.</p>
+
+    <h2>9. Contato</h2>
+    <p>Dúvidas ou pedidos sobre privacidade: abra uma conversa em <a href="https://github.com/luccamottaa/VYBE/issues">github.com/luccamottaa/VYBE/issues</a>.</p>
+  </article>
+  <footer><a href="../">vybe</a>·<a href="../termos/">Termos de Uso</a></footer>
+</main>
+</body>
+</html>

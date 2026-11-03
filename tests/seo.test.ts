@@ -23,7 +23,8 @@ test('gera página por música e artista, sitemap e robots', () => {
   assert.match(page, /musica=Housewife/);
   assert.ok(files['artista/tate-mcrae/index.html']);
   assert.ok(files['artista/fulano/index.html']);
-  assert.equal((files['sitemap.xml'].match(/<url>/g) ?? []).length, 4);
+  assert.equal((files['sitemap.xml'].match(/<url>/g) ?? []).length, 6); // home, privacidade, termos, 1 música, 2 artistas
+  assert.match(files['sitemap.xml'], /privacidade\//);
   assert.match(files['robots.txt'], /Sitemap: https:\/\/ex\.com\/VYBE\/sitemap\.xml/);
 });
 
