@@ -117,7 +117,7 @@ export function ArtistSheet({ artist, onClose, onSong, onAlbum }: { artist: Arti
               </div>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <FollowButton className="flex-1" target={{ kind: 'artist', key: artistKey(artist.name), name: artist.name, artwork: cover, artistId: artist.artistId }} />
               <ShareButton
                 className="flex-1"
