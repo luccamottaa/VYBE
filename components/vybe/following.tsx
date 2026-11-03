@@ -16,6 +16,8 @@ import type { Album } from '@/lib/albums';
 import { Switch } from '@/components/ui/switch';
 import { PREFS, setPref, usePrefs } from '@/lib/alert-prefs';
 import { Cover, Panel } from './ui';
+import { AccountCard } from './account';
+import { disablePush, enablePush, pushOn, pushSupported } from '@/lib/push';
 
 const kindStyle: Record<AlertKind, { icon: typeof Bell; cls: string }> = {
   no1: { icon: Crown, cls: 'text-amber-300 bg-amber-400/10 border-amber-400/25' },
@@ -46,7 +48,7 @@ export function Following({ onSong, onArtist, onAlbum }: { onSong: (s: Song) => 
 
   useEffect(() => {
     loadAllCharts().then(setAll).catch(() => {});
-    setNotif(notificationsOn());
+    setNotif(notificationsOn() || pushOn());
   }, []);
   // marca como lido ao sair da aba (mantém o destaque enquanto a pessoa olha)
   const [seenAt] = useState(readAt);
@@ -56,11 +58,25 @@ export function Following({ onSong, onArtist, onAlbum }: { onSong: (s: Song) => 
   const artists = follows.filter((f): f is Extract<Follow, { kind: 'artist' }> => f.kind === 'artist');
   const suggestions = useMemo(() => (all ? buildInsights(all).artists.filter((a) => !artists.some((f) => f.key === artistKey(a.name))).slice(0, 4) : []), [all, artists]);
 
+  const [hint, setHint] = useState('');
   const toggleNotif = async () => {
+    setHint('');
     if (notif) {
       disableNotifications();
+      await disablePush();
       setNotif(false);
       return;
+    }
+    if (pushSupported()) {
+      const r = await enablePush().catch(() => 'error' as const);
+      if (r === 'install') {
+        setHint('No iPhone, os avisos com o app fechado só funcionam com o vybe instalado na tela de início (Compartilhar → Adicionar à Tela de Início).');
+      } else if (r === 'granted') {
+        await enableNotifications();
+        setNotif(true);
+        setHint('Pronto: você recebe os avisos mesmo com o vybe fechado, logo depois de cada atualização dos charts.');
+        return;
+      } else if (r === 'error') setHint('Não deu pra falar com o servidor de avisos agora. Ficou ligado só com o app aberto.');
     }
     const p = await enableNotifications();
     const on = p === 'granted';
@@ -89,6 +105,9 @@ export function Following({ onSong, onArtist, onAlbum }: { onSong: (s: Song) => 
           </button>
         )}
       </div>
+      {hint && <p className="glass rounded-2xl px-4 py-3 text-xs text-slate-200">{hint}</p>}
+
+      <AccountCard />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
         {/* feed */}

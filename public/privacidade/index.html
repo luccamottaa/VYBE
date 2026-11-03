@@ -17,13 +17,14 @@
   </header>
   <article>
     <h1>Política de Privacidade</h1>
-    <p class="updated">Última atualização: 3 de novembro de 2026</p>
+    <p class="updated">Última atualização: 3 de novembro de 2026 (conta e avisos com o app fechado)</p>
 
     <div class="tldr">
       <strong>Resumo rápido</strong>
       <ul>
-        <li>O vybe <b>não tem conta, login, cookies, anúncios nem ferramentas de análise ou rastreamento</b>.</li>
-        <li>O que você segue, seus alertas e preferências ficam <b>só no seu aparelho</b>. Não temos um banco de dados com eles.</li>
+        <li>O vybe <b>não tem anúncios nem ferramentas de análise ou rastreamento</b>, e usar sem conta continua possível.</li>
+        <li>Sem conta, o que você segue e suas preferências ficam <b>só no seu aparelho</b>.</li>
+        <li><b>Opcional:</b> se você entrar com Google ou ligar os avisos com o app fechado, guardamos o mínimo pra isso funcionar (seções 3 e 4) e você pode apagar quando quiser.</li>
         <li>Pra mostrar charts, capas, prévias e buscas, o seu navegador conversa com serviços de terceiros (Apple, Spotify, Deezer e outros, listados abaixo), que recebem dados técnicos normais de qualquer acesso, como o seu endereço IP.</li>
       </ul>
     </div>
@@ -45,10 +46,19 @@
     <p>Durante a sessão também pode ser guardado um indicador de “modo seguro”, que desliga animações se algo der erro, e o service worker do app guarda uma cópia das páginas e dos rankings pra abrir sem internet.</p>
     <p><b>Como apagar:</b> limpe os dados do site nas configurações do navegador. No iPhone: Ajustes → Apps → Safari → Avançado → Dados dos Sites. Se instalou o app, remova o app. Isso apaga tudo acima.</p>
 
-    <h2>3. Notificações</h2>
-    <p>As notificações são opcionais e só aparecem se você permitir. Elas são geradas <b>no seu próprio aparelho</b>, comparando os charts novos com o que estava guardado. Não usamos servidor de notificação, não temos seu identificador de push e não enviamos avisos com o app fechado. Você pode desligar no próprio vybe (aba Seguindo) ou nas configurações do aparelho.</p>
+    <h2>3. Conta (opcional, com Google)</h2>
+    <p>Se você escolher <b>Entrar com Google</b>, o Google nos informa seu <b>nome, e-mail e foto de perfil</b> e cria um identificador da conta. Usamos isso só pra você entrar e pra manter <b>quem você segue, suas preferências de alerta, o layout do início e o avatar escolhido</b> iguais em todos os seus aparelhos. Esses dados ficam no Supabase (servidor na região de São Paulo), protegidos por regras que deixam cada conta ler e alterar só o que é dela. Não vendemos nem compartilhamos com ninguém.</p>
+    <p><b>Como apagar:</b> toque em <b>Sair</b> pra desconectar o aparelho. Pra apagar a conta e todos os dados dela, peça pelo contato da seção 10 e fazemos a exclusão completa.</p>
 
-    <h2>4. Serviços de terceiros que o site acessa</h2>
+    <h2>4. Notificações</h2>
+    <p>As notificações são opcionais e só aparecem se você permitir. Há dois jeitos:</p>
+    <ul>
+      <li><b>Com o app aberto:</b> o aviso é gerado no seu próprio aparelho, comparando os charts novos com o que estava guardado.</li>
+      <li><b>Com o app fechado (push):</b> se você ligar, o navegador cria um endereço de entrega de avisos (do Google, da Apple ou da Mozilla, conforme o aparelho) e o vybe guarda esse endereço junto com <b>a lista de quem você segue e o que você quer receber</b>, mais a última posição vista de cada um, pra saber o que mudou. Depois de cada atualização dos charts, o servidor compara e manda só o que mudou. Isso pode ser usado sem conta; com conta, a inscrição fica ligada a ela.</li>
+    </ul>
+    <p>Pra parar, desligue em “Notificações ligadas” na aba Seguindo (a inscrição é apagada do servidor) ou bloqueie nas configurações do aparelho. Inscrições que o serviço de entrega informa como inválidas são apagadas sozinhas.</p>
+
+    <h2>5. Serviços de terceiros que o site acessa</h2>
     <p>Pra funcionar, o vybe carrega conteúdo de outras empresas. Quando isso acontece, <b>o seu navegador se conecta direto a elas</b>, e elas recebem o que qualquer site recebe numa visita: endereço IP, tipo de navegador e o endereço do conteúdo pedido. Cada uma segue a própria política de privacidade.</p>
     <table>
       <tr><th>Serviço</th><th>O que o vybe pede</th></tr>
@@ -56,24 +66,26 @@
       <tr><td>Apple (iTunes Search API e servidores de imagem e áudio)</td><td>Busca no catálogo, capas e prévias de 30 segundos</td></tr>
       <tr><td>Deezer</td><td>Busca no catálogo, fotos de artistas e prévias</td></tr>
       <tr><td>Spotify (servidores de imagem)</td><td>Capas e fotos</td></tr>
+      <tr><td>Supabase (vybe)</td><td>Login com Google, sincronização e avisos com o app fechado, só se você usar (seções 3 e 4)</td></tr>
+      <tr><td>Google (login)</td><td>Só se você escolher “Entrar com Google”: a tela de login é do próprio Google</td></tr>
       <tr><td>vybe-api, hospedada na Vercel</td><td>Busca oficial do Spotify, histórico de charts e contagem de streams; a Vercel pode registrar acessos, como IP, por segurança</td></tr>
     </table>
     <p>A <b>vybe-api</b> é o único serviço nosso que recebe algo que você digita: o texto da busca, ou o nome ou identificador da música aberta. Ela usa isso só pra consultar o Spotify (Web API), o kworb.net e o MyStreamCount (via RapidAPI) e devolver a resposta. A vybe-api não pede nem guarda dados pessoais. Os resultados podem ficar em cache por algumas horas pra responder mais rápido. Esses serviços recebem a consulta feita pela vybe-api, e não o seu IP.</p>
     <p>Os rankings em si (Apple Music, Spotify via kworb.net e Last.fm) são coletados automaticamente pelo próprio vybe, várias vezes ao dia, e publicados junto com o site. Essa coleta não envolve nenhum dado seu.</p>
 
-    <h2>5. Compartilhar</h2>
+    <h2>6. Compartilhar</h2>
     <p>O card de compartilhar é gerado <b>no seu aparelho</b>. Ele só sai de lá se você escolher enviar ou baixar. O link compartilhado leva só o nome da música, do álbum ou do artista.</p>
 
-    <h2>6. Crianças</h2>
-    <p>O vybe não pede dados pessoais de ninguém, de nenhuma idade. Os conteúdos exibidos (títulos, capas e prévias) vêm das plataformas musicais e seguem a classificação delas.</p>
+    <h2>7. Crianças</h2>
+    <p>O vybe funciona sem pedir dados pessoais. A conta é opcional e segue as regras de idade do próprio Google. Os conteúdos exibidos (títulos, capas e prévias) vêm das plataformas musicais e seguem a classificação delas.</p>
 
-    <h2>7. Seus direitos (LGPD)</h2>
-    <p>A Lei Geral de Proteção de Dados (Lei 13.709/2018) garante, entre outros, o direito de saber quais dados são tratados, de corrigi-los e de pedir que sejam apagados. Como o vybe não mantém dados pessoais em servidores, o que existe sobre você no vybe é o que está no seu aparelho, e você pode apagar quando quiser (seção 2). Sobre os dados tratados pelos serviços de terceiros, fale com cada um deles.</p>
+    <h2>8. Seus direitos (LGPD)</h2>
+    <p>A Lei Geral de Proteção de Dados (Lei 13.709/2018) garante, entre outros, o direito de saber quais dados são tratados, de corrigi-los e de pedir que sejam apagados. Sem conta, o que existe sobre você no vybe está no seu aparelho e você apaga quando quiser (seção 2). Com conta ou push, você pode pedir acesso, correção ou exclusão dos dados guardados no servidor pelo contato da seção 10. Sobre os dados tratados pelos serviços de terceiros, fale com cada um deles.</p>
 
-    <h2>8. Mudanças nesta política</h2>
-    <p>Se o vybe passar a tratar dados de outro jeito (por exemplo, se um dia tiver contas ou notificações com o app fechado), esta página será atualizada antes. A data no topo mostra a versão em vigor.</p>
+    <h2>9. Mudanças nesta política</h2>
+    <p>Se o vybe passar a tratar dados de outro jeito, esta página será atualizada antes. A data no topo mostra a versão em vigor.</p>
 
-    <h2>9. Contato</h2>
+    <h2>10. Contato</h2>
     <p>Dúvidas ou pedidos sobre privacidade: abra uma conversa em <a href="https://github.com/luccamottaa/VYBE/issues">github.com/luccamottaa/VYBE/issues</a>.</p>
   </article>
   <footer><a href="../">vybe</a>·<a href="../termos/">Termos de Uso</a></footer>

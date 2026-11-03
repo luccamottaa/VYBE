@@ -32,6 +32,7 @@ import { PwaBar } from '@/components/vybe/pwa';
 import { HomeLayoutButton } from '@/components/vybe/home-layout-sheet';
 import { useLayout, type HomeSection } from '@/lib/home-layout';
 import { TabBar } from '@/components/vybe/tab-bar';
+import { startSync } from '@/lib/sync';
 import { AmbientBackground } from '@/components/vybe/ambient-background';
 import { ArtistBubbles, SpotlightTiles } from '@/components/vybe/home';
 import { VersionBadge } from '@/components/vybe/changelog';
@@ -179,6 +180,8 @@ function Dashboard() {
 
   // Estado da tela na URL (dá pra mandar o link e abre igual). Música/artista abertos não entram: são passageiros.
   useEffect(() => {
+    // volta do login com Google: o código fica na URL até o Supabase trocar pela sessão (ele mesmo limpa)
+    if (/[?&]code=/.test(location.search)) return;
     const p = new URLSearchParams();
     if (tab !== 'charts') p.set('aba', tabToParam[tab]);
     if (market !== 'global') p.set('mercado', market);
@@ -187,6 +190,11 @@ function Dashboard() {
     const url = `${location.pathname}${qs ? `?${qs}` : ''}${location.hash}`;
     if (url !== `${location.pathname}${location.search}${location.hash}`) history.replaceState(null, '', url);
   }, [tab, market, kind]);
+
+  // conta: sincroniza seguidos/preferências quando a pessoa entra (só no build do Pages)
+  useEffect(() => {
+    if (isStatic) startSync();
+  }, []);
 
   // Alertas de quem você segue: compara os charts com a última foto (follow novo só ganha a foto base).
   useEffect(() => {

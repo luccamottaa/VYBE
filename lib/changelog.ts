@@ -3,6 +3,17 @@ export type Release = { version: string; date: string; title: string; items: str
 
 export const releases: Release[] = [
   {
+    version: '2.4',
+    date: '2026-11-03',
+    title: 'Conta e avisos com o app fechado',
+    items: [
+      'Entre com Google (opcional): quem você segue, seus alertas e o layout do início ficam iguais no celular e no computador.',
+      'Escolha sua foto de perfil entre 18 avatares do vybe.',
+      'Avisos com o app fechado: quando alguém que você segue sobe no chart, a notificação chega mesmo sem abrir o vybe. No iPhone, instale o app na Tela de Início primeiro.',
+      'Política de Privacidade atualizada pra explicar a conta e as notificações.',
+    ],
+  },
+  {
     version: '2.3',
     date: '2026-11-03',
     title: 'Liquid glass',
