@@ -147,6 +147,9 @@ async function step(label, fn) {
           });
           try {
             const p3 = await c3.newPage();
+            const errs3 = [];
+            p3.on('pageerror', (e) => errs3.push(e.message));
+            p3.on('console', (m) => m.type() === 'error' && !/access control|Load failed|Failed to load resource/i.test(m.text()) && errs3.push(`console: ${m.text()}`));
             await p3.goto(base, { waitUntil: 'networkidle' });
             await p3.waitForSelector('[data-consent]', { timeout: 15000 }); // aparece depois da abertura
             if (posts.length) throw new Error('mandou evento antes de a pessoa responder');
@@ -159,8 +162,9 @@ async function step(label, fn) {
             // ligar pelo rodapé: passa a medir, sem conteúdo
             await p3.getByRole('button', { name: /Estatísticas: desligadas/ }).click();
             await p3.getByRole('tab', { name: 'Seguindo' }).click();
-            await p3.waitForTimeout(2600);
-            if (!posts.length) throw new Error('aceitou e nada foi enviado');
+            // o envio sai em até 2 s depois do evento; o WebKit do CI é lento, então espera até 10 s
+            for (let i = 0; i < 40 && !posts.length; i++) await p3.waitForTimeout(250);
+            if (!posts.length) throw new Error(`aceitou e nada foi enviado${errs3.length ? ` (erros da página: ${errs3.join(' | ')})` : ''}`);
             const sent = posts.join('');
             if (/Tate|Housewife|Olivia/i.test(sent)) throw new Error('nome de música ou artista vazou nos eventos');
             if (!/"\$ip":null/.test(sent) || !/\$geoip_disable":true/.test(sent)) throw new Error('faltam as travas de IP/GeoIP');

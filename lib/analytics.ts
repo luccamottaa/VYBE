@@ -35,7 +35,14 @@ let queue: Queued[] = [];
 let sent = 0;
 let timer: ReturnType<typeof setTimeout> | undefined;
 let visitId: string | undefined;
-const id = () => (visitId ??= crypto.randomUUID());
+// id aleatório da visita. crypto.randomUUID não existe no Safari antigo (iOS < 15.4) nem fora de contexto seguro;
+// getRandomValues existe em todos. Não vira cookie nem fica guardado.
+function newId() {
+  const b = new Uint8Array(16);
+  crypto.getRandomValues(b);
+  return Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
+}
+const id = () => (visitId ??= newId());
 
 function flush() {
   timer = undefined;
@@ -45,8 +52,18 @@ function flush() {
   }
   const batch = queue;
   queue = [];
+  try {
+    send(batch);
+  } catch {
+    /* estatística nunca derruba o app */
+  }
+}
+
+function send(batch: Queued[]) {
   const standalone = matchMedia('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
   const body = buildBatch(API_KEY, id(), batch, { app: 'vybe', version: releases[0].version, display: standalone ? 'app' : 'site' });
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), 5000); // AbortSignal.timeout não existe no Safari antigo
   fetch(`${POSTHOG_HOST}/batch/`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -54,8 +71,10 @@ function flush() {
     keepalive: true,
     credentials: 'omit',
     referrerPolicy: 'no-referrer',
-    signal: AbortSignal.timeout(5000),
-  }).catch(() => {});
+    signal: ctl.signal,
+  })
+    .catch(() => {})
+    .finally(() => clearTimeout(t));
 }
 
 /** Registra um evento. Sem consentimento, não faz nada. */
