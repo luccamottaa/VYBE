@@ -326,6 +326,8 @@ textarea,
   }
 }
 html {
+  /* 1rem segue o tamanho de texto do sistema (Android via meta text-scale), com limite pra não quebrar o layout */
+  font-size: clamp(13.6px, 1rem, 21.6px);
   -webkit-tap-highlight-color: transparent;
   scroll-padding-top: 6rem;
 }
