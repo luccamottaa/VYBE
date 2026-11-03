@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Loader2, TrendingUp } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { findInIndex } from '@/lib/search';
+import { getAllTime } from '@/lib/spotify-history';
 import { getStreams, type StreamsResult } from '@/lib/streams';
 import { fmtCompact, fmtFull } from '@/lib/vybe';
 
@@ -38,10 +39,13 @@ export function StreamCount({
 }) {
   const [res, setRes] = useState<StreamsResult | null>(null);
   const [zoom, setZoom] = useState<number>(30);
+  // plano B 2: total da página da música no kworb (cobre quem já esteve no chart global, mesmo que não esteja mais)
+  const [kworbTotal, setKworbTotal] = useState<number | null>(null);
 
   useEffect(() => {
     let alive = true;
     setRes(null);
+    setKworbTotal(null);
     (async () => {
       const fromIndex = !spotifyId && songKey ? (await findInIndex(songKey))?.spotifyId : undefined;
       const p = getStreams({ spotifyId: spotifyId ?? fromIndex, name, artist });
@@ -49,6 +53,17 @@ export function StreamCount({
       if (!alive) return;
       setRes(r);
       onTotal?.(r.ok ? r.data.total : (fallbackTotal ?? null));
+      // contador fora do ar e a música não está no chart global de agora: tenta a página dela no kworb (sem cota)
+      if (!r.ok && !r.off && typeof fallbackTotal !== 'number') {
+        const k = getAllTime({ spotifyId: spotifyId ?? fromIndex, name, artist });
+        const all = k ? await k : null;
+        if (!alive || !all?.ok) return;
+        const t = all.data.daily?.total.global ?? all.data.weekly?.total.global ?? null;
+        if (typeof t === 'number' && t > 0) {
+          setKworbTotal(t);
+          onTotal?.(t);
+        }
+      }
     })();
     return () => {
       alive = false;
@@ -80,12 +95,17 @@ export function StreamCount({
         <div className="flex items-center gap-2 rounded-2xl border border-slate-800 bg-slate-950/60 p-5 text-xs text-slate-400">
           <Loader2 className="h-3.5 w-3.5 animate-spin" /> Contando streams no Spotify…
         </div>
-      ) : !res.ok && typeof fallbackTotal === 'number' ? (
-        // o contador não respondeu, mas a música está no chart global: mostra o total que o kworb publica
+      ) : !res.ok && typeof (typeof fallbackTotal === 'number' ? fallbackTotal : kworbTotal) === 'number' ? (
+        // o contador não respondeu: mostra o total que o kworb publica (chart global de agora, ou a página da música)
         <div className="rounded-2xl border border-slate-700/60 bg-slate-900/80 px-5 py-4 shadow-lg">
           <span className="block text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-slate-400">Total de streams</span>
-          <strong className="mt-1 block text-4xl font-black tabular-nums tracking-tight text-emerald-400 sm:text-[2.6rem]">{fmtFull(fallbackTotal)}</strong>
-          <span className="mt-1 block text-[0.6875rem] text-slate-400">Do chart global do Spotify (kworb.net). {res.quota ? 'O histórico por dia volta quando o contador voltar.' : 'O histórico por dia está indisponível agora.'}</span>
+          <strong className="mt-1 block text-4xl font-black tabular-nums tracking-tight text-emerald-400 sm:text-[2.6rem]">
+            {fmtFull((typeof fallbackTotal === 'number' ? fallbackTotal : kworbTotal) as number)}
+          </strong>
+          <span className="mt-1 block text-[0.6875rem] text-slate-400">
+            Do chart global do Spotify (kworb.net): soma os dias em que a música esteve no chart, então pode ficar abaixo do total real.{' '}
+            {res.quota ? 'O número exato e o histórico por dia voltam quando o contador voltar.' : 'O histórico por dia está indisponível agora.'}
+          </span>
         </div>
       ) : !res.ok ? (
         <p className="rounded-2xl border border-slate-800 p-4 text-xs text-slate-400">{res.error}</p>
