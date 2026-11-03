@@ -40,14 +40,20 @@ async function step(label, fn) {
       page.on('pageerror', (e) => errors.push(e.message));
       const shot = (s) => page.screenshot({ path: `${out}/${name}-${vname}-${s}.png` });
       try {
-        await step('ranking da Apple carrega', async () => {
+        await step('ranking unificado (Apple + Spotify) carrega', async () => {
           await page.goto(base, { waitUntil: 'networkidle' });
+          await page.getByText('Top 100 vybe', { exact: false }).first().waitFor({ timeout: 15000 });
           await page.locator('ol > li').nth(9).waitFor({ timeout: 15000 });
           await shot('home');
         });
-        await step('Spotify Global carrega', async () => {
-          await page.getByRole('tab', { name: 'Spotify' }).click();
-          await page.getByText('Top 200', { exact: false }).first().waitFor({ timeout: 15000 });
+        await step('trocar pro Brasil e abrir uma música do ranking', async () => {
+          await page.getByRole('combobox', { name: 'Mercado do ranking' }).click();
+          await page.getByRole('option', { name: /Brasil/ }).click();
+          await page.getByText('Top 100 vybe · 🇧🇷 Brasil').waitFor({ timeout: 15000 });
+          await page.locator('ol > li button').first().click();
+          await page.getByText('Charts da música').waitFor();
+          await page.getByRole('button', { name: 'Fechar' }).click();
+          await page.getByText('Charts da música').waitFor({ state: 'hidden' });
         });
         await step('Top álbuns abre e o painel do álbum carrega', async () => {
           await page.goto(`${base}?tipo=albuns`, { waitUntil: 'networkidle' });

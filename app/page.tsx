@@ -44,10 +44,10 @@ import { readDeepLink, type DeepLink } from '@/lib/deep-link';
 import { useFollows } from '@/lib/follow';
 import { songFrom, type Artist, type Song } from '@/lib/search';
 import { getAppleAlbumChart, getAppleChart, getSpotifyChart, isStatic, spotifyMarkets } from '@/lib/data-source';
+import { combineCharts, type SourceRanks } from '@/lib/combined';
 import { Cover, CrossBadges, MetricCard, Movement, Panel, PanelTitle } from '@/components/vybe/ui';
 import {
-  appleAlbumView,
-  appleView,
+  combinedView,
   artwork,
   daysSince,
   fmtCompact,
@@ -84,9 +84,12 @@ export default function Page() {
 
 function Dashboard() {
   const [link] = useState(initialLink);
-  const [source, setSource] = useState<Source>(link.fonte ?? (link.mercado ? 'spotify' : 'apple'));
-  const [country, setCountry] = useState(link.pais && markets[link.pais] ? link.pais : 'br');
-  const [spotifyMarket, setSpotifyMarket] = useState(link.mercado && spotifyMarkets.includes(link.mercado) ? link.mercado : 'global');
+  // Um ranking só (Apple + Spotify). Mercado: Global ou um dos 5 países. Links antigos com ?pais= ainda funcionam.
+  const source: Source = 'all';
+  const [market, setMarket] = useState(() => {
+    const m = link.mercado ?? link.pais;
+    return m && (m === 'global' || markets[m]) ? m : 'global';
+  });
   const [tab, setTab] = useState<View>((link.aba && paramToTab[link.aba]) || 'charts');
   const [query, setQuery] = useState('');
   const [view, setView] = useState<ChartView | null>(null);
@@ -104,7 +107,6 @@ function Dashboard() {
   const [safe, setSafe] = useState(false);
   const follows = useFollows();
   const { unread } = useAlerts();
-  const [cross, setCross] = useState<Map<string, CrossHit[]>>(new Map());
   const searchRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(
@@ -112,13 +114,42 @@ function Dashboard() {
       setLoading(true);
       setError('');
       try {
-        const next =
-          source === 'spotify'
-            ? spotifyView(await getSpotifyChart(spotifyMarket, signal))
-            : kind === 'albums'
-              ? appleAlbumView(await getAppleAlbumChart(country, signal), country)
-              : appleView(await getAppleChart(country, signal), country);
-        setView(next);
+        const place = market === 'global' ? globalMarket : markets[market];
+        const countries = market === 'global' ? Object.keys(markets) : [market];
+        const settled = <T,>(r: PromiseSettledResult<T>[]) => r.flatMap((x) => (x.status === 'fulfilled' ? [x.value] : []));
+        if (kind === 'albums') {
+          const charts = settled(await Promise.allSettled(countries.map((c) => getAppleAlbumChart(c, signal))));
+          if (!charts.length) throw new Error('O Top álbuns não carregou agora.');
+          setView(
+            combinedView({
+              tracks: combineCharts(charts, null),
+              title: `Top 100 álbuns · ${place.flag} ${place.name}`,
+              updated: charts[0].updated,
+              stale: charts.some((c) => c.stale),
+              albums: true,
+              footnote: `Apple Music${market === 'global' ? ', média dos 5 países' : ''} · ${shortDate(charts[0].updated)}`,
+            }),
+          );
+        } else {
+          const spMarket = spotifyMarkets.includes(market) ? market : 'global';
+          const [apple, sp] = await Promise.all([
+            Promise.allSettled(countries.map((c) => getAppleChart(c, signal))).then(settled),
+            getSpotifyChart(spMarket, signal).catch(() => null),
+          ]);
+          if (!apple.length && !sp) throw new Error('Nem a Apple Music nem o Spotify responderam agora.');
+          const missing = [!apple.length && 'Apple Music', !sp && 'Spotify'].filter(Boolean).join(' e ');
+          setView(
+            combinedView({
+              tracks: combineCharts(apple, sp),
+              title: `Top 100 vybe · ${place.flag} ${place.name}`,
+              updated: sp ? `${sp.date}T00:00:00Z` : apple[0].updated,
+              stale: apple.some((c) => c.stale) || !!sp?.stale,
+              footnote: missing
+                ? `Só com ${missing === 'Spotify' ? 'Apple Music' : 'Spotify'} agora: ${missing} não respondeu.`
+                : `Apple Music${market === 'global' ? ' (média dos 5 países)' : ''} + Spotify, somados pela posição · Spotify de ${sp ? shortDate(`${sp.date}T00:00:00Z`) : '—'}`,
+            }),
+          );
+        }
       } catch (e) {
         if ((e as Error).name !== 'AbortError') {
           setView(null);
@@ -128,7 +159,7 @@ function Dashboard() {
         if (!signal?.aborted) setLoading(false);
       }
     },
-    [source, country, spotifyMarket, kind],
+    [market, kind],
   );
 
   useEffect(() => {
@@ -139,47 +170,16 @@ function Dashboard() {
     return () => c.abort();
   }, [load]);
 
-  // Cruzamento: no Apple mostra a posição no Spotify; no Spotify mostra a posição nos 5 países da Apple.
-  useEffect(() => {
-    const c = new AbortController();
-    setCross(new Map());
-    const add = (map: Map<string, CrossHit[]>, key: string, hit: CrossHit) => map.set(key, [...(map.get(key) ?? []), hit]);
-    (async () => {
-      const map = new Map<string, CrossHit[]>();
-      if (source === 'apple') {
-        // No Pages compara com o Spotify do mesmo país; no Cloudflare só existe o Global.
-        const same = isStatic ? country : 'global';
-        const sp = spotifyView(await getSpotifyChart(same, c.signal));
-        const label = same === 'global' ? 'Spotify 🌍' : `Spotify ${markets[same].flag}`;
-        for (const t of sp.tracks) add(map, matchKey(t.name, t.artistName), { label, rank: t.rank });
-      } else {
-        const ids = Object.keys(markets);
-        const results = await Promise.allSettled(ids.map((m) => getAppleChart(m, c.signal)));
-        results.forEach((r, i) => {
-          if (r.status !== 'fulfilled') return;
-          for (const t of r.value.tracks) add(map, matchKey(t.name, t.artistName), { label: markets[ids[i]].flag, rank: t.rank });
-        });
-      }
-      if (!c.signal.aborted) setCross(map);
-    })().catch(() => {});
-    return () => c.abort();
-  }, [source, country]);
-
   // Estado da tela na URL (dá pra mandar o link e abre igual). Música/artista abertos não entram: são passageiros.
   useEffect(() => {
     const p = new URLSearchParams();
     if (tab !== 'charts') p.set('aba', tabToParam[tab]);
-    if (source === 'spotify') {
-      p.set('fonte', 'spotify');
-      if (spotifyMarket !== 'global') p.set('mercado', spotifyMarket);
-    } else {
-      if (country !== 'br') p.set('pais', country);
-      if (kind === 'albums') p.set('tipo', 'albuns');
-    }
+    if (market !== 'global') p.set('mercado', market);
+    if (kind === 'albums') p.set('tipo', 'albuns');
     const qs = p.toString();
     const url = `${location.pathname}${qs ? `?${qs}` : ''}${location.hash}`;
     if (url !== `${location.pathname}${location.search}${location.hash}`) history.replaceState(null, '', url);
-  }, [tab, source, country, spotifyMarket, kind]);
+  }, [tab, market, kind]);
 
   // Alertas de quem você segue: compara os charts com a última foto (follow novo só ganha a foto base).
   useEffect(() => {
@@ -213,8 +213,12 @@ function Dashboard() {
 
   // linha do ranking: no Top álbuns abre o álbum; senão, a trajetória da música
   const albumsView = !!view?.albums;
-  const openTrack = (t: ViewTrack) =>
-    albumsView ? setAlbum(albumFrom({ name: t.name, artist: t.artistName, artwork: t.artworkUrl100, appleId: t.id, appleUrl: t.url, releaseDate: t.releaseDate, genre: t.genre })) : setSelected(t);
+  // ranking unificado: a linha abre a página da música (todos os charts, streams e histórico) ou do álbum
+  const openTrack = (t: ViewTrack) => {
+    const ids = t as ViewTrack & { appleId?: string; spotifyId?: string };
+    if (albumsView) setAlbum(albumFrom({ name: t.name, artist: t.artistName, artwork: t.artworkUrl100, appleId: ids.appleId ?? t.id, appleUrl: t.url, releaseDate: t.releaseDate, genre: t.genre }));
+    else setSong(songFrom({ name: t.name, artist: t.artistName, artwork: t.artworkUrl100, appleId: ids.appleId, spotifyId: ids.spotifyId, releaseDate: t.releaseDate }));
+  };
 
   const spotify = useMemo(() => (view?.source === 'spotify' ? spotifySummary(view) : null), [view]);
   // Spotify sem login não manda streams: aí os blocos de artistas/lançamentos substituem os de streams.
@@ -237,28 +241,37 @@ function Dashboard() {
     const q = query.trim().toLocaleLowerCase();
     return view?.tracks.filter((t) => !q || `${t.name} ${t.artistName}`.toLocaleLowerCase().includes(q)) ?? [];
   }, [view, query]);
-  const hitsFor = (t: ViewTrack) => (view?.albums ? [] : (cross.get(matchKey(t.name, t.artistName)) ?? []));
+  // posições em cada plataforma (Apple: melhor posição entre os países no Global)
+  const hitsFor = (t: ViewTrack): CrossHit[] => {
+    const src = (t as ViewTrack & { sources?: SourceRanks }).sources;
+    if (!src || view?.albums) return [];
+    const out: CrossHit[] = [];
+    if (src.apple) out.push({ label: market === 'global' && (src.appleCountries ?? 0) > 1 ? ` Apple (${src.appleCountries} países)` : ' Apple', rank: src.apple });
+    if (src.spotify) out.push({ label: ' Spotify', rank: src.spotify });
+    return out;
+  };
 
   const top = view?.tracks[0];
-  const market = markets[country];
-  const isSpotify = source === 'spotify';
-  const place = isSpotify ? (markets[spotifyMarket] ?? globalMarket) : market;
+  const place = market === 'global' ? globalMarket : markets[market];
+  const topOnSpotify = !!(top as (ViewTrack & { spotifyId?: string }) | undefined)?.spotifyId;
   const weekly = !!view?.chartKey?.includes('weekly');
   const topRelease = top && view ? releaseLabel(daysSince(top.releaseDate, view.updated)) : null;
   const needsHistory = 'Precisa de 2 dias de registro';
 
   return (
-    <div className="min-h-screen bg-background px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] font-sans text-slate-100 selection:bg-cyan-500 selection:text-black sm:px-6 sm:pb-6 sm:pt-6 lg:px-8 lg:pb-8 lg:pt-8">
-      <div className="pointer-events-none fixed left-1/4 top-0 h-96 w-96 rounded-full bg-cyan-600/10 blur-[120px]" />
-      <div className="pointer-events-none fixed bottom-0 right-1/4 h-96 w-96 rounded-full bg-blue-600/10 blur-[120px]" />
+    <div className="min-h-screen bg-background px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[calc(env(safe-area-inset-top)+1rem)] font-sans text-slate-100 selection:bg-cyan-500 selection:text-black sm:px-6 sm:pb-6 sm:pt-6 lg:px-8 lg:pb-8 lg:pt-8">
+      {/* faixa sólida atrás do relógio/Dynamic Island: o conteúdo não passa por baixo dela */}
+      <div aria-hidden className="pointer-events-none fixed inset-x-0 top-0 z-40 h-[env(safe-area-inset-top)] bg-background" />
+      <div className="pointer-events-none fixed left-1/4 top-0 hidden h-96 w-96 rounded-full bg-cyan-600/10 blur-[120px] sm:block" />
+      <div className="pointer-events-none fixed bottom-0 right-1/4 hidden h-96 w-96 rounded-full bg-blue-600/10 blur-[120px] sm:block" />
 
       <div className="relative z-10 mx-auto max-w-7xl space-y-6">
         {/* Navbar */}
         <header
           data-compact={compact || undefined}
-          className={`sticky top-[max(0.5rem,env(safe-area-inset-top))] z-30 flex flex-col border shadow-2xl transition-[padding,gap,border-radius,background-color,box-shadow] duration-300 lg:flex-row lg:items-center lg:justify-between ${
+          className={`sticky top-[calc(env(safe-area-inset-top)+0.5rem)] z-30 flex flex-col border shadow-2xl transition-[padding,gap,border-radius,background-color,box-shadow] duration-300 lg:flex-row lg:items-center lg:justify-between ${
             compact
-              ? 'gap-2 rounded-[1.4rem] border-slate-700/60 bg-slate-900/75 p-2 shadow-black/30 backdrop-blur-2xl backdrop-saturate-150 lg:px-3'
+              ? 'gap-2 rounded-[1.4rem] border-slate-700/60 bg-slate-900/90 p-2 shadow-black/30 backdrop-blur-md lg:px-3'
               : 'gap-4 rounded-2xl border-slate-800/80 bg-slate-900/40 p-4 backdrop-blur-xl'
           }`}
         >
@@ -284,18 +297,6 @@ function Dashboard() {
           </div>
 
           <div className="flex w-full flex-wrap items-center gap-3 sm:flex-nowrap lg:w-auto">
-            <Segmented
-              className={compact ? 'max-sm:hidden' : ''}
-              value={source}
-              onChange={(s) => {
-                setSource(s);
-                setTab('charts');
-              }}
-              options={[
-                ['apple', 'Apple Music'],
-                ['spotify', 'Spotify'],
-              ]}
-            />
             <GlobalSearch
               query={query}
               onQuery={(q) => {
@@ -304,30 +305,31 @@ function Dashboard() {
               }}
               inputRef={searchRef}
               tracks={view?.tracks ?? []}
-              onTrack={setSelected}
+              onTrack={openTrack}
               onSong={setSong}
               onArtist={setArtist}
               onAll={setAllQuery}
               onAlbum={setAlbum}
             />
-            {isSpotify && spotifyMarkets.length < 2 ? (
-              <span className={`${compact ? 'max-sm:hidden ' : ''}flex h-9 shrink-0 items-center rounded-xl border border-slate-700/60 bg-slate-800/60 px-3 text-xs text-slate-300`} title="Nesta versão o Spotify só tem o Global">
-                🌍 Global
-              </span>
-            ) : (
-              <Select value={isSpotify ? spotifyMarket : country} onValueChange={(v) => v && (isSpotify ? setSpotifyMarket(v) : setCountry(v))}>
-                <SelectTrigger aria-label="País do ranking" className={`${compact ? 'max-sm:hidden ' : ''}h-9 w-auto shrink-0 rounded-xl border-slate-700/60 bg-slate-800/60 text-xs text-slate-200`}>
-                  <SelectValue>{`${place.flag} ${(isSpotify ? spotifyMarket : country).toUpperCase()}`}</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {(isSpotify ? spotifyMarkets : Object.keys(markets)).map((id) => (
-                    <SelectItem key={id} value={id}>
-                      {(markets[id] ?? globalMarket).flag} {(markets[id] ?? globalMarket).name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
+            <Select
+              value={market}
+              onValueChange={(v) => {
+                if (!v) return;
+                setMarket(v);
+                setTab('charts');
+              }}
+            >
+              <SelectTrigger aria-label="Mercado do ranking" className={`${compact ? 'max-sm:hidden ' : ''}h-9 w-auto shrink-0 rounded-xl border-slate-700/60 bg-slate-800/60 text-xs text-slate-200`}>
+                <SelectValue>{`${place.flag} ${market === 'global' ? 'Global' : market.toUpperCase()}`}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {['global', ...Object.keys(markets)].map((id) => (
+                  <SelectItem key={id} value={id}>
+                    {(markets[id] ?? globalMarket).flag} {(markets[id] ?? globalMarket).name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </header>
 
@@ -346,7 +348,7 @@ function Dashboard() {
         ) : error ? (
           <Panel className="flex flex-col items-center gap-3 py-16 text-center">
             <Music2 className="h-10 w-10 text-slate-600" />
-            <h2 className="text-lg font-bold text-white">{isSpotify ? 'O Spotify Charts não respondeu' : 'O ranking não carregou'}</h2>
+            <h2 className="text-lg font-bold text-white">O ranking não carregou</h2>
             <p className="max-w-lg text-sm text-slate-400">{error}</p>
             <button onClick={() => load()} className="rounded-xl bg-cyan-500 px-4 py-2 text-xs font-bold text-[#020617] hover:bg-cyan-400">
               Tentar novamente
@@ -357,7 +359,7 @@ function Dashboard() {
             {view?.stale && <Notice>A fonte não respondeu. Exibindo o último ranking salvo, de {shortDate(view.updated)}.</Notice>}
             {view && !view.historyAvailable && !view.stale && <Notice>Histórico indisponível agora. O ranking abre normal, mas este registro não foi salvo.</Notice>}
 
-            {!isSpotify && isStatic && (
+            {isStatic && (
               <div className="flex items-center gap-3">
                 <Segmented
                   value={kind}
@@ -367,7 +369,7 @@ function Dashboard() {
                     ['albums', 'Álbuns'],
                   ]}
                 />
-                <span className="text-xs text-slate-500">{kind === 'albums' ? 'Top 100 álbuns mais tocados na Apple Music' : 'Top 100 músicas mais tocadas na Apple Music'}</span>
+                <span className="text-xs text-slate-500">{kind === 'albums' ? 'Álbuns mais tocados na Apple Music' : 'Apple Music + Spotify num ranking só'}</span>
               </div>
             )}
 
@@ -394,7 +396,7 @@ function Dashboard() {
                   <div className="min-w-0 space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-xs font-semibold uppercase tracking-wide text-cyan-400">
-                        No topo · {isSpotify ? `${place.flag} Spotify ${place.name}` : `${market.flag} ${market.name}`}
+                        No topo · {place.flag} {place.name}
                       </span>
                       {top?.genre && <Chip>{top.genre}</Chip>}
                       {top && hitsFor(top).length > 0 && <CrossBadges hits={hitsFor(top)} max={3} />}
@@ -421,7 +423,7 @@ function Dashboard() {
                       rel="noreferrer"
                       className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-3 text-xs font-bold text-[#020617] shadow-lg shadow-cyan-500/20 transition-all hover:from-cyan-400 hover:to-blue-500 md:flex-none"
                     >
-                      <Play className="h-4 w-4 fill-[#020617]" /> Ouvir no {isSpotify ? 'Spotify' : 'Apple Music'}
+                      <Play className="h-4 w-4 fill-[#020617]" /> Ouvir no {topOnSpotify ? 'Spotify' : 'Apple Music'}
                     </a>
                     <button
                       onClick={() => openTrack(top)}
@@ -643,7 +645,7 @@ function Dashboard() {
               <div className="flex flex-wrap items-center justify-between gap-3 p-5 sm:p-6">
                 <div>
                   <h3 className="flex items-center gap-2 text-base font-bold text-white">
-                    <Globe2 className="h-4 w-4 text-cyan-400" /> {view?.title ?? (isSpotify ? 'Spotify Charts' : 'Apple Music')}
+                    <Globe2 className="h-4 w-4 text-cyan-400" /> {view?.title ?? 'Top 100 vybe'}
                   </h3>
                   <p className="text-xs text-slate-400">{view?.footnote ?? 'Carregando ranking…'}</p>
                 </div>
@@ -678,6 +680,15 @@ function Dashboard() {
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-bold text-white group-hover:text-cyan-300">{t.name}</p>
                             <p className="truncate text-xs text-slate-400">{t.artistName}</p>
+                            {hits.length > 0 && (
+                              <p className="mt-0.5 flex gap-2 text-[10px] font-semibold lg:hidden">
+                                {hits.map((h) => (
+                                  <span key={h.label} className={h.label.includes('Spotify') ? 'text-emerald-400' : 'text-rose-400'}>
+                                    {h.label.includes('Spotify') ? 'Spotify' : 'Apple'} #{h.rank}
+                                  </span>
+                                ))}
+                              </p>
+                            )}
                           </div>
                           {hits.length > 0 && (
                             <span className="hidden shrink-0 lg:inline-flex">
@@ -710,12 +721,10 @@ function Dashboard() {
             </Panel>
 
             <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-[11px] text-slate-500">
-              <span>{isSpotify ? 'Dados do Spotify Charts, fonte não oficial e sem API pública.' : 'Posições conforme a ordem do feed oficial da Apple. Posição ≠ streams.'}</span>
-              {view && (
-                <a href={view.sourceUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 hover:text-cyan-400">
-                  Consultar fonte <ExternalLink className="h-3 w-3" />
-                </a>
-              )}
+              <span>Ranking do vybe: cada plataforma dá pontos pela posição e a soma ordena a lista. Posição ≠ streams; os streams são do Spotify.</span>
+              <button onClick={() => setTab('sources')} className="inline-flex items-center gap-1 hover:text-cyan-400">
+                Ver fontes <ExternalLink className="h-3 w-3" />
+              </button>
             </div>
           </>
         )}
@@ -734,7 +743,7 @@ function Dashboard() {
         onClose={() => setSelected(null)}
         onAllCharts={(t) => {
           setSelected(null);
-          setSong(songFrom({ name: t.name, artist: t.artistName, artwork: t.artworkUrl100, ...(isSpotify ? { spotifyId: t.id } : { appleId: t.id }) }));
+          setSong(songFrom({ name: t.name, artist: t.artistName, artwork: t.artworkUrl100, spotifyId: t.id }));
         }}
       />
       <SongSheet

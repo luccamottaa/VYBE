@@ -15,8 +15,10 @@ export const cleanTitle = (s: string) =>
     .replace(/\s+-\s+.*$/, '')
     .trim();
 
+// Tira só os acentos latinos (NFD + marcas 0300–036F) e recompõe: hangul, kana e kanji ficam intactos.
+// (Antes tudo que não fosse a-z/0-9 sumia, e toda música com título em coreano/japonês virava a mesma chave.)
 const strip = (s: string) =>
-  cleanTitle(s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()).replace(/[^a-z0-9]+/g, '');
+  cleanTitle(s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').normalize('NFC').toLowerCase()).replace(/[^\p{L}\p{N}]+/gu, '');
 
 /** Chave "música|primeiro artista" pra achar a mesma faixa em charts diferentes. */
 export const matchKey = (name: string, artist: string) => `${strip(name)}|${strip(splitArtists(artist)[0] ?? artist)}`;

@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 
 export function Panel({ className, children }: { className?: string; children: ReactNode }) {
   return (
-    <div className={cn('rounded-3xl border border-slate-800/80 bg-slate-900/40 p-5 backdrop-blur-md sm:p-6', className)}>
+    <div className={cn('rounded-3xl border border-slate-800/80 bg-slate-900/60 p-5 sm:bg-slate-900/40 sm:p-6 sm:backdrop-blur-md', className)}>
       {children}
     </div>
   );
@@ -53,7 +53,7 @@ export function MetricCard({
   note?: ReactNode;
 }) {
   return (
-    <div className="group rounded-2xl border border-slate-800/80 bg-slate-900/40 p-5 backdrop-blur-md transition-all hover:border-cyan-500/40">
+    <div className="group rounded-2xl border border-slate-800/80 bg-slate-900/60 p-5 transition-all sm:bg-slate-900/40 sm:backdrop-blur-md hover:border-cyan-500/40">
       <div className="mb-2 flex items-center justify-between">
         <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">{label}</span>
         <div className={cn('rounded-lg border p-2', tones[tone])}>{icon}</div>
@@ -106,7 +106,7 @@ export function Cover({ src, alt, className }: { src: string; alt: string; class
         <Music2 className="h-1/3 max-h-10 w-1/3 max-w-10 text-cyan-500/60" />
       </div>
     );
-  return <img src={src} alt={alt} loading="lazy" onError={() => setFailed(src)} className={cn('rounded-lg border border-slate-800 bg-slate-900 object-cover', className)} />;
+  return <img src={src} alt={alt} loading="lazy" decoding="async" onError={() => setFailed(src)} className={cn('rounded-lg border border-slate-800 bg-slate-900 object-cover', className)} />;
 }
 
 /** Selos de posição da mesma faixa em outros charts: "🇧🇷 #3". */

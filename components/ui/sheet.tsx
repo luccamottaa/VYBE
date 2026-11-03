@@ -44,6 +44,40 @@ function SheetOverlay({
   )
 }
 
+/** Arrastar pro lado de fora fecha o painel (gesto do celular). Ignora áreas com rolagem horizontal. */
+function useSwipeToClose(side: "top" | "right" | "bottom" | "left") {
+  const start = React.useRef<{ x: number; y: number; t: number; skip: boolean } | null>(null)
+  const onTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    const p = e.touches[0]
+    let el = e.target as HTMLElement | null
+    let skip = false
+    while (el && el !== e.currentTarget) {
+      if (el.scrollWidth > el.clientWidth + 4 && /(auto|scroll)/.test(getComputedStyle(el).overflowX)) {
+        skip = true
+        break
+      }
+      el = el.parentElement
+    }
+    start.current = { x: p.clientX, y: p.clientY, t: Date.now(), skip }
+  }
+  const onTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
+    const s = start.current
+    start.current = null
+    if (!s || s.skip) return
+    const p = e.changedTouches[0]
+    const dx = p.clientX - s.x
+    const dy = p.clientY - s.y
+    const fast = Date.now() - s.t < 600
+    const horizontal = Math.abs(dx) > Math.abs(dy) * 1.8
+    const out = side === "right" ? dx > 80 : side === "left" ? dx < -80 : false
+    if (horizontal && out && fast) {
+      // o Radix fecha com Esc; reaproveita o mesmo caminho
+      e.currentTarget.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }))
+    }
+  }
+  return { onTouchStart, onTouchEnd }
+}
+
 function SheetContent({
   className,
   children,
@@ -54,13 +88,16 @@ function SheetContent({
   side?: "top" | "right" | "bottom" | "left"
   showCloseButton?: boolean
 }) {
+  const swipe = useSwipeToClose(side)
   return (
     <SheetPortal>
       <SheetOverlay />
       <SheetPrimitive.Content
         data-slot="sheet-content"
+        onTouchStart={swipe.onTouchStart}
+        onTouchEnd={swipe.onTouchEnd}
         className={cn(
-          "fixed z-50 flex flex-col gap-4 bg-background shadow-lg transition ease-in-out data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:animate-in data-[state=open]:duration-500",
+          "fixed z-50 flex flex-col gap-4 overscroll-contain bg-background pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] shadow-lg transition ease-in-out data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:animate-in data-[state=open]:duration-300",
           side === "right" &&
             "inset-y-0 right-0 h-full w-3/4 border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-sm",
           side === "left" &&
@@ -73,13 +110,16 @@ function SheetContent({
         )}
         {...props}
       >
-        {children}
         {showCloseButton && (
-          <SheetPrimitive.Close className="absolute top-4 right-4 rounded-xs opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none data-[state=open]:bg-secondary">
-            <XIcon className="size-4" />
-            <span className="sr-only">Close</span>
-          </SheetPrimitive.Close>
+          // fica grudado no topo mesmo rolando o painel, abaixo do relógio/Dynamic Island
+          <div className="pointer-events-none sticky top-0 z-30 -mb-4 flex h-0 justify-end">
+            <SheetPrimitive.Close className="pointer-events-auto mt-3 mr-3 flex size-10 items-center justify-center rounded-full border border-slate-700/70 bg-slate-900/85 text-slate-100 shadow-lg backdrop-blur transition-transform active:scale-90 focus:ring-2 focus:ring-ring focus:outline-hidden">
+              <XIcon className="size-5" />
+              <span className="sr-only">Fechar</span>
+            </SheetPrimitive.Close>
+          </div>
         )}
+        {children}
       </SheetPrimitive.Content>
     </SheetPortal>
   )
@@ -89,7 +129,7 @@ function SheetHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="sheet-header"
-      className={cn("flex flex-col gap-1.5 p-4", className)}
+      className={cn("flex flex-col gap-1.5 p-4 pr-16", className)}
       {...props}
     />
   )

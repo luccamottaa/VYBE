@@ -82,7 +82,7 @@ export function summarize(chart: Pick<Chart, 'tracks' | 'updated'>) {
 
 /* ---------- Fontes unificadas (Apple Music + Spotify) ---------- */
 
-export type Source = 'apple' | 'spotify';
+export type Source = 'apple' | 'spotify' | 'all';
 
 export type ViewTrack = Track & {
   streams?: number | null;
@@ -161,6 +161,31 @@ export function appleAlbumView(chart: Chart & { days: number }, country: string)
     loadHistory: (id, signal) => getAppleAlbumHistory(country, id, signal),
     sourceUrl: `https://rss.marketingtools.apple.com/api/v2/${country}/music/most-played/100/albums.json`,
     albums: true,
+  };
+}
+
+/** Ranking unificado (Apple + Spotify) já calculado por lib/combined.ts. */
+export function combinedView(o: {
+  tracks: ViewTrack[];
+  title: string;
+  updated: string;
+  footnote: string;
+  albums?: boolean;
+  stale?: boolean;
+}): ChartView {
+  return {
+    source: 'all',
+    title: o.title,
+    tracks: o.tracks,
+    updated: o.updated,
+    stale: !!o.stale,
+    historyAvailable: true,
+    hasMovement: o.tracks.some((t) => t.change !== null),
+    compareLabel: 'vs registro anterior',
+    footnote: o.footnote,
+    loadHistory: () => Promise.reject(new Error('Abra a música pra ver o histórico em cada chart')),
+    sourceUrl: '',
+    albums: o.albums,
   };
 }
 
