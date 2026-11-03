@@ -54,13 +54,15 @@ export function TabBar<T extends string>({ value, onChange, tabs }: { value: T; 
                 if (navigator.vibrate) navigator.vibrate(8);
               }}
               className={cn(
-                'relative z-10 flex flex-col items-center justify-center gap-0.5 rounded-full py-1.5 transition-colors active:scale-95',
+                'relative z-10 flex flex-col items-center justify-center rounded-full py-1.5 transition-[height,color,transform] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-95',
                 mini ? 'h-10' : 'h-12',
                 on ? 'text-[#020617]' : 'text-slate-300 hover:text-white',
               )}
             >
-              <Icon className={cn('transition-all duration-300', mini ? 'h-5 w-5' : 'h-[18px] w-[18px]')} />
-              <span className={cn('text-[10px] font-semibold leading-none transition-all duration-300', mini ? 'h-0 opacity-0' : 'h-auto opacity-100')}>{label}</span>
+              <Icon className={cn('h-[18px] w-[18px] transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]', mini && 'scale-110')} />
+              <span className={cn('grid transition-[grid-template-rows,opacity,margin] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]', mini ? 'mt-0 grid-rows-[0fr] opacity-0' : 'mt-0.5 grid-rows-[1fr] opacity-100')}>
+                <span className="min-h-0 overflow-hidden text-[10px] font-semibold leading-none">{label}</span>
+              </span>
               {!!badge && (
                 <span className="absolute right-[18%] top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-black text-white ring-2 ring-slate-950">
                   {badge > 9 ? '9+' : badge}
