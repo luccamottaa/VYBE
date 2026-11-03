@@ -54,8 +54,10 @@ jobs:
 
       - name: Smoke test visual
         run: |
-          pnpm exec vite preview -c vite.pages.config.ts --port 4173 --strictPort > preview.log 2>&1 &
+          # --host fixo: sem ele o preview pode subir só em ::1 (IPv6) e o 127.0.0.1 recusa a conexão
+          pnpm exec vite preview -c vite.pages.config.ts --host 127.0.0.1 --port 4173 --strictPort > preview.log 2>&1 &
           for i in $(seq 1 30); do curl -sf -o /dev/null http://127.0.0.1:4173/VYBE/ && break; sleep 1; done
+          curl -sf -o /dev/null http://127.0.0.1:4173/VYBE/ || { echo "preview não subiu:"; cat preview.log; exit 1; }
           NODE_PATH="$RUNNER_TEMP/pw/node_modules" node tests/e2e/smoke.cjs http://127.0.0.1:4173/VYBE/ chromium webkit
 
       - name: Screenshots
