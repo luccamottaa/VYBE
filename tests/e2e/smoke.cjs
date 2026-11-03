@@ -149,6 +149,47 @@ const sizes = [
           const sw = await page.evaluate(async (b) => (await fetch(`${b}sw.js`)).status, base);
           if (sw !== 200) throw new Error(`sw.js ${sw}`);
         });
+        await step('streams: cota do plano estourada não deixa o painel vazio', async () => {
+          const API = 'https://vybe-api-taupe.vercel.app';
+          let mode = 'ok';
+          const c5 = await browser.newContext(opts);
+          await c5.route((url) => !url.href.startsWith(new URL(base).origin), (r) => r.abort());
+          await c5.route(`${API}/api/health`, (r) => r.fulfill({ json: { spotify: false, streams: true }, headers: { 'access-control-allow-origin': '*' } }));
+          await c5.route(`${API}/api/streams*`, (r) =>
+            mode === 'ok'
+              ? r.fulfill({ json: { spotifyId: 'S2'.padEnd(22, 'x'), total: 111111111, history: [{ date: '2026-11-01', streams: 111000000 }, { date: '2026-11-02', streams: 111111111 }] }, headers: { 'access-control-allow-origin': '*' } })
+              : r.fulfill({ status: 429, json: { error: 'Limite do plano', quota: true }, headers: { 'access-control-allow-origin': '*' } }),
+          );
+          const url = `${base}?musica=Housewife&artista=Tate%20McRae`;
+          try {
+            const p5 = await c5.newPage();
+            await p5.goto(base, { waitUntil: 'networkidle' }); // deixa o service worker se instalar antes dos links diretos
+            await p5.waitForTimeout(1500);
+            // 1) cota estourada e nunca consultou: cai no total do chart global (kworb)
+            mode = 'quota';
+            await p5.goto(url, { waitUntil: 'networkidle' });
+            await p5.getByText('Do chart global do Spotify (kworb.net)').waitFor({ timeout: 15000 });
+            await p5.locator('section', { hasText: 'Do chart global do Spotify (kworb.net)' }).getByText(/\d{1,3}(\.\d{3}){2,}/).first().waitFor();
+            // 2) funcionou uma vez; depois a cota acaba: mostra o último valor guardado, avisando
+            mode = 'ok';
+            await p5.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith('vybe:streams:')).forEach((k) => localStorage.removeItem(k)));
+            await p5.goto(url, { waitUntil: 'networkidle' });
+            await p5.getByText('111.111.111').first().waitFor({ timeout: 15000 });
+            await p5.evaluate(() =>
+              Object.keys(localStorage).filter((k) => k.startsWith('vybe:streams:')).forEach((k) => {
+                const v = JSON.parse(localStorage.getItem(k));
+                v.at -= 10 * 3600_000; // velho o bastante pra tentar de novo
+                localStorage.setItem(k, JSON.stringify(v));
+              }),
+            );
+            mode = 'quota';
+            await p5.goto(url, { waitUntil: 'networkidle' });
+            await p5.getByText('111.111.111').first().waitFor({ timeout: 15000 });
+            await p5.getByText(/guardado de .*o contador está no limite/).waitFor({ timeout: 5000 });
+          } finally {
+            await c5.close();
+          }
+        });
         await step('estatísticas: só com consentimento, e nada sai antes disso', async () => {
           // fingimos ser gente (o teste normal é robô e nunca vê o aviso). As requisições externas viram contagem.
           const posts = [];
