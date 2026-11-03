@@ -61,9 +61,9 @@ export function Logo({ className, tagline = true }: { className?: string; taglin
     <span className={cn('flex items-center gap-2.5', className)}>
       <LogoMark animated className="h-9 w-auto shrink-0 drop-shadow-[0_0_12px_rgba(34,211,238,0.25)]" title="" />
       <span className="flex flex-col leading-none">
-        <span className="font-brand bg-gradient-to-r from-[#19f0f2] via-[#3aa0f6] to-[#8b5cf6] bg-clip-text text-[26px] font-semibold tracking-tight text-transparent">vybe</span>
+        <span className="font-brand bg-gradient-to-r from-[#19f0f2] via-[#3aa0f6] to-[#8b5cf6] bg-clip-text text-[1.625rem] font-semibold tracking-tight text-transparent">vybe</span>
         <span className={cn('hidden transition-[grid-template-rows,opacity,margin] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] sm:grid', tagline ? 'mt-1 grid-rows-[1fr] opacity-100' : 'mt-0 grid-rows-[0fr] opacity-0')}>
-          <span className="min-h-0 overflow-hidden whitespace-nowrap text-[9px] font-medium uppercase tracking-[0.22em] text-slate-400">{slogan}</span>
+          <span className="min-h-0 overflow-hidden whitespace-nowrap text-[0.5625rem] font-medium uppercase tracking-[0.22em] text-slate-400">{slogan}</span>
         </span>
       </span>
     </span>

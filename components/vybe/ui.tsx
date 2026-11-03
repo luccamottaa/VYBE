@@ -55,7 +55,7 @@ export function MetricCard({
   return (
     <div className="group rounded-2xl border border-slate-800/80 bg-slate-900/60 p-5 transition-all sm:bg-slate-900/40 sm:backdrop-blur-md hover:border-cyan-500/40">
       <div className="mb-2 flex items-center justify-between">
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">{label}</span>
+        <span className="text-[0.6875rem] font-semibold uppercase tracking-wider text-slate-400">{label}</span>
         <div className={cn('rounded-lg border p-2', tones[tone])}>{icon}</div>
       </div>
       <div className="truncate text-2xl font-black tracking-tight text-white transition-colors group-hover:text-cyan-400">
@@ -63,7 +63,7 @@ export function MetricCard({
       </div>
       <div className="mt-2 flex min-h-[22px] items-center gap-2">
         {badge && <span className={cn('rounded px-1.5 py-0.5 text-xs font-semibold', tones[tone])}>{badge}</span>}
-        {note && <span className="truncate text-[11px] text-slate-400">{note}</span>}
+        {note && <span className="truncate text-[0.6875rem] text-slate-400">{note}</span>}
       </div>
     </div>
   );
@@ -71,7 +71,7 @@ export function MetricCard({
 
 /** Variação de posição: subiu, caiu, estável, nova entrada ou sem comparação. */
 export function Movement({ change, isNew, compact }: { change: number | null; isNew?: boolean; compact?: boolean }) {
-  const base = 'inline-flex items-center gap-0.5 rounded-md px-2 py-0.5 text-[11px] font-semibold tabular-nums';
+  const base = 'inline-flex items-center gap-0.5 rounded-md px-2 py-0.5 text-[0.6875rem] font-semibold tabular-nums';
   if (isNew)
     return (
       <span className={cn(base, 'bg-cyan-500/10 text-cyan-300')}>
@@ -127,11 +127,11 @@ export function CrossBadges({ hits, max }: { hits: CrossHit[]; max?: number }) {
   return (
     <span className="inline-flex flex-wrap gap-1">
       {shown.map((h) => (
-        <span key={h.label} className="rounded-md border border-slate-700/80 bg-slate-800/60 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-slate-300">
+        <span key={h.label} className="rounded-md border border-slate-700/80 bg-slate-800/60 px-1.5 py-0.5 text-[0.625rem] font-semibold tabular-nums text-slate-300">
           {h.label} #{h.rank}
         </span>
       ))}
-      {max && hits.length > max && <span className="text-[10px] text-slate-500">+{hits.length - max}</span>}
+      {max && hits.length > max && <span className="text-[0.625rem] text-slate-500">+{hits.length - max}</span>}
     </span>
   );
 }

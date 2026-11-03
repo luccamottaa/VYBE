@@ -40,7 +40,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode; label?: stri
           <ShieldAlert className="h-9 w-9 text-rose-400" />
           <h2 className="text-lg font-bold text-white">{this.props.full ? 'O vybe tropeçou' : 'Essa parte não carregou'}</h2>
           <p className="text-sm text-slate-400">Já liguei o modo seguro (sem animações). Tenta de novo; se continuar, recarrega a página.</p>
-          <code className="max-w-full truncate rounded-lg bg-slate-900/70 px-2 py-1 text-[11px] text-slate-500">{this.state.error.message}</code>
+          <code className="max-w-full truncate rounded-lg bg-slate-900/70 px-2 py-1 text-[0.6875rem] text-slate-500">{this.state.error.message}</code>
           <div className="flex gap-2">
             <button onClick={() => this.setState({ error: null })} className="inline-flex items-center gap-1.5 rounded-xl bg-cyan-500 px-4 py-2 text-xs font-bold text-[#020617] hover:bg-cyan-400">
               <RotateCcw className="h-3.5 w-3.5" /> Tentar de novo

@@ -397,7 +397,7 @@ function Dashboard() {
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#070a11]/85 via-[#070a11]/35 to-transparent" />
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#070a11]/60 to-transparent md:hidden" />
               <div className="relative z-10 flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
-                <div className="flex min-w-0 items-center gap-5">
+                <div className="flex w-full min-w-0 items-center gap-5 md:w-auto">
                   <div className="relative shrink-0">
                     <div className="h-20 w-20 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 p-0.5 shadow-xl shadow-cyan-900/30 sm:h-28 sm:w-28">
                       {top ? (
@@ -509,7 +509,7 @@ function Dashboard() {
                             <p className="truncate text-sm font-bold text-white group-hover:text-cyan-300">{t.name}</p>
                             <p className="truncate text-xs text-slate-400">{t.artistName}</p>
                             {hits.length > 0 && (
-                              <p className="mt-0.5 flex gap-2 text-[10px] font-semibold lg:hidden">
+                              <p className="mt-0.5 flex gap-2 text-[0.625rem] font-semibold lg:hidden">
                                 {hits.map((h) => (
                                   <span key={h.label} className={h.label.includes('Spotify') ? 'text-emerald-400' : 'text-rose-400'}>
                                     {h.label.includes('Spotify') ? 'Spotify' : 'Apple'} #{h.rank}
@@ -523,7 +523,7 @@ function Dashboard() {
                               <CrossBadges hits={hits} max={3} />
                             </span>
                           )}
-                          {t.genre && <span className="hidden shrink-0 rounded-md bg-slate-800/80 px-2 py-0.5 text-[10px] text-slate-400 md:inline">{t.genre}</span>}
+                          {t.genre && <span className="hidden shrink-0 rounded-md bg-slate-800/80 px-2 py-0.5 text-[0.625rem] text-slate-400 md:inline">{t.genre}</span>}
                           {typeof t.streams === 'number' && (
                             <span className="hidden w-24 shrink-0 text-right text-xs tabular-nums text-slate-300 sm:inline" title={`${fmtFull(t.streams)} streams`}>
                               {fmtCompact(t.streams)}
@@ -561,7 +561,7 @@ function Dashboard() {
               )}
             </Panel>
 
-            <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-[11px] text-slate-500">
+            <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-[0.6875rem] text-slate-500">
               <span>Ranking do vybe: cada plataforma dá pontos pela posição e a soma ordena a lista. Posição ≠ streams; os streams são do Spotify.</span>
               <button onClick={() => setTab('sources')} className="inline-flex items-center gap-1 hover:text-cyan-400">
                 Ver fontes <ExternalLink className="h-3 w-3" />
@@ -693,7 +693,7 @@ function Segmented<T extends string>({
           {Icon && <Icon className="h-3.5 w-3.5" />}
           <span className={Icon ? 'hidden md:inline lg:hidden xl:inline' : undefined}>{label}</span>
           {!!badge && (
-            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-black text-white ring-2 ring-slate-950">
+            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[0.5625rem] font-black text-white ring-2 ring-slate-950">
               {badge > 9 ? '9+' : badge}
             </span>
           )}
@@ -704,7 +704,7 @@ function Segmented<T extends string>({
 }
 
 function Chip({ children }: { children: React.ReactNode }) {
-  return <span className="rounded-md border border-slate-700 bg-slate-800 px-2 py-0.5 text-[10px] text-slate-300">{children}</span>;
+  return <span className="rounded-md border border-slate-700 bg-slate-800 px-2 py-0.5 text-[0.625rem] text-slate-300">{children}</span>;
 }
 
 function Notice({ children }: { children: React.ReactNode }) {

@@ -61,10 +61,10 @@ export function TabBar<T extends string>({ value, onChange, tabs }: { value: T; 
             >
               <Icon className={cn('h-[18px] w-[18px] transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]', mini && 'scale-110')} />
               <span className={cn('grid transition-[grid-template-rows,opacity,margin] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]', mini ? 'mt-0 grid-rows-[0fr] opacity-0' : 'mt-0.5 grid-rows-[1fr] opacity-100')}>
-                <span className="min-h-0 overflow-hidden text-[10px] font-semibold leading-none">{label}</span>
+                <span className="min-h-0 overflow-hidden text-[0.625rem] font-semibold leading-none">{label}</span>
               </span>
               {!!badge && (
-                <span className="absolute right-[18%] top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-black text-white ring-2 ring-slate-950">
+                <span className="absolute right-[18%] top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[0.5625rem] font-black text-white ring-2 ring-slate-950">
                   {badge > 9 ? '9+' : badge}
                 </span>
               )}

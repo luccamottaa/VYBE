@@ -73,7 +73,7 @@ export function FollowedReleases({ artists, onAlbum }: { artists: Extract<Follow
                 <Cover eager src={r.artwork ? artwork(r.artwork, 300) : ''} alt="" className="aspect-square w-full rounded-2xl" />
                 <span
                   className={cn(
-                    'theme-dark absolute left-1.5 top-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold backdrop-blur-md',
+                    'theme-dark absolute left-1.5 top-1.5 rounded-full px-2 py-0.5 text-[0.625rem] font-bold backdrop-blur-md',
                     r.days < 0 ? 'bg-amber-400/90 text-[#1c1300]' : r.days <= 7 ? 'bg-emerald-400/90 text-[#022c1c]' : 'bg-black/55 text-white',
                   )}
                 >
@@ -81,8 +81,8 @@ export function FollowedReleases({ artists, onAlbum }: { artists: Extract<Follow
                 </span>
               </div>
               <p className="mt-1.5 truncate text-xs font-bold text-white group-hover:text-cyan-300">{r.name}</p>
-              <p className="truncate text-[10px] text-slate-400">{r.followed}</p>
-              <p className={cn('text-[10px] font-semibold', r.days < 0 ? 'text-amber-300' : 'text-emerald-400')}>{releaseWhen(r.days)}</p>
+              <p className="truncate text-[0.625rem] text-slate-400">{r.followed}</p>
+              <p className={cn('text-[0.625rem] font-semibold', r.days < 0 ? 'text-amber-300' : 'text-emerald-400')}>{releaseWhen(r.days)}</p>
             </button>
           ))}
         </div>

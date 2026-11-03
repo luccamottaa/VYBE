@@ -145,7 +145,7 @@ export function ArtistSheet({ artist, onClose, onSong, onAlbum }: { artist: Arti
                   {albums && albums.length > 4 && (
                     <div className="flex rounded-lg border border-slate-800 bg-slate-950/70 p-0.5">
                       {([['all', 'Tudo'], ['album', 'Álbuns'], ['single', 'Singles e EPs']] as const).map(([id, label]) => (
-                        <button key={id} onClick={() => setAlbumType(id)} className={`rounded-md px-2 py-0.5 text-[10px] transition-all ${albumType === id ? 'bg-cyan-500 font-bold text-[#020617]' : 'text-slate-400 hover:text-white'}`}>
+                        <button key={id} onClick={() => setAlbumType(id)} className={`rounded-md px-2 py-0.5 text-[0.625rem] transition-all ${albumType === id ? 'bg-cyan-500 font-bold text-[#020617]' : 'text-slate-400 hover:text-white'}`}>
                           {label}
                         </button>
                       ))}
@@ -161,7 +161,7 @@ export function ArtistSheet({ artist, onClose, onSong, onAlbum }: { artist: Arti
                           <button key={a.key} onClick={() => onAlbum?.(a)} className="group w-32 shrink-0 snap-start text-left">
                             <Cover eager src={a.artwork ? artwork(a.artwork, 300) : ''} alt="" className="aspect-square w-full rounded-2xl transition-transform group-hover:-translate-y-0.5 group-hover:border-cyan-500/40" />
                             <p className="mt-1.5 truncate text-xs font-bold text-white group-hover:text-cyan-300">{a.name}</p>
-                            <p className="truncate text-[10px] text-slate-500">
+                            <p className="truncate text-[0.625rem] text-slate-500">
                               {albumTypeLabel(a)}
                               {a.releaseDate && ` · ${a.releaseDate.slice(0, 4)}`}
                             </p>
@@ -196,7 +196,7 @@ export function ArtistSheet({ artist, onClose, onSong, onAlbum }: { artist: Arti
                         <Cover eager src={s.artwork ?? ''} alt="" className="h-9 w-9 shrink-0" />
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm text-white">{s.name}</p>
-                          <p className="truncate text-[11px] text-slate-500">
+                          <p className="truncate text-[0.6875rem] text-slate-500">
                             {s.album}
                             {s.releaseDate && ` · ${shortDate(`${s.releaseDate}T00:00:00Z`)}`}
                           </p>
@@ -210,7 +210,7 @@ export function ArtistSheet({ artist, onClose, onSong, onAlbum }: { artist: Arti
               ) : (
                 <p className="text-xs text-slate-400">{loading ? 'Abrindo catálogo…' : 'Nada encontrado no catálogo.'}</p>
               )}
-              <p className="mt-1 text-[10px] text-slate-500">Catálogo via iTunes Search API e Deezer.</p>
+              <p className="mt-1 text-[0.625rem] text-slate-500">Catálogo via iTunes Search API e Deezer.</p>
             </section>
           </div>
         )}

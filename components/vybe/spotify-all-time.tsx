@@ -114,7 +114,7 @@ export function SpotifyAllTime({
               <button
                 key={m}
                 onClick={() => setMarket(m)}
-                className={`rounded-lg border px-2 py-1 text-[11px] font-semibold transition-colors ${market === m ? 'border-emerald-500/50 bg-emerald-500/15 text-emerald-300' : 'border-slate-800 text-slate-400 hover:text-white'}`}
+                className={`rounded-lg border px-2 py-1 text-[0.6875rem] font-semibold transition-colors ${market === m ? 'border-emerald-500/50 bg-emerald-500/15 text-emerald-300' : 'border-slate-800 text-slate-400 hover:text-white'}`}
               >
                 {label(m)}
               </button>
@@ -147,7 +147,7 @@ export function SpotifyAllTime({
             <p className="text-xs text-slate-400">Sem posições nesse mercado.</p>
           )}
 
-          <a href={res.data.source} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[10px] text-slate-500 hover:text-cyan-400">
+          <a href={res.data.source} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[0.625rem] text-slate-500 hover:text-cyan-400">
             Dados do Spotify via kworb.net <ExternalLink className="h-3 w-3" />
           </a>
         </div>
@@ -159,9 +159,9 @@ export function SpotifyAllTime({
 function Stat({ title, value, sub }: { title: string; value: string; sub?: string }) {
   return (
     <div className="rounded-xl border border-slate-800/60 bg-slate-950/50 p-2.5">
-      <span className="block text-[10px] uppercase tracking-wider text-slate-500">{title}</span>
+      <span className="block text-[0.625rem] uppercase tracking-wider text-slate-500">{title}</span>
       <strong className="block text-lg font-black text-white">{value}</strong>
-      {sub && <span className="block truncate text-[10px] text-slate-500">{sub}</span>}
+      {sub && <span className="block truncate text-[0.625rem] text-slate-500">{sub}</span>}
     </div>
   );
 }

@@ -115,10 +115,10 @@ export function Following({ onSong, onArtist, onAlbum }: { onSong: (s: Song) => 
           <div className="mb-4 flex items-center justify-between gap-2">
             <h3 className="flex items-center gap-2 text-base font-bold text-white">
               <Bell className="h-4 w-4 text-cyan-400" /> Novidades
-              {unread > 0 && <span className="rounded-full bg-cyan-500 px-1.5 text-[10px] font-black text-[#020617]">{unread}</span>}
+              {unread > 0 && <span className="rounded-full bg-cyan-500 px-1.5 text-[0.625rem] font-black text-[#020617]">{unread}</span>}
             </h3>
             {feed.length > 0 && (
-              <button onClick={clear} className="inline-flex items-center gap-1 text-[11px] text-slate-500 hover:text-rose-400">
+              <button onClick={clear} className="inline-flex items-center gap-1 text-[0.6875rem] text-slate-500 hover:text-rose-400">
                 <Trash2 className="h-3 w-3" /> Limpar
               </button>
             )}
@@ -140,7 +140,7 @@ export function Following({ onSong, onArtist, onAlbum }: { onSong: (s: Song) => 
           )}
           <AlertPrefs />
           {notif && (
-            <p className="mt-4 text-[11px] leading-relaxed text-slate-500">
+            <p className="mt-4 text-[0.6875rem] leading-relaxed text-slate-500">
               As notificações chegam quando o vybe é aberto e os charts mudaram. Aviso com o app fechado precisa de um servidor de push (fica pra próxima).
             </p>
           )}
@@ -164,22 +164,22 @@ export function Following({ onSong, onArtist, onAlbum }: { onSong: (s: Song) => 
                         <Cover eager src={f.artwork ? artwork(f.artwork, 160) : ''} alt="" className="h-12 w-12 shrink-0" />
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-bold text-white group-hover:text-cyan-300">{f.name}</p>
-                          <p className="truncate text-[11px] text-slate-400">{f.artist}</p>
+                          <p className="truncate text-[0.6875rem] text-slate-400">{f.artist}</p>
                           <div className="mt-1 flex flex-wrap gap-1">
                             {!all ? (
                               <span className="h-4 w-24 animate-pulse rounded bg-slate-800" />
                             ) : hits.length ? (
                               hits.slice(0, 4).map((h) => (
-                                <span key={h.market} className={cn('rounded-md px-1.5 py-0.5 text-[10px] font-bold', h.rank === 1 ? 'bg-amber-400/15 text-amber-300' : h.rank <= 10 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-800 text-slate-300')}>
+                                <span key={h.market} className={cn('rounded-md px-1.5 py-0.5 text-[0.625rem] font-bold', h.rank === 1 ? 'bg-amber-400/15 text-amber-300' : h.rank <= 10 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-800 text-slate-300')}>
                                   {h.label} #{h.rank}
                                 </span>
                               ))
                             ) : (
-                              <span className="inline-flex items-center gap-1 text-[10px] text-slate-500">
+                              <span className="inline-flex items-center gap-1 text-[0.625rem] text-slate-500">
                                 <TrendingDown className="h-3 w-3" /> fora dos charts agora
                               </span>
                             )}
-                            {hits.length > 4 && <span className="text-[10px] text-slate-500">+{hits.length - 4}</span>}
+                            {hits.length > 4 && <span className="text-[0.625rem] text-slate-500">+{hits.length - 4}</span>}
                           </div>
                         </div>
                       </button>
@@ -209,7 +209,7 @@ export function Following({ onSong, onArtist, onAlbum }: { onSong: (s: Song) => 
                           <Cover eager src={f.artwork ? artwork(f.artwork, 160) : ''} alt="" className="h-12 w-12 shrink-0 rounded-full" />
                           <div className="min-w-0">
                             <p className="truncate text-sm font-bold text-white group-hover:text-purple-300">{f.name}</p>
-                            <p className="text-[11px] text-slate-400">{all ? (hs.length ? `${hs.length} ${hs.length === 1 ? 'música' : 'músicas'} nos charts` : 'fora dos charts agora') : '…'}</p>
+                            <p className="text-[0.6875rem] text-slate-400">{all ? (hs.length ? `${hs.length} ${hs.length === 1 ? 'música' : 'músicas'} nos charts` : 'fora dos charts agora') : '…'}</p>
                           </div>
                         </button>
                         <FollowButton compact target={f} />
@@ -235,7 +235,7 @@ export function Following({ onSong, onArtist, onAlbum }: { onSong: (s: Song) => 
             )}
             {suggestions.length > 0 && (
               <div className="mt-4">
-                <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Em alta agora</p>
+                <p className="mb-2 text-[0.6875rem] font-semibold uppercase tracking-wider text-slate-500">Em alta agora</p>
                 <div className="flex flex-wrap gap-2">
                   {suggestions.map((a) => (
                     <div key={a.name} className="flex items-center gap-2 rounded-full border border-slate-800 bg-slate-950/50 py-1 pl-1 pr-1">
@@ -266,9 +266,9 @@ function AlertRow({ a, fresh, onOpen }: { a: Alert; fresh: boolean; onOpen: () =
           </span>
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-[13px] font-bold leading-snug text-white">{a.title}</p>
-          <p className="text-[11px] leading-snug text-slate-400">{a.body}</p>
-          <p className="mt-0.5 text-[10px] text-slate-500">{ago(a.at)}</p>
+          <p className="text-[0.8125rem] font-bold leading-snug text-white">{a.title}</p>
+          <p className="text-[0.6875rem] leading-snug text-slate-400">{a.body}</p>
+          <p className="mt-0.5 text-[0.625rem] text-slate-500">{ago(a.at)}</p>
         </div>
         {fresh && <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-cyan-400" />}
       </button>
@@ -280,14 +280,14 @@ function AlertPrefs() {
   const prefs = usePrefs();
   return (
     <div className="mt-5 border-t border-slate-800/60 pt-4">
-      <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">O que te avisar</p>
+      <p className="mb-2 text-[0.6875rem] font-semibold uppercase tracking-wider text-slate-500">O que te avisar</p>
       <ul className="space-y-1">
         {PREFS.map((p) => (
           <li key={p.key}>
             <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl px-2 py-1.5 hover:bg-slate-800/40">
               <span className="min-w-0">
                 <span className="block text-sm font-semibold text-white">{p.label}</span>
-                <span className="block text-[11px] text-slate-400">{p.hint}</span>
+                <span className="block text-[0.6875rem] text-slate-400">{p.hint}</span>
               </span>
               <Switch checked={prefs[p.key]} onCheckedChange={(v) => setPref(p.key, !!v)} aria-label={p.label} />
             </label>

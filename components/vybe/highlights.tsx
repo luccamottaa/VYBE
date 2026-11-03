@@ -80,10 +80,10 @@ export function Highlights({ onSong, onArtist }: { onSong: (s: Song) => void; on
                   className="group relative w-36 shrink-0 snap-start overflow-hidden rounded-2xl border border-slate-800/80 bg-slate-950/50 text-left transition-all hover:-translate-y-0.5 hover:border-amber-400/40"
                 >
                   <Cover src={s.artwork ? artwork(s.artwork, 300) : ''} alt="" className="aspect-square w-full rounded-none border-0" />
-                  <span className="theme-dark absolute left-2 top-2 rounded-lg bg-black/60 px-1.5 py-0.5 text-[10px] font-bold text-white backdrop-blur">{s.label}</span>
+                  <span className="theme-dark absolute left-2 top-2 rounded-lg bg-black/60 px-1.5 py-0.5 text-[0.625rem] font-bold text-white backdrop-blur">{s.label}</span>
                   <div className="p-2.5">
                     <p className="truncate text-xs font-bold text-white group-hover:text-amber-300">{s.name}</p>
-                    <p className="truncate text-[10px] text-slate-400">{s.artist}</p>
+                    <p className="truncate text-[0.625rem] text-slate-400">{s.artist}</p>
                   </div>
                 </button>
               ))
@@ -107,7 +107,7 @@ export function Highlights({ onSong, onArtist }: { onSong: (s: Song) => void; on
                         <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-800">
                           <div className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-blue-500" style={{ width: `${(s.count / (data?.markets || 1)) * 100}%` }} />
                         </div>
-                        <span className="shrink-0 text-[10px] font-semibold text-slate-400">
+                        <span className="shrink-0 text-[0.625rem] font-semibold text-slate-400">
                           {s.count}/{data?.markets} charts
                         </span>
                       </div>
@@ -133,7 +133,7 @@ export function Highlights({ onSong, onArtist }: { onSong: (s: Song) => void; on
                       </div>
                       <div className="min-w-0">
                         <p className="truncate text-sm font-bold text-white group-hover:text-purple-300">{a.name}</p>
-                        <p className="text-[10px] text-slate-400">
+                        <p className="text-[0.625rem] text-slate-400">
                           {a.entries} entradas · {a.songs} {a.songs === 1 ? 'música' : 'músicas'} · {a.markets} charts
                         </p>
                       </div>
@@ -185,7 +185,7 @@ export function Highlights({ onSong, onArtist }: { onSong: (s: Song) => void; on
                   <p className="truncate text-xs font-bold text-white">
                     {i + 1}. {s.name}
                   </p>
-                  <p className="truncate text-[10px] text-slate-400">{s.artist}</p>
+                  <p className="truncate text-[0.625rem] text-slate-400">{s.artist}</p>
                 </div>
               </button>
             ))}
@@ -303,7 +303,7 @@ function Recap({ names, onSong }: { names: Names; onSong: (s: Song) => void }) {
               <button onClick={() => open(recap.jump!.id)} className="group flex w-full items-center gap-4 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-4 text-left transition-colors hover:border-emerald-400/40">
                 <Cover src={n(recap.jump.id).artwork ?? ''} alt="" className="h-14 w-14 shrink-0" />
                 <div className="min-w-0 flex-1">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-300">Maior salto do mês</p>
+                  <p className="text-[0.625rem] font-bold uppercase tracking-wider text-emerald-300">Maior salto do mês</p>
                   <p className="truncate text-base font-extrabold text-white">{n(recap.jump.id).name}</p>
                   <p className="truncate text-xs text-slate-300">
                     {n(recap.jump.id).artist} · de #{recap.jump.from} pra #{recap.jump.to} em {new Date(`${recap.jump.date}T12:00:00Z`).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
@@ -340,7 +340,7 @@ function RecapCard({
 }) {
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur">
-      <h3 className={cn('mb-3 inline-flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[11px] font-bold', toneCls[tone])}>
+      <h3 className={cn('mb-3 inline-flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[0.6875rem] font-bold', toneCls[tone])}>
         {icon} {title}
       </h3>
       {rows.length ? (
@@ -351,7 +351,7 @@ function RecapCard({
                 <Cover src={n(r.id).artwork ?? ''} alt="" className={cn('shrink-0', i === 0 ? 'h-11 w-11' : 'h-8 w-8')} />
                 <div className="min-w-0 flex-1">
                   <p className={cn('truncate font-bold text-white group-hover:text-cyan-300', i === 0 ? 'text-sm' : 'text-xs')}>{n(r.id).name}</p>
-                  <p className="truncate text-[10px] text-slate-400">{n(r.id).artist}</p>
+                  <p className="truncate text-[0.625rem] text-slate-400">{n(r.id).artist}</p>
                 </div>
                 <span className={cn('shrink-0 font-black tabular-nums', i === 0 ? 'text-base text-white' : 'text-xs text-slate-300')}>{r.value}</span>
               </button>
@@ -375,7 +375,7 @@ function SongList<T extends InsightSong>({ items, onSong, right, sub, empty }: {
           <Cover src={s.artwork ?? ''} alt="" className="h-10 w-10 shrink-0" />
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-bold text-white group-hover:text-cyan-300">{s.name}</p>
-            <p className="truncate text-[11px] text-slate-400">{sub(s)}</p>
+            <p className="truncate text-[0.6875rem] text-slate-400">{sub(s)}</p>
           </div>
           {right(s)}
           <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-slate-600 group-hover:text-cyan-400" />
