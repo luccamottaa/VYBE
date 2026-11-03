@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 
 export function Panel({ className, children, id }: { className?: string; children: ReactNode; id?: string }) {
   return (
-    <div id={id} className={cn('rounded-3xl border border-slate-800/80 bg-slate-900/60 p-5 sm:bg-slate-900/40 sm:p-6 sm:backdrop-blur-md', className)}>
+    <div id={id} className={cn('glass rounded-3xl p-5 sm:p-6', className)}>
       {children}
     </div>
   );

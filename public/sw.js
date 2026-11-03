@@ -2,7 +2,7 @@
 // - Páginas e dados (data/*.json): rede primeiro, cache como reserva → abre offline com o último ranking visto.
 // - Arquivos do build (assets/*, com hash no nome) e ícones: cache primeiro.
 // - Notificações: clique abre/foca o vybe.
-const VERSION = 'vybe-v2';
+const VERSION = 'vybe-v3';
 const SHELL = `${VERSION}-shell`;
 const DATA = `${VERSION}-data`;
 const scope = new URL(self.registration.scope);
@@ -51,6 +51,25 @@ self.addEventListener('fetch', (e) => {
   if (req.mode === 'navigate') return e.respondWith(networkFirst(req, SHELL));
   if (path.startsWith('data/')) return e.respondWith(networkFirst(req, DATA));
   if (path.startsWith('assets/') || /\.(png|svg|webmanifest|woff2?)$/.test(path)) return e.respondWith(cacheFirst(req));
+});
+
+// push do servidor (app fechado): { title, body, tag, url }
+self.addEventListener('push', (e) => {
+  let d = {};
+  try {
+    d = e.data ? e.data.json() : {};
+  } catch {
+    d = { body: e.data ? e.data.text() : '' };
+  }
+  e.waitUntil(
+    self.registration.showNotification(d.title || 'vybe', {
+      body: d.body || 'Novidades de quem você segue',
+      tag: d.tag,
+      icon: new URL('icon-192.png', scope).href,
+      badge: new URL('icon-maskable-192.png', scope).href,
+      data: { url: d.url || new URL('./?aba=seguindo', scope).href },
+    }),
+  );
 });
 
 self.addEventListener('notificationclick', (e) => {

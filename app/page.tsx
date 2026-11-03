@@ -29,6 +29,10 @@ import { albumFrom, type Album } from '@/lib/albums';
 import { Highlights } from '@/components/vybe/highlights';
 import { Following } from '@/components/vybe/following';
 import { PwaBar } from '@/components/vybe/pwa';
+import { HomeLayoutButton } from '@/components/vybe/home-layout-sheet';
+import { useLayout, type HomeSection } from '@/lib/home-layout';
+import { TabBar } from '@/components/vybe/tab-bar';
+import { startSync } from '@/lib/sync';
 import { AmbientBackground } from '@/components/vybe/ambient-background';
 import { ArtistBubbles, SpotlightTiles } from '@/components/vybe/home';
 import { VersionBadge } from '@/components/vybe/changelog';
@@ -176,6 +180,8 @@ function Dashboard() {
 
   // Estado da tela na URL (dá pra mandar o link e abre igual). Música/artista abertos não entram: são passageiros.
   useEffect(() => {
+    // volta do login com Google: o código fica na URL até o Supabase trocar pela sessão (ele mesmo limpa)
+    if (/[?&]code=/.test(location.search)) return;
     const p = new URLSearchParams();
     if (tab !== 'charts') p.set('aba', tabToParam[tab]);
     if (market !== 'global') p.set('mercado', market);
@@ -184,6 +190,11 @@ function Dashboard() {
     const url = `${location.pathname}${qs ? `?${qs}` : ''}${location.hash}`;
     if (url !== `${location.pathname}${location.search}${location.hash}`) history.replaceState(null, '', url);
   }, [tab, market, kind]);
+
+  // conta: sincroniza seguidos/preferências quando a pessoa entra (só no build do Pages)
+  useEffect(() => {
+    if (isStatic) startSync();
+  }, []);
 
   // Alertas de quem você segue: compara os charts com a última foto (follow novo só ganha a foto base).
   useEffect(() => {
@@ -242,6 +253,10 @@ function Dashboard() {
     return out;
   };
 
+  // início personalizável: ordem via CSS order (sem remontar nada) e seções escondidas
+  const layout = useLayout();
+  const sec = (k: HomeSection) => ({ order: layout.order.indexOf(k) + 1 });
+  const secCls = (k: HomeSection) => (layout.hidden.includes(k) ? 'hidden' : '');
   const top = view?.tracks[0];
   const place = market === 'global' ? globalMarket : markets[market];
   const topOnSpotify = !!(top as (ViewTrack & { spotifyId?: string }) | undefined)?.spotifyId;
@@ -249,7 +264,7 @@ function Dashboard() {
   const topRelease = top && view ? releaseLabel(daysSince(top.releaseDate, view.updated)) : null;
 
   return (
-    <div className="min-h-screen bg-background px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[calc(env(safe-area-inset-top)+1rem)] font-sans text-slate-100 selection:bg-cyan-500 selection:text-black sm:px-6 sm:pb-6 sm:pt-6 lg:px-8 lg:pb-8 lg:pt-8">
+    <div className="min-h-screen bg-background px-4 pb-[calc(env(safe-area-inset-bottom)+6.5rem)] pt-[calc(env(safe-area-inset-top)+1rem)] font-sans text-slate-100 selection:bg-cyan-500 selection:text-black sm:px-6 sm:pt-6 lg:px-8 lg:pb-8 lg:pt-8">
       {/* faixa sólida atrás do relógio/Dynamic Island: o conteúdo não passa por baixo dela */}
       <div aria-hidden className="pointer-events-none fixed inset-x-0 top-0 z-40 h-[env(safe-area-inset-top)] bg-background" />
       {/* fundo vivo com as cores da capa em destaque (música/álbum aberto ou o #1) */}
@@ -261,10 +276,10 @@ function Dashboard() {
           ref={headerRef}
           style={headerGap ? { marginBottom: `calc(1.5rem + ${headerGap}px)` } : undefined}
           data-compact={compact || undefined}
-          className={`sticky top-[calc(env(safe-area-inset-top)+0.5rem)] z-30 flex flex-col border shadow-2xl transition-[padding,gap,border-radius,background-color,box-shadow] duration-300 lg:flex-row lg:items-center lg:justify-between ${
+          className={`sticky top-[calc(env(safe-area-inset-top)+0.5rem)] z-30 flex flex-col transition-[padding,gap,border-radius] duration-300 lg:flex-row lg:items-center lg:justify-between ${
             compact
-              ? 'gap-2 rounded-[1.4rem] border-slate-700/60 bg-slate-900/90 p-2 shadow-black/30 backdrop-blur-md lg:px-3'
-              : 'gap-4 rounded-2xl border-slate-800/80 bg-slate-900/40 p-4 backdrop-blur-xl'
+              ? 'glass-float gap-2 rounded-[1.6rem] p-2 lg:px-3'
+              : 'glass-float gap-4 rounded-[1.75rem] p-4'
           }`}
         >
           <div className="flex w-full items-center gap-2 sm:gap-3 lg:w-auto">
@@ -272,8 +287,8 @@ function Dashboard() {
               <Logo tagline={!compact} />
             </Link>
             <VersionBadge className={compact ? 'hidden sm:block' : ''} />
+            <div className="ml-auto hidden lg:ml-6 lg:block">
             <Segmented
-              className="ml-auto lg:ml-6"
               value={tab}
               onChange={(t) => {
                 setTab(t);
@@ -286,6 +301,7 @@ function Dashboard() {
                 ['sources', 'Fontes', Database],
               ]}
             />
+            </div>
           </div>
 
           <div className="flex w-full flex-wrap items-center gap-3 sm:flex-nowrap lg:w-auto">
@@ -335,7 +351,7 @@ function Dashboard() {
           </ErrorBoundary>
         ) : tab === 'following' ? (
           <ErrorBoundary label="seguindo">
-            <Following onSong={setSong} onArtist={setArtist} />
+            <Following onSong={setSong} onArtist={setArtist} onAlbum={setAlbum} />
           </ErrorBoundary>
         ) : error ? (
           <Panel className="flex flex-col items-center gap-3 py-16 text-center">
@@ -347,7 +363,7 @@ function Dashboard() {
             </button>
           </Panel>
         ) : (
-          <>
+          <div className="flex flex-col gap-6">
             {view?.stale && <Notice>A fonte não respondeu. Exibindo o último ranking salvo, de {shortDate(view.updated)}.</Notice>}
             {view && !view.historyAvailable && !view.stale && <Notice>Histórico indisponível agora. O ranking abre normal, mas este registro não foi salvo.</Notice>}
 
@@ -361,9 +377,11 @@ function Dashboard() {
                     ['albums', 'Álbuns'],
                   ]}
                 />
+                <HomeLayoutButton />
               </div>
             )}
 
+            <div style={sec('hero')} className={secCls('hero')}>
             {/* Hero: #1 */}
             <section className="theme-dark relative overflow-hidden rounded-3xl border border-slate-800/80 bg-gradient-to-br from-slate-900 via-[#0a1430] to-slate-950 p-6 text-slate-100 shadow-2xl lg:p-8">
               {!safe && <DitherField palette={palettes[source]} className="pointer-events-none absolute inset-0 h-full w-full" />}
@@ -427,11 +445,19 @@ function Dashboard() {
                 )}
               </div>
             </section>
+            </div>
 
             {/* Destaques visuais e artistas do momento */}
-            <SpotlightTiles view={view} onOpen={openTrack} />
-            {!albumsView && <ArtistBubbles view={view} onArtist={setArtist} />}
+            <div style={sec('spotlight')} className={secCls('spotlight')}>
+              <SpotlightTiles view={view} onOpen={openTrack} />
+            </div>
+            {!albumsView && (
+              <div style={sec('artists')} className={secCls('artists')}>
+                <ArtistBubbles view={view} onArtist={setArtist} />
+              </div>
+            )}
 
+            <div style={sec('ranking')} className={`${secCls('ranking')} space-y-6`}>
             {/* Ranking completo */}
             <Panel id="ranking" className="p-0 sm:p-0">
               <div className="flex items-start justify-between gap-3 p-5 sm:p-6">
@@ -464,7 +490,7 @@ function Dashboard() {
                       <li key={t.id}>
                         <button
                           onClick={() => openTrack(t)}
-                          className="group flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-800/30 sm:gap-4 sm:px-6"
+                          className="vy-press group flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-800/30 sm:gap-4 sm:px-6"
                         >
                           <span className={`w-8 shrink-0 text-center text-sm font-black tabular-nums ${t.rank <= 3 ? 'text-cyan-400' : 'text-slate-500'}`}>
                             {String(t.rank).padStart(2, '0')}
@@ -532,7 +558,8 @@ function Dashboard() {
                 Ver fontes <ExternalLink className="h-3 w-3" />
               </button>
             </div>
-          </>
+            </div>
+          </div>
         )}
 
         <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-800/60 pt-6 text-xs text-slate-500">
@@ -611,6 +638,19 @@ function Dashboard() {
           setArtist(null);
           setAlbum(a);
         }}
+      />
+      <TabBar
+        value={tab}
+        onChange={(t) => {
+          setTab(t);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        tabs={[
+          ['charts', 'Charts', Disc3],
+          ['highlights', 'Destaques', Sparkles],
+          ['following', 'Seguindo', Star, unread],
+          ['sources', 'Fontes', Database],
+        ]}
       />
       <PwaBar />
     </div>

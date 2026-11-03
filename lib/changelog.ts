@@ -3,6 +3,32 @@ export type Release = { version: string; date: string; title: string; items: str
 
 export const releases: Release[] = [
   {
+    version: '2.4',
+    date: '2026-11-03',
+    title: 'Conta e avisos com o app fechado',
+    items: [
+      'Entre com Google (opcional): quem você segue, seus alertas e o layout do início ficam iguais no celular e no computador.',
+      'Escolha sua foto de perfil entre 18 avatares do vybe.',
+      'Avisos com o app fechado: quando alguém que você segue sobe no chart, a notificação chega mesmo sem abrir o vybe. No iPhone, instale o app na Tela de Início primeiro.',
+      'Política de Privacidade atualizada pra explicar a conta e as notificações.',
+    ],
+  },
+  {
+    version: '2.3',
+    date: '2026-11-03',
+    title: 'Liquid glass',
+    items: [
+      'Visual de vidro no app todo: topo e barra de abas com vidro de verdade, cards com vidro leve que deixa o fundo vivo aparecer.',
+      'No celular, as abas viram uma barra flutuante embaixo, no alcance do dedão, que encolhe quando você rola.',
+      'Busca por voz: toque no 🎤 e fale o nome da música ou do artista.',
+      'Escolha o que te avisa: #1, top 10, estreias, marcos de streams ou quando sai de um chart.',
+      'Personalize o início: esconda ou mude a ordem das seções.',
+      'Lançamentos de quem você segue, com o que saiu no último mês e o que já tem data.',
+      'Painéis abrem com efeito de mola, e os cards não ficam mais cortados na borda.',
+      'Política de Privacidade e Termos de Uso no rodapé.',
+    ],
+  },
+  {
     version: '2.2',
     date: '2026-11-03',
     title: 'Tela nova',

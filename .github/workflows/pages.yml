@@ -102,3 +102,11 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+
+      # Avisos com o app fechado: o servidor (Supabase) compara os charts recém-publicados com a última
+      # foto de cada aparelho inscrito e manda o push. Idempotente: a mesma coleta não avisa duas vezes.
+      - name: Enviar alertas (push)
+        continue-on-error: true
+        run: |
+          sleep 20 # dá tempo do Pages servir os dados novos
+          curl -sS -m 120 -X POST -w '\nHTTP %{http_code}\n' https://gpwlltfgkaaiqofytuzs.supabase.co/functions/v1/push-send

@@ -11,7 +11,13 @@ import { songFrom, type Artist, type Song } from '@/lib/search';
 import { artwork } from '@/lib/vybe';
 import { cn } from '@/lib/utils';
 import { FollowButton } from './follow-button';
+import { FollowedReleases } from './releases';
+import type { Album } from '@/lib/albums';
+import { Switch } from '@/components/ui/switch';
+import { PREFS, setPref, usePrefs } from '@/lib/alert-prefs';
 import { Cover, Panel } from './ui';
+import { AccountCard } from './account';
+import { disablePush, enablePush, pushOn, pushSupported } from '@/lib/push';
 
 const kindStyle: Record<AlertKind, { icon: typeof Bell; cls: string }> = {
   no1: { icon: Crown, cls: 'text-amber-300 bg-amber-400/10 border-amber-400/25' },
@@ -34,7 +40,7 @@ function ago(t: number) {
 }
 
 /** Aba "Seguindo": quem você segue, onde está agora e o feed de alertas. */
-export function Following({ onSong, onArtist }: { onSong: (s: Song) => void; onArtist: (a: Artist) => void }) {
+export function Following({ onSong, onArtist, onAlbum }: { onSong: (s: Song) => void; onArtist: (a: Artist) => void; onAlbum: (a: Album) => void }) {
   const follows = useFollows();
   const { feed, unread, readAt, markRead, clear } = useAlerts();
   const [all, setAll] = useState<All | null>(null);
@@ -42,7 +48,7 @@ export function Following({ onSong, onArtist }: { onSong: (s: Song) => void; onA
 
   useEffect(() => {
     loadAllCharts().then(setAll).catch(() => {});
-    setNotif(notificationsOn());
+    setNotif(notificationsOn() || pushOn());
   }, []);
   // marca como lido ao sair da aba (mantém o destaque enquanto a pessoa olha)
   const [seenAt] = useState(readAt);
@@ -52,11 +58,25 @@ export function Following({ onSong, onArtist }: { onSong: (s: Song) => void; onA
   const artists = follows.filter((f): f is Extract<Follow, { kind: 'artist' }> => f.kind === 'artist');
   const suggestions = useMemo(() => (all ? buildInsights(all).artists.filter((a) => !artists.some((f) => f.key === artistKey(a.name))).slice(0, 4) : []), [all, artists]);
 
+  const [hint, setHint] = useState('');
   const toggleNotif = async () => {
+    setHint('');
     if (notif) {
       disableNotifications();
+      await disablePush();
       setNotif(false);
       return;
+    }
+    if (pushSupported()) {
+      const r = await enablePush().catch(() => 'error' as const);
+      if (r === 'install') {
+        setHint('No iPhone, os avisos com o app fechado só funcionam com o vybe instalado na tela de início (Compartilhar → Adicionar à Tela de Início).');
+      } else if (r === 'granted') {
+        await enableNotifications();
+        setNotif(true);
+        setHint('Pronto: você recebe os avisos mesmo com o vybe fechado, logo depois de cada atualização dos charts.');
+        return;
+      } else if (r === 'error') setHint('Não deu pra falar com o servidor de avisos agora. Ficou ligado só com o app aberto.');
     }
     const p = await enableNotifications();
     const on = p === 'granted';
@@ -85,6 +105,9 @@ export function Following({ onSong, onArtist }: { onSong: (s: Song) => void; onA
           </button>
         )}
       </div>
+      {hint && <p className="glass rounded-2xl px-4 py-3 text-xs text-slate-200">{hint}</p>}
+
+      <AccountCard />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
         {/* feed */}
@@ -115,6 +138,7 @@ export function Following({ onSong, onArtist }: { onSong: (s: Song) => void; onA
               </p>
             </div>
           )}
+          <AlertPrefs />
           {notif && (
             <p className="mt-4 text-[11px] leading-relaxed text-slate-500">
               As notificações chegam quando o vybe é aberto e os charts mudaram. Aviso com o app fechado precisa de um servidor de push (fica pra próxima).
@@ -123,6 +147,8 @@ export function Following({ onSong, onArtist }: { onSong: (s: Song) => void; onA
         </Panel>
 
         <div className="space-y-6 lg:col-span-3">
+          <FollowedReleases artists={artists} onAlbum={onAlbum} />
+
           {/* músicas */}
           <Panel>
             <h3 className="mb-4 flex items-center gap-2 text-base font-bold text-white">
@@ -247,5 +273,27 @@ function AlertRow({ a, fresh, onOpen }: { a: Alert; fresh: boolean; onOpen: () =
         {fresh && <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-cyan-400" />}
       </button>
     </li>
+  );
+}
+
+function AlertPrefs() {
+  const prefs = usePrefs();
+  return (
+    <div className="mt-5 border-t border-slate-800/60 pt-4">
+      <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">O que te avisar</p>
+      <ul className="space-y-1">
+        {PREFS.map((p) => (
+          <li key={p.key}>
+            <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl px-2 py-1.5 hover:bg-slate-800/40">
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold text-white">{p.label}</span>
+                <span className="block text-[11px] text-slate-400">{p.hint}</span>
+              </span>
+              <Switch checked={prefs[p.key]} onCheckedChange={(v) => setPref(p.key, !!v)} aria-label={p.label} />
+            </label>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

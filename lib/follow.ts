@@ -20,6 +20,16 @@ function read(): Follow[] {
   return cache;
 }
 
+// sincronização com a conta (lib/sync.ts registra quando a pessoa entra)
+type Remote = (f: Follow, on: boolean) => void;
+let remote: Remote | null = null;
+export const setRemote = (r: Remote | null) => (remote = r);
+
+/** Troca a lista inteira (vinda da conta), sem disparar envio pro servidor. */
+export function replaceFollows(list: Follow[]) {
+  write(list);
+}
+
 function write(list: Follow[]) {
   cache = list;
   try {
@@ -52,6 +62,7 @@ export function toggleFollow(f: Follow) {
   const list = getFollows();
   const on = list.some((x) => followId(x) === followId(f));
   write(on ? list.filter((x) => followId(x) !== followId(f)) : [{ ...f, at: Date.now() }, ...list]);
+  remote?.(f, !on);
   return !on;
 }
 

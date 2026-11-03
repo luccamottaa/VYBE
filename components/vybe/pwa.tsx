@@ -128,8 +128,8 @@ export function PwaBar() {
 
 function Bar({ children }: { children: React.ReactNode }) {
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 flex justify-center px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] motion-safe:animate-[vy-up_0.4s_cubic-bezier(0.2,0.8,0.2,1)]">
-      <div role="status" className="flex w-full max-w-lg items-center gap-3 rounded-2xl border border-slate-700/70 bg-slate-900/85 p-3 shadow-2xl shadow-black/40 backdrop-blur-xl">
+    <div className="fixed inset-x-0 bottom-0 z-50 flex justify-center px-3 pb-[calc(env(safe-area-inset-bottom)+5.25rem)] lg:pb-[calc(env(safe-area-inset-bottom)+0.75rem)] motion-safe:animate-[vy-up_0.4s_cubic-bezier(0.2,0.8,0.2,1)]">
+      <div role="status" className="glass-float flex w-full max-w-lg items-center gap-3 rounded-3xl p-3">
         {children}
       </div>
     </div>
