@@ -10,12 +10,22 @@ type Tab<T extends string> = readonly [T, string, ComponentType<{ className?: st
 export function TabBar<T extends string>({ value, onChange, tabs }: { value: T; onChange: (v: T) => void; tabs: readonly Tab<T>[] }) {
   const [mini, setMini] = useState(false);
   useEffect(() => {
+    // histerese: encolhe depois de descer 48 px seguidos e só abre de novo subindo 96 px (ou perto do topo),
+    // assim o vaivém normal do dedo não fica abrindo e fechando a barra
     let last = window.scrollY;
+    let acc = 0;
+    let mini = false;
     const onScroll = () => {
       const y = window.scrollY;
-      if (Math.abs(y - last) < 12) return;
-      setMini(y > last && y > 160);
+      const d = y - last;
       last = y;
+      acc = Math.sign(d) === Math.sign(acc) ? acc + d : d;
+      const next = y < 120 ? false : mini ? acc > -96 : acc > 48;
+      if (next !== mini) {
+        mini = next;
+        acc = 0;
+        setMini(next);
+      }
     };
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
@@ -30,8 +40,8 @@ export function TabBar<T extends string>({ value, onChange, tabs }: { value: T; 
       <div
         role="tablist"
         className={cn(
-          'glass-float pointer-events-auto relative grid rounded-full p-1.5 transition-[width] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]',
-          mini ? 'w-[min(15rem,80vw)]' : 'w-[min(26rem,100%)]',
+          'glass-float pointer-events-auto relative grid rounded-full p-1.5 transition-[width] duration-500 will-change-[width] ease-[cubic-bezier(0.32,0.72,0,1)]',
+          mini ? 'w-[min(15rem,80vw)] delay-100' : 'w-[min(26rem,100%)]',
         )}
         style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}
       >
@@ -60,8 +70,8 @@ export function TabBar<T extends string>({ value, onChange, tabs }: { value: T; 
               )}
             >
               <Icon className={cn('h-[18px] w-[18px] transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]', mini && 'scale-110')} />
-              <span className={cn('grid transition-[grid-template-rows,opacity,margin] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]', mini ? 'mt-0 grid-rows-[0fr] opacity-0' : 'mt-0.5 grid-rows-[1fr] opacity-100')}>
-                <span className="min-h-0 overflow-hidden text-[0.625rem] font-semibold leading-none">{label}</span>
+              <span className={cn('grid transition-[grid-template-rows,opacity,margin] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]', mini ? 'mt-0 grid-rows-[0fr] opacity-0 duration-200' : 'mt-0.5 grid-rows-[1fr] opacity-100 delay-150')}>
+                <span className="min-h-0 overflow-hidden whitespace-nowrap text-[0.625rem] font-semibold leading-none">{label}</span>
               </span>
               {!!badge && (
                 <span className="absolute right-[18%] top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[0.5625rem] font-black text-white ring-2 ring-slate-950">
