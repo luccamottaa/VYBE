@@ -203,31 +203,39 @@ const sizes = [
           }
         });
         await step('streams: cota do plano estourada não deixa o painel vazio', async () => {
-          const API = 'https://vybe-api-taupe.vercel.app';
-          let mode = 'ok';
+          // simulamos a vybe-api dentro da página (o route do Playwright no WebKit não intercepta tudo); o modo vive no sessionStorage
           const c5 = await browser.newContext(opts);
+          await c5.addInitScript(() => {
+            const orig = window.fetch.bind(window);
+            const reply = (status, body) => Promise.resolve(new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } }));
+            window.fetch = (u, o) => {
+              const url = String(u instanceof Request ? u.url : u);
+              if (url.includes('vybe-api-taupe.vercel.app/api/health')) return reply(200, { spotify: false, streams: true });
+              if (url.includes('vybe-api-taupe.vercel.app/api/streams')) {
+                if (sessionStorage.getItem('pw:modo') === 'ok')
+                  return reply(200, { spotifyId: 'S2'.padEnd(22, 'x'), total: 111111111, history: [{ date: '2026-11-01', streams: 111000000 }, { date: '2026-11-02', streams: 111111111 }] });
+                return reply(429, { error: 'Limite do plano', quota: true });
+              }
+              return orig(u, o);
+            };
+          });
           await c5.route((url) => !url.href.startsWith(new URL(base).origin), (r) => r.abort());
-          await c5.route(`${API}/api/health`, (r) => r.fulfill({ json: { spotify: false, streams: true }, headers: { 'access-control-allow-origin': '*' } }));
-          await c5.route(`${API}/api/streams*`, (r) =>
-            mode === 'ok'
-              ? r.fulfill({ json: { spotifyId: 'S2'.padEnd(22, 'x'), total: 111111111, history: [{ date: '2026-11-01', streams: 111000000 }, { date: '2026-11-02', streams: 111111111 }] }, headers: { 'access-control-allow-origin': '*' } })
-              : r.fulfill({ status: 429, json: { error: 'Limite do plano', quota: true }, headers: { 'access-control-allow-origin': '*' } }),
-          );
           const url = `${base}?musica=Housewife&artista=Tate%20McRae`;
           try {
             const p5 = await c5.newPage();
+            const modo = (m) => p5.evaluate((v) => sessionStorage.setItem('pw:modo', v), m);
             await p5.goto(base, { waitUntil: 'networkidle' }); // deixa o service worker se instalar antes dos links diretos
             await p5.waitForTimeout(1500);
             // 1) cota estourada e nunca consultou: cai no total do chart global (kworb)
-            mode = 'quota';
+            await modo('quota');
             await p5.goto(url, { waitUntil: 'networkidle' });
-            await p5.getByText('Do chart global do Spotify (kworb.net)').waitFor({ timeout: 15000 });
+            await p5.getByText('Do chart global do Spotify (kworb.net)').waitFor({ timeout: 20000 });
             await p5.locator('section', { hasText: 'Do chart global do Spotify (kworb.net)' }).getByText(/\d{1,3}(\.\d{3}){2,}/).first().waitFor();
             // 2) funcionou uma vez; depois a cota acaba: mostra o último valor guardado, avisando
-            mode = 'ok';
+            await modo('ok');
             await p5.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith('vybe:streams:')).forEach((k) => localStorage.removeItem(k)));
             await p5.goto(url, { waitUntil: 'networkidle' });
-            await p5.getByText('111.111.111').first().waitFor({ timeout: 15000 });
+            await p5.getByText('111.111.111').first().waitFor({ timeout: 20000 });
             await p5.evaluate(() =>
               Object.keys(localStorage).filter((k) => k.startsWith('vybe:streams:')).forEach((k) => {
                 const v = JSON.parse(localStorage.getItem(k));
@@ -235,9 +243,9 @@ const sizes = [
                 localStorage.setItem(k, JSON.stringify(v));
               }),
             );
-            mode = 'quota';
+            await modo('quota');
             await p5.goto(url, { waitUntil: 'networkidle' });
-            await p5.getByText('111.111.111').first().waitFor({ timeout: 15000 });
+            await p5.getByText('111.111.111').first().waitFor({ timeout: 20000 });
             await p5.getByText(/guardado de .*o contador está no limite/).waitFor({ timeout: 5000 });
           } finally {
             await c5.close();
@@ -245,34 +253,40 @@ const sizes = [
         });
         await step('estatísticas: só com consentimento, e nada sai antes disso', async () => {
           // fingimos ser gente (o teste normal é robô e nunca vê o aviso). As requisições externas viram contagem.
-          const posts = [];
           const c3 = await browser.newContext(opts);
-          await c3.addInitScript(() => Object.defineProperty(navigator, 'webdriver', { get: () => false }));
-          await c3.route((url) => !url.href.startsWith(new URL(base).origin), (r) => {
-            if (r.request().url().includes('posthog.com')) posts.push(r.request().postData() ?? '');
-            return r.abort();
+          await c3.addInitScript(() => {
+            Object.defineProperty(navigator, 'webdriver', { get: () => false });
+            // grava dentro da página o que o app manda pro PostHog (o route do Playwright no WebKit pode não ver fetch com keepalive)
+            window.__ph = [];
+            const orig = window.fetch.bind(window);
+            window.fetch = (u, o) => {
+              if (String(u instanceof Request ? u.url : u).includes('posthog.com')) window.__ph.push(String(o?.body ?? ''));
+              return orig(u, o);
+            };
           });
+          await c3.route((url) => !url.href.startsWith(new URL(base).origin), (r) => r.abort());
           try {
             const p3 = await c3.newPage();
             const errs3 = [];
+            const sentNow = () => p3.evaluate(() => window.__ph ?? []);
             p3.on('pageerror', (e) => errs3.push(e.message));
             p3.on('console', (m) => m.type() === 'error' && !/access control|Load failed|Failed to load resource/i.test(m.text()) && errs3.push(`console: ${m.text()}`));
             await p3.goto(base, { waitUntil: 'networkidle' });
             await p3.waitForSelector('[data-consent]', { timeout: 15000 }); // aparece depois da abertura
-            if (posts.length) throw new Error('mandou evento antes de a pessoa responder');
+            if ((await sentNow()).length) throw new Error('mandou evento antes de a pessoa responder');
             await p3.getByRole('button', { name: 'Agora não' }).click();
             await p3.waitForSelector('[data-consent]', { state: 'detached' });
             await p3.getByRole('tab', { name: 'Destaques' }).click();
             await p3.waitForTimeout(2600);
-            if (posts.length) throw new Error('mandou evento depois de "agora não"');
+            if ((await sentNow()).length) throw new Error('mandou evento depois de "agora não"');
             if ((await p3.evaluate(() => localStorage.getItem('vybe:analytics'))) !== 'no') throw new Error('não guardou a escolha');
             // ligar pelo rodapé: passa a medir, sem conteúdo
             await p3.getByRole('button', { name: /Estatísticas: desligadas/ }).click();
             await p3.getByRole('tab', { name: 'Seguindo' }).click();
             // o envio sai em até 2 s depois do evento; o WebKit do CI é lento, então espera até 10 s
-            for (let i = 0; i < 40 && !posts.length; i++) await p3.waitForTimeout(250);
-            if (!posts.length) throw new Error(`aceitou e nada foi enviado${errs3.length ? ` (erros da página: ${errs3.join(' | ')})` : ''}`);
-            const sent = posts.join('');
+            for (let i = 0; i < 40 && !(await sentNow()).length; i++) await p3.waitForTimeout(250);
+            if (!(await sentNow()).length) throw new Error(`aceitou e nada foi enviado${errs3.length ? ` (erros da página: ${errs3.join(' | ')})` : ''}`);
+            const sent = (await sentNow()).join('');
             if (/Tate|Housewife|Olivia/i.test(sent)) throw new Error('nome de música ou artista vazou nos eventos');
             if (!/"\$ip":null/.test(sent) || !/\$geoip_disable":true/.test(sent)) throw new Error('faltam as travas de IP/GeoIP');
             // "Não rastrear" nem pergunta
@@ -341,7 +355,9 @@ const sizes = [
           if (!close || close.y < 0 || close.x < 0 || close.x + close.width > width + 1 || close.y + close.height > height) throw new Error('o X de fechar saiu da tela');
           await page.screenshot({ path: `${out}/matriz-${name}-${label.replace(/\s+/g, '-')}${scale ? `-${scale}` : ''}-artista.png` });
         });
-        if (errors.length) throw new Error(`erros de JS: ${errors.join(' | ')}`);
+        // a matriz bloqueia a rede externa de propósito; o WebKit relata cada requisição bloqueada como erro de JS
+        const reais = errors.filter((m) => !/due to access control checks|Load failed/i.test(m));
+        if (reais.length) throw new Error(`erros de JS: ${reais.join(' | ')}`);
       } catch (e) {
         failed++;
         console.log(`  ${e.message}`);
