@@ -2,11 +2,12 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
     <meta name="color-scheme" content="dark light" />
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#070a11" />
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f4f7fb" />
     <script>(()=>{const m=matchMedia('(prefers-color-scheme: dark)');const s=()=>document.documentElement.classList.toggle('dark',m.matches);s();m.addEventListener('change',s)})()</script>
+    <script>(()=>{const no=(e)=>e.preventDefault();['gesturestart','gesturechange','gestureend'].forEach((t)=>document.addEventListener(t,no,{passive:false}));document.addEventListener('touchmove',(e)=>{if(e.touches.length>1)e.preventDefault()},{passive:false});document.addEventListener('contextmenu',(e)=>{if(!e.target.closest('input,textarea,[contenteditable=true]'))e.preventDefault()})})()</script>
     <title>vybe · do play ao topo</title>
     <meta name="description" content="Charts do Apple Music e do Spotify, streams, posições e o histórico de cada música, todo dia." />
     <link rel="canonical" href="%VITE_SITE_URL%" />
