@@ -1,5 +1,6 @@
 // Artistas e músicas que a pessoa segue. Fica só no aparelho (localStorage), sem login.
 import { useSyncExternalStore } from 'react';
+import { track } from './analytics';
 
 export type Follow =
   | { kind: 'song'; key: string; name: string; artist: string; artwork?: string; spotifyId?: string; appleId?: string; at: number }
@@ -63,6 +64,7 @@ export function toggleFollow(f: Follow) {
   const on = list.some((x) => followId(x) === followId(f));
   write(on ? list.filter((x) => followId(x) !== followId(f)) : [{ ...f, at: Date.now() }, ...list]);
   remote?.(f, !on);
+  track('follow', { kind: f.kind, on: !on });
   return !on;
 }
 

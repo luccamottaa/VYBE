@@ -93,7 +93,7 @@ export function TrackSheet({
               </div>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <FollowButton
                 className="flex-1"
                 target={{ kind: 'song', key: matchKey(track.name, track.artistName), name: track.name, artist: track.artistName, artwork: track.artworkUrl100, ...(spotify ? { spotifyId: track.id } : { appleId: track.id }) }}
