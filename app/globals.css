@@ -490,3 +490,33 @@ html {
 }
 .vy-artist-backdrop { animation: vy-artist-backdrop 0.9s cubic-bezier(0.32, 0.72, 0, 1) both; }
 @media (prefers-reduced-motion: reduce) { .vy-artist-backdrop { animation: none; } }
+
+/* fundo vivo do artista: aurora com as cores da foto + foto respirando (Ken Burns) + parallax ao rolar */
+.vy-artist-photo {
+  transform: translateY(calc(var(--y, 0) * 0.45px));
+  opacity: calc(1 - var(--y, 0) / 420);
+  will-change: transform, opacity;
+}
+.vy-artist-photo > img { animation: vy-artist-backdrop 0.9s cubic-bezier(0.32, 0.72, 0, 1) both, vy-kenburns 14s ease-in-out 0.9s infinite alternate; }
+@keyframes vy-kenburns {
+  from { transform: scale(1) translate3d(0, 0, 0); }
+  to { transform: scale(1.14) translate3d(-3%, 2%, 0); }
+}
+.vy-aurora-a { animation: vy-aurora-a 11s ease-in-out infinite alternate; will-change: transform; }
+.vy-aurora-b { animation: vy-aurora-b 13s ease-in-out infinite alternate; will-change: transform; }
+.vy-aurora-c { animation: vy-aurora-c 15s ease-in-out infinite alternate; will-change: transform; }
+@keyframes vy-aurora-a {
+  from { transform: translate3d(0, 0, 0) rotate(0deg) scale(1); }
+  to { transform: translate3d(25%, 12%, 0) rotate(40deg) scale(1.25); }
+}
+@keyframes vy-aurora-b {
+  from { transform: scaleX(-1) translate3d(0, 0, 0) rotate(0deg); }
+  to { transform: scaleX(-1) translate3d(30%, -15%, 0) rotate(-50deg) scale(1.2); }
+}
+@keyframes vy-aurora-c {
+  from { transform: rotate(180deg) translate3d(0, 0, 0) scale(1.1); }
+  to { transform: rotate(140deg) translate3d(-20%, 10%, 0) scale(0.9); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vy-artist-photo > img, .vy-aurora-a, .vy-aurora-b, .vy-aurora-c { animation: none; }
+}

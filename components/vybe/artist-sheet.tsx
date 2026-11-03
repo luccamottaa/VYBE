@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Disc3, ExternalLink, Library, Radar } from 'lucide-react';
 import { albumsByArtist, albumTypeLabel, type Album } from '@/lib/albums';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -63,13 +63,21 @@ export function ArtistSheet({ artist, onClose, onSong, onAlbum }: { artist: Arti
   const rest = catalog.filter((s) => !chartedKeys.has(s.key) && (!filter.trim() || matchesWords(`${s.name} ${s.album ?? ''}`, filter)));
   const markets = new Set(charted.flatMap((s) => s.hits.map((h) => h.market)));
 
+  // parallax: a foto desce mais devagar que a página e apaga conforme rola
+  const backdrop = useRef<HTMLDivElement>(null);
+  const onScroll = (e: React.UIEvent<HTMLElement>) => backdrop.current?.style.setProperty('--y', String(e.currentTarget.scrollTop));
+
   return (
     <Sheet open={!!artist} onOpenChange={(o) => !o && onClose()}>
-      <SheetContent className="w-full overflow-y-auto border-slate-800 bg-popover text-slate-100 sm:max-w-lg">
+      <SheetContent onScroll={onScroll} className="w-full overflow-y-auto border-slate-800 bg-popover text-slate-100 sm:max-w-lg">
         {/* fundo do artista: a foto grande sumindo no escuro + um banho de cor tirado dela */}
         {artist && cover && (
-          <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[44rem] overflow-hidden">
-            <img src={artwork(cover, 100)} alt="" className="absolute inset-0 h-full w-full scale-150 object-cover opacity-60 blur-3xl saturate-150" />
+          <div ref={backdrop} aria-hidden className="vy-artist-bg pointer-events-none absolute inset-x-0 top-0 h-[44rem] overflow-hidden">
+            {/* manchas de cor da foto flutuando devagar (aurora) */}
+            <img src={artwork(cover, 100)} alt="" className="vy-aurora-a absolute left-[-30%] top-[-10%] h-[70%] w-[110%] rounded-full object-cover opacity-70 blur-3xl saturate-200" />
+            <img src={artwork(cover, 100)} alt="" className="vy-aurora-b absolute right-[-35%] top-[20%] h-[60%] w-[100%] rounded-full object-cover opacity-60 mix-blend-screen blur-3xl saturate-200 [transform:scaleX(-1)]" />
+            <img src={artwork(cover, 100)} alt="" className="vy-aurora-c absolute bottom-[0%] left-[0%] h-[50%] w-[90%] rounded-full object-cover opacity-50 blur-3xl saturate-150 [transform:rotate(180deg)]" />
+            <div className="vy-artist-photo absolute inset-x-0 top-0 h-[26rem]">
             <img
               key={cover}
               src={artwork(cover, 600)}
@@ -77,7 +85,8 @@ export function ArtistSheet({ artist, onClose, onSong, onAlbum }: { artist: Arti
               className="vy-artist-backdrop absolute inset-x-0 top-0 h-[26rem] w-full object-cover object-[50%_20%] opacity-70"
               style={{ maskImage: 'linear-gradient(to bottom, black 35%, transparent)', WebkitMaskImage: 'linear-gradient(to bottom, black 35%, transparent)' }}
             />
-            <div className="absolute inset-0 bg-gradient-to-b from-[#070a11]/40 via-[#070a11]/60 to-popover" />
+            </div>
+            <div className="absolute inset-0 bg-gradient-to-b from-[#070a11]/30 via-[#070a11]/45 to-popover" />
           </div>
         )}
         <SheetHeader className="theme-dark relative">
