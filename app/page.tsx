@@ -276,17 +276,17 @@ function Dashboard() {
           ref={headerRef}
           style={headerGap ? { marginBottom: `calc(1.5rem + ${headerGap}px)` } : undefined}
           data-compact={compact || undefined}
-          className={`sticky top-[calc(env(safe-area-inset-top)+0.5rem)] z-30 flex flex-col transition-[padding,gap,border-radius] duration-300 lg:flex-row lg:items-center lg:justify-between ${
+          className={`sticky top-[calc(env(safe-area-inset-top)+0.5rem)] z-30 flex flex-col transition-[padding,gap,border-radius] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] lg:flex-row lg:items-center lg:justify-between ${
             compact
               ? 'glass-float gap-2 rounded-[1.6rem] p-2 lg:px-3'
               : 'glass-float gap-4 rounded-[1.75rem] p-4'
           }`}
         >
           <div className="flex w-full items-center gap-2 sm:gap-3 lg:w-auto">
-            <Link href="/" aria-label="vybe — início" className={`flex items-center gap-2 transition-transform duration-300 ${compact ? 'origin-left scale-[0.86]' : ''}`}>
+            <Link href="/" aria-label="vybe — início" className={`flex origin-left items-center gap-2 transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${compact ? 'scale-[0.86]' : ''}`}>
               <Logo tagline={!compact} />
             </Link>
-            <VersionBadge className={compact ? 'hidden sm:block' : ''} />
+            <VersionBadge className={`transition-[opacity,transform] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${compact ? 'max-sm:pointer-events-none max-sm:scale-75 max-sm:opacity-0' : ''}`} />
             <div className="ml-auto hidden lg:ml-6 lg:block">
             <Segmented
               value={tab}
@@ -319,6 +319,13 @@ function Dashboard() {
               onAll={setAllQuery}
               onAlbum={setAlbum}
             />
+            {/* no celular o seletor recolhe deslizando (altura + opacidade) em vez de sumir de uma vez */}
+            <div
+              className={`grid transition-[grid-template-rows,opacity,margin] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${
+                compact ? 'max-sm:-mb-3 max-sm:grid-rows-[0fr] max-sm:opacity-0 max-sm:pointer-events-none' : 'grid-rows-[1fr]'
+              }`}
+            >
+            <div className="min-h-0 overflow-hidden">
             <Select
               value={market}
               onValueChange={(v) => {
@@ -327,7 +334,7 @@ function Dashboard() {
                 setTab('charts');
               }}
             >
-              <SelectTrigger aria-label="Mercado do ranking" className={`${compact ? 'max-sm:hidden ' : ''}h-9 w-auto shrink-0 rounded-xl border-slate-700/60 bg-slate-800/60 text-xs text-slate-200`}>
+              <SelectTrigger aria-label="Mercado do ranking" tabIndex={compact ? -1 : undefined} className={`h-9 w-auto shrink-0 rounded-xl border-slate-700/60 bg-slate-800/60 text-xs text-slate-200`}>
                 <SelectValue>{`${place.flag} ${market === 'global' ? 'Global' : market.toUpperCase()}`}</SelectValue>
               </SelectTrigger>
               <SelectContent>
@@ -338,6 +345,8 @@ function Dashboard() {
                 ))}
               </SelectContent>
             </Select>
+            </div>
+            </div>
           </div>
         </header>
 
