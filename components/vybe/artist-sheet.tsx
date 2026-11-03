@@ -66,18 +66,32 @@ export function ArtistSheet({ artist, onClose, onSong, onAlbum }: { artist: Arti
   return (
     <Sheet open={!!artist} onOpenChange={(o) => !o && onClose()}>
       <SheetContent className="w-full overflow-y-auto border-slate-800 bg-popover text-slate-100 sm:max-w-lg">
-        <SheetHeader>
+        {/* fundo do artista: a foto grande sumindo no escuro + um banho de cor tirado dela */}
+        {artist && cover && (
+          <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[44rem] overflow-hidden">
+            <img src={artwork(cover, 100)} alt="" className="absolute inset-0 h-full w-full scale-150 object-cover opacity-60 blur-3xl saturate-150" />
+            <img
+              key={cover}
+              src={artwork(cover, 600)}
+              alt=""
+              className="vy-artist-backdrop absolute inset-x-0 top-0 h-[26rem] w-full object-cover object-[50%_20%] opacity-70"
+              style={{ maskImage: 'linear-gradient(to bottom, black 35%, transparent)', WebkitMaskImage: 'linear-gradient(to bottom, black 35%, transparent)' }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-[#070a11]/40 via-[#070a11]/60 to-popover" />
+          </div>
+        )}
+        <SheetHeader className="theme-dark relative">
           <SheetTitle className="text-white">Artista</SheetTitle>
           <SheetDescription className="text-slate-400">Músicas nos charts agora e catálogo completo</SheetDescription>
         </SheetHeader>
 
         {artist && (
-          <div className="space-y-5 px-4 pb-8">
-            <div className="flex items-center gap-4">
-              <Cover eager src={cover ? artwork(cover, 300) : ''} alt="" className="vy-pop h-20 w-20 shrink-0 rounded-full" />
-              <div className="min-w-0">
-                <h2 className="text-2xl font-extrabold leading-tight text-white">{artist.name}</h2>
-                <p className="text-xs text-slate-400">
+          <div className="relative space-y-5 px-4 pb-8">
+            <div className="theme-dark flex flex-col items-center pt-24 text-center">
+              <Cover eager src={cover ? artwork(cover, 300) : ''} alt="" className="vy-pop h-28 w-28 shrink-0 rounded-full shadow-2xl shadow-black/60 ring-4 ring-white/10" />
+              <div className="mt-4 min-w-0">
+                <h2 className="text-4xl font-black leading-none tracking-tight text-white drop-shadow-[0_2px_12px_rgb(0_0_0/0.5)]">{artist.name}</h2>
+                <p className="mt-2 text-xs font-medium text-slate-300">
                   {artist.genre && `${artist.genre} · `}
                   {charted.length ? `${charted.length} ${charted.length === 1 ? 'música' : 'músicas'} em ${markets.size} ${markets.size === 1 ? 'chart' : 'charts'}` : 'Fora dos charts agora'}
                 </p>

@@ -483,3 +483,10 @@ html {
 .vy-press:active {
   transform: scale(0.975);
 }
+
+/* foto do artista entrando devagar no fundo do painel */
+@keyframes vy-artist-backdrop {
+  from { opacity: 0; transform: scale(1.08); }
+}
+.vy-artist-backdrop { animation: vy-artist-backdrop 0.9s cubic-bezier(0.32, 0.72, 0, 1) both; }
+@media (prefers-reduced-motion: reduce) { .vy-artist-backdrop { animation: none; } }
