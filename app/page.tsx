@@ -36,6 +36,7 @@ import { albumFrom, type Album } from '@/lib/albums';
 import { Highlights } from '@/components/vybe/highlights';
 import { Following } from '@/components/vybe/following';
 import { PwaBar } from '@/components/vybe/pwa';
+import { AmbientBackground } from '@/components/vybe/ambient-background';
 import { VersionBadge } from '@/components/vybe/changelog';
 import { ErrorBoundary, safeMode } from '@/components/vybe/error-boundary';
 import { loadAllCharts } from '@/lib/all-charts';
@@ -262,8 +263,8 @@ function Dashboard() {
     <div className="min-h-screen bg-background px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[calc(env(safe-area-inset-top)+1rem)] font-sans text-slate-100 selection:bg-cyan-500 selection:text-black sm:px-6 sm:pb-6 sm:pt-6 lg:px-8 lg:pb-8 lg:pt-8">
       {/* faixa sólida atrás do relógio/Dynamic Island: o conteúdo não passa por baixo dela */}
       <div aria-hidden className="pointer-events-none fixed inset-x-0 top-0 z-40 h-[env(safe-area-inset-top)] bg-background" />
-      <div className="pointer-events-none fixed left-1/4 top-0 hidden h-96 w-96 rounded-full bg-cyan-600/10 blur-[120px] sm:block" />
-      <div className="pointer-events-none fixed bottom-0 right-1/4 hidden h-96 w-96 rounded-full bg-blue-600/10 blur-[120px] sm:block" />
+      {/* fundo vivo com as cores da capa em destaque (música/álbum aberto ou o #1) */}
+      <AmbientBackground src={song?.artwork ?? album?.artwork ?? top?.artworkUrl100} still={safe} />
 
       <div className="relative z-10 mx-auto max-w-7xl space-y-6">
         {/* Navbar */}
