@@ -115,6 +115,21 @@ async function step(label, fn) {
           await page.getByText('Housewife').first().waitFor();
           await shot('seguindo');
         });
+        await step('privacidade e termos publicados e linkados', async () => {
+          for (const path of ['privacidade/', 'termos/']) {
+            const r = await page.evaluate(async (u) => {
+              const res = await fetch(u);
+              return { status: res.status, html: await res.text() };
+            }, `${base}${path}`);
+            if (r.status !== 200 || !/<h1>/.test(r.html)) throw new Error(`${path} → ${r.status}`);
+          }
+          await page.goto(base, { waitUntil: 'networkidle' });
+          await page.getByRole('link', { name: 'Privacidade' }).click();
+          await page.getByRole('heading', { name: 'Política de Privacidade' }).waitFor();
+          await shot('privacidade');
+          await page.getByRole('link', { name: 'Termos de Uso' }).click();
+          await page.getByRole('heading', { name: 'Termos de Uso' }).waitFor();
+        });
         await step('manifest e service worker publicados', async () => {
           const m = await page.evaluate(async (b) => (await fetch(`${b}manifest.webmanifest`)).json(), base);
           if (m.short_name !== 'vybe' || !m.icons?.length) throw new Error('manifest inválido');

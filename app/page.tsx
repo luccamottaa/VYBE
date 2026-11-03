@@ -538,7 +538,15 @@ function Dashboard() {
         <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-800/60 pt-6 text-xs text-slate-500">
           <span className="flex items-center gap-2"><LogoMark className="h-5 w-auto" title="" /><span className="font-brand text-sm font-semibold text-slate-300">vybe</span></span>
           <span>Ouça a música. Entenda o movimento.</span>
-          <span>Feito em Manaus</span>
+          <span className="flex items-center gap-3">
+            <a href={`${import.meta.env.BASE_URL ?? '/'}privacidade/`} className="hover:text-cyan-400">
+              Privacidade
+            </a>
+            <a href={`${import.meta.env.BASE_URL ?? '/'}termos/`} className="hover:text-cyan-400">
+              Termos
+            </a>
+            <span>Feito em Manaus</span>
+          </span>
         </footer>
       </div>
 

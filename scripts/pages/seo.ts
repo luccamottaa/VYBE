@@ -70,7 +70,11 @@ a{display:inline-block;margin-top:8px;padding:12px 20px;border-radius:14px;backg
 /** Gera { caminho: conteúdo } com as páginas, o sitemap e o robots. */
 export function buildSeo(index: Record<string, IndexRow>, site: string, today = new Date().toISOString().slice(0, 10)) {
   const files: Record<string, string> = {};
-  const urls: { loc: string; lastmod: string }[] = [{ loc: site, lastmod: today }];
+  const urls: { loc: string; lastmod: string }[] = [
+    { loc: site, lastmod: today },
+    { loc: `${site}privacidade/`, lastmod: '2026-11-03' },
+    { loc: `${site}termos/`, lastmod: '2026-11-03' },
+  ];
   const usedSongs = new Set<string>();
   const artists = new Map<string, { name: string; songs: IndexRow[] }>();
 
