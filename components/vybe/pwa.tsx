@@ -40,9 +40,12 @@ export function PwaBar() {
         document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && reg.update().catch(() => {}));
       })
       .catch(() => {});
+    // só recarrega quando a versão antiga estava no comando (atualização). Na primeira instalação a
+    // página já veio atualizada da rede: recarregar só atrapalharia (e cortaria a abertura animada).
+    const hadController = !!navigator.serviceWorker.controller;
     let reloaded = false;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (reloaded) return;
+      if (reloaded || !hadController) return;
       reloaded = true;
       location.reload();
     });
