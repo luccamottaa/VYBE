@@ -5,9 +5,9 @@ import { ArrowDownRight, ArrowUpRight, Music2, Sparkles, User } from 'lucide-rea
 import type { CrossHit } from '@/lib/vybe';
 import { cn } from '@/lib/utils';
 
-export function Panel({ className, children }: { className?: string; children: ReactNode }) {
+export function Panel({ className, children, id }: { className?: string; children: ReactNode; id?: string }) {
   return (
-    <div className={cn('rounded-3xl border border-slate-800/80 bg-slate-900/60 p-5 sm:bg-slate-900/40 sm:p-6 sm:backdrop-blur-md', className)}>
+    <div id={id} className={cn('rounded-3xl border border-slate-800/80 bg-slate-900/60 p-5 sm:bg-slate-900/40 sm:p-6 sm:backdrop-blur-md', className)}>
       {children}
     </div>
   );

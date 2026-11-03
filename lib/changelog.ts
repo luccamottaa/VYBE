@@ -3,6 +3,17 @@ export type Release = { version: string; date: string; title: string; items: str
 
 export const releases: Release[] = [
   {
+    version: '2.2',
+    date: '2026-11-03',
+    title: 'Tela nova',
+    items: [
+      'Início redesenhado: cards de destaque com a capa inteira (maior alta, estreia, mais ouvida, lançamento fresco, veterana) e artistas do momento em bolinhas com foto.',
+      'Grupos e duplas com "x" ou "&" no nome (TOMORROW X TOGETHER, Henrique & Juliano…) não se partem mais: catálogo, discografia e charts aparecem certinho.',
+      'O topo não fica mais pulando ao rolar a página.',
+      'Ranking mais enxuto: começa no top 10 e abre o top 100 completo num toque.',
+    ],
+  },
+  {
     version: '2.1',
     date: '2026-11-03',
     title: 'Um ranking só',

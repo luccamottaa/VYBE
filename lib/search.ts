@@ -1,7 +1,7 @@
 // Busca global: índice do vybe (faixas que passaram pelos charts) + catálogo do iTunes (todas as músicas).
 import { getApi } from './api-base';
 import { isStatic } from './data-source';
-import { matchKey, splitArtists } from './sources/match.ts';
+import { creditIncludes, matchKey, splitArtists } from './sources/match.ts';
 
 /** Uma música, de qualquer origem (chart, índice ou catálogo). */
 export type Song = {
@@ -248,8 +248,7 @@ async function deezerArtistTop(artist: Artist, signal?: AbortSignal): Promise<So
 
 /** Catálogo do artista: Apple (Brasil + EUA, até 200 cada) + top 100 do Deezer, sem repetir. */
 export async function catalogSongsByArtist(artist: Artist, signal?: AbortSignal, limit = 200): Promise<Song[]> {
-  const a = norm(artist.name);
-  const byArtist = (s: Song) => splitArtists(s.artist).some((x) => norm(x) === a);
+  const byArtist = (s: Song) => creditIncludes(s.artist, artist.name);
   const apple = (async () => {
     if (artist.artistId) {
       const items = await itunesMany('lookup', { id: artist.artistId, entity: 'song', limit: String(limit) }, signal, ['BR', 'US']);
@@ -335,9 +334,8 @@ export async function searchSpotifyArtists(query: string, signal?: AbortSignal):
 
 /** Músicas de um artista no Spotify (até 3 páginas de 10). */
 export async function spotifySongsByArtist(artist: Artist, signal?: AbortSignal, pages = 3): Promise<Song[]> {
-  const a = norm(artist.name);
   const res = await Promise.allSettled(
     Array.from({ length: pages }, (_, i) => searchSpotifySongs(`artist:"${artist.name}"`, i * 10, signal)),
   );
-  return mergeSongs(...res.map((r) => (r.status === 'fulfilled' ? r.value.songs : []))).filter((s) => splitArtists(s.artist).some((x) => norm(x) === a));
+  return mergeSongs(...res.map((r) => (r.status === 'fulfilled' ? r.value.songs : []))).filter((s) => creditIncludes(s.artist, artist.name));
 }
