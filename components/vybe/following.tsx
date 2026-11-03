@@ -11,6 +11,8 @@ import { songFrom, type Artist, type Song } from '@/lib/search';
 import { artwork } from '@/lib/vybe';
 import { cn } from '@/lib/utils';
 import { FollowButton } from './follow-button';
+import { Switch } from '@/components/ui/switch';
+import { PREFS, setPref, usePrefs } from '@/lib/alert-prefs';
 import { Cover, Panel } from './ui';
 
 const kindStyle: Record<AlertKind, { icon: typeof Bell; cls: string }> = {
@@ -115,6 +117,7 @@ export function Following({ onSong, onArtist }: { onSong: (s: Song) => void; onA
               </p>
             </div>
           )}
+          <AlertPrefs />
           {notif && (
             <p className="mt-4 text-[11px] leading-relaxed text-slate-500">
               As notificações chegam quando o vybe é aberto e os charts mudaram. Aviso com o app fechado precisa de um servidor de push (fica pra próxima).
@@ -247,5 +250,27 @@ function AlertRow({ a, fresh, onOpen }: { a: Alert; fresh: boolean; onOpen: () =
         {fresh && <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-cyan-400" />}
       </button>
     </li>
+  );
+}
+
+function AlertPrefs() {
+  const prefs = usePrefs();
+  return (
+    <div className="mt-5 border-t border-slate-800/60 pt-4">
+      <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">O que te avisar</p>
+      <ul className="space-y-1">
+        {PREFS.map((p) => (
+          <li key={p.key}>
+            <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl px-2 py-1.5 hover:bg-slate-800/40">
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold text-white">{p.label}</span>
+                <span className="block text-[11px] text-slate-400">{p.hint}</span>
+              </span>
+              <Switch checked={prefs[p.key]} onCheckedChange={(v) => setPref(p.key, !!v)} aria-label={p.label} />
+            </label>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

@@ -3,6 +3,7 @@ import { useSyncExternalStore } from 'react';
 import { computeAlerts, type Alert, type Snapshot } from './alerts';
 import type { All } from './chart-hits';
 import type { Follow } from './follow';
+import { wants } from './alert-prefs';
 
 const FEED = 'vybe:alerts';
 const SNAP = 'vybe:alerts-snapshot';
@@ -71,8 +72,9 @@ export function useAlerts() {
 export function runAlertCheck(all: All, follows: Follow[]) {
   if (!Object.keys(all.apple).length && !Object.keys(all.spotify).length) return [];
   const prev = load<Snapshot>(SNAP, {});
-  const { alerts, next } = computeAlerts(all, follows, prev);
+  const { alerts: everything, next } = computeAlerts(all, follows, prev);
   save(SNAP, next);
+  const alerts = everything.filter((a) => wants(a.kind)); // só o que a pessoa escolheu receber
   if (alerts.length) {
     set({ ...get(), feed: [...alerts, ...get().feed].slice(0, MAX) });
     notify(alerts);
