@@ -29,6 +29,7 @@ import { albumFrom, type Album } from '@/lib/albums';
 import { Highlights } from '@/components/vybe/highlights';
 import { Following } from '@/components/vybe/following';
 import { PwaBar } from '@/components/vybe/pwa';
+import { TabBar } from '@/components/vybe/tab-bar';
 import { AmbientBackground } from '@/components/vybe/ambient-background';
 import { ArtistBubbles, SpotlightTiles } from '@/components/vybe/home';
 import { VersionBadge } from '@/components/vybe/changelog';
@@ -249,7 +250,7 @@ function Dashboard() {
   const topRelease = top && view ? releaseLabel(daysSince(top.releaseDate, view.updated)) : null;
 
   return (
-    <div className="min-h-screen bg-background px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[calc(env(safe-area-inset-top)+1rem)] font-sans text-slate-100 selection:bg-cyan-500 selection:text-black sm:px-6 sm:pb-6 sm:pt-6 lg:px-8 lg:pb-8 lg:pt-8">
+    <div className="min-h-screen bg-background px-4 pb-[calc(env(safe-area-inset-bottom)+6.5rem)] pt-[calc(env(safe-area-inset-top)+1rem)] font-sans text-slate-100 selection:bg-cyan-500 selection:text-black sm:px-6 sm:pt-6 lg:px-8 lg:pb-8 lg:pt-8">
       {/* faixa sólida atrás do relógio/Dynamic Island: o conteúdo não passa por baixo dela */}
       <div aria-hidden className="pointer-events-none fixed inset-x-0 top-0 z-40 h-[env(safe-area-inset-top)] bg-background" />
       {/* fundo vivo com as cores da capa em destaque (música/álbum aberto ou o #1) */}
@@ -261,10 +262,10 @@ function Dashboard() {
           ref={headerRef}
           style={headerGap ? { marginBottom: `calc(1.5rem + ${headerGap}px)` } : undefined}
           data-compact={compact || undefined}
-          className={`sticky top-[calc(env(safe-area-inset-top)+0.5rem)] z-30 flex flex-col border shadow-2xl transition-[padding,gap,border-radius,background-color,box-shadow] duration-300 lg:flex-row lg:items-center lg:justify-between ${
+          className={`sticky top-[calc(env(safe-area-inset-top)+0.5rem)] z-30 flex flex-col transition-[padding,gap,border-radius] duration-300 lg:flex-row lg:items-center lg:justify-between ${
             compact
-              ? 'gap-2 rounded-[1.4rem] border-slate-700/60 bg-slate-900/90 p-2 shadow-black/30 backdrop-blur-md lg:px-3'
-              : 'gap-4 rounded-2xl border-slate-800/80 bg-slate-900/40 p-4 backdrop-blur-xl'
+              ? 'glass-float gap-2 rounded-[1.6rem] p-2 lg:px-3'
+              : 'glass-float gap-4 rounded-[1.75rem] p-4'
           }`}
         >
           <div className="flex w-full items-center gap-2 sm:gap-3 lg:w-auto">
@@ -272,8 +273,8 @@ function Dashboard() {
               <Logo tagline={!compact} />
             </Link>
             <VersionBadge className={compact ? 'hidden sm:block' : ''} />
+            <div className="ml-auto hidden lg:ml-6 lg:block">
             <Segmented
-              className="ml-auto lg:ml-6"
               value={tab}
               onChange={(t) => {
                 setTab(t);
@@ -286,6 +287,7 @@ function Dashboard() {
                 ['sources', 'Fontes', Database],
               ]}
             />
+            </div>
           </div>
 
           <div className="flex w-full flex-wrap items-center gap-3 sm:flex-nowrap lg:w-auto">
@@ -611,6 +613,19 @@ function Dashboard() {
           setArtist(null);
           setAlbum(a);
         }}
+      />
+      <TabBar
+        value={tab}
+        onChange={(t) => {
+          setTab(t);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        tabs={[
+          ['charts', 'Charts', Disc3],
+          ['highlights', 'Destaques', Sparkles],
+          ['following', 'Seguindo', Star, unread],
+          ['sources', 'Fontes', Database],
+        ]}
       />
       <PwaBar />
     </div>
