@@ -97,6 +97,12 @@ export const disableNotifications = () => save('vybe:notify', false);
 
 async function notify(alerts: Alert[]) {
   if (!notificationsOn()) return;
+  // com o push ligado o servidor já avisa (mesmo com o app fechado): não duplica
+  try {
+    if (localStorage.getItem('vybe:push') === '1') return;
+  } catch {
+    /* ok */
+  }
   try {
     const reg = await navigator.serviceWorker.ready;
     const base = import.meta.env.BASE_URL ?? '/';
