@@ -139,7 +139,7 @@ export function SongSheet({
               </div>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <FollowButton
                 className="flex-1"
                 target={{ kind: 'song', key: full.key, name: full.name, artist: full.artist, artwork: full.artwork, spotifyId, appleId: full.appleId ?? hits.find((h) => h.market.startsWith('ap:'))?.id }}

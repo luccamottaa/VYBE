@@ -82,7 +82,7 @@ export function AlbumSheet({ album, onClose, onSong, onArtist }: { album: Album 
               </div>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               {(full.appleUrl || full.appleId) && (
                 <a
                   href={full.appleUrl ?? `https://music.apple.com/br/album/${full.appleId}`}
