@@ -1,4 +1,4 @@
-// Empacota a lógica de alertas do app (lib/alerts.ts + dependências puras) num ESM só, pras Edge Functions
+// Empacota a lógica de alertas do app (lib/alerts.ts, lib/daily.ts + dependências puras) num ESM só, pras Edge Functions
 // do Supabase (Deno) usarem exatamente o mesmo cálculo do aparelho.
 //   node scripts/build-functions.mjs
 import { build } from 'vite';
@@ -10,7 +10,7 @@ await build({
   publicDir: false,
   logLevel: 'warn',
   build: {
-    lib: { entry: here('../lib/alerts.ts'), formats: ['es'], fileName: () => 'alerts.js' },
+    lib: { entry: here('../lib/server-entry.ts'), formats: ['es'], fileName: () => 'alerts.js' },
     outDir: here('../supabase/functions/_shared'),
     emptyOutDir: false,
     minify: false,

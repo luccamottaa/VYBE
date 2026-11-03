@@ -1,5 +1,6 @@
 'use client';
 
+import { track } from '@/lib/analytics';
 import { Component, type ReactNode } from 'react';
 import { RotateCcw, ShieldAlert } from 'lucide-react';
 
@@ -24,6 +25,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode; label?: stri
   }
 
   componentDidCatch(error: Error) {
+    track('error', { component: this.props.label ?? 'app' });
     try {
       sessionStorage.setItem(SAFE, '1');
     } catch {
