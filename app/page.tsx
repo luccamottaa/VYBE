@@ -29,6 +29,8 @@ import { albumFrom, type Album } from '@/lib/albums';
 import { Highlights } from '@/components/vybe/highlights';
 import { Following } from '@/components/vybe/following';
 import { PwaBar } from '@/components/vybe/pwa';
+import { HomeLayoutButton } from '@/components/vybe/home-layout-sheet';
+import { useLayout, type HomeSection } from '@/lib/home-layout';
 import { TabBar } from '@/components/vybe/tab-bar';
 import { AmbientBackground } from '@/components/vybe/ambient-background';
 import { ArtistBubbles, SpotlightTiles } from '@/components/vybe/home';
@@ -243,6 +245,10 @@ function Dashboard() {
     return out;
   };
 
+  // início personalizável: ordem via CSS order (sem remontar nada) e seções escondidas
+  const layout = useLayout();
+  const sec = (k: HomeSection) => ({ order: layout.order.indexOf(k) + 1 });
+  const secCls = (k: HomeSection) => (layout.hidden.includes(k) ? 'hidden' : '');
   const top = view?.tracks[0];
   const place = market === 'global' ? globalMarket : markets[market];
   const topOnSpotify = !!(top as (ViewTrack & { spotifyId?: string }) | undefined)?.spotifyId;
@@ -349,7 +355,7 @@ function Dashboard() {
             </button>
           </Panel>
         ) : (
-          <>
+          <div className="flex flex-col gap-6">
             {view?.stale && <Notice>A fonte não respondeu. Exibindo o último ranking salvo, de {shortDate(view.updated)}.</Notice>}
             {view && !view.historyAvailable && !view.stale && <Notice>Histórico indisponível agora. O ranking abre normal, mas este registro não foi salvo.</Notice>}
 
@@ -363,9 +369,11 @@ function Dashboard() {
                     ['albums', 'Álbuns'],
                   ]}
                 />
+                <HomeLayoutButton />
               </div>
             )}
 
+            <div style={sec('hero')} className={secCls('hero')}>
             {/* Hero: #1 */}
             <section className="theme-dark relative overflow-hidden rounded-3xl border border-slate-800/80 bg-gradient-to-br from-slate-900 via-[#0a1430] to-slate-950 p-6 text-slate-100 shadow-2xl lg:p-8">
               {!safe && <DitherField palette={palettes[source]} className="pointer-events-none absolute inset-0 h-full w-full" />}
@@ -429,11 +437,19 @@ function Dashboard() {
                 )}
               </div>
             </section>
+            </div>
 
             {/* Destaques visuais e artistas do momento */}
-            <SpotlightTiles view={view} onOpen={openTrack} />
-            {!albumsView && <ArtistBubbles view={view} onArtist={setArtist} />}
+            <div style={sec('spotlight')} className={secCls('spotlight')}>
+              <SpotlightTiles view={view} onOpen={openTrack} />
+            </div>
+            {!albumsView && (
+              <div style={sec('artists')} className={secCls('artists')}>
+                <ArtistBubbles view={view} onArtist={setArtist} />
+              </div>
+            )}
 
+            <div style={sec('ranking')} className={`${secCls('ranking')} space-y-6`}>
             {/* Ranking completo */}
             <Panel id="ranking" className="p-0 sm:p-0">
               <div className="flex items-start justify-between gap-3 p-5 sm:p-6">
@@ -534,7 +550,8 @@ function Dashboard() {
                 Ver fontes <ExternalLink className="h-3 w-3" />
               </button>
             </div>
-          </>
+            </div>
+          </div>
         )}
 
         <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-800/60 pt-6 text-xs text-slate-500">
