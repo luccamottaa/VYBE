@@ -24,12 +24,15 @@ export function StreamCount({
   name,
   artist,
   songKey,
+  fallbackTotal,
   onTotal,
 }: {
   spotifyId?: string;
   name?: string;
   artist?: string;
   songKey?: string;
+  /** total do chart do Spotify (kworb), usado quando o contador não responde (ex.: cota do plano acabou) */
+  fallbackTotal?: number | null;
   /** avisa o total quando chega (usado no card de compartilhar) */
   onTotal?: (n: number | null) => void;
 }) {
@@ -45,7 +48,7 @@ export function StreamCount({
       const r = p ? await p : ({ ok: false, error: 'Não deu pra identificar essa música no Spotify.' } as StreamsResult);
       if (!alive) return;
       setRes(r);
-      onTotal?.(r.ok ? r.data.total : null);
+      onTotal?.(r.ok ? r.data.total : (fallbackTotal ?? null));
     })();
     return () => {
       alive = false;
@@ -77,6 +80,13 @@ export function StreamCount({
         <div className="flex items-center gap-2 rounded-2xl border border-slate-800 bg-slate-950/60 p-5 text-xs text-slate-400">
           <Loader2 className="h-3.5 w-3.5 animate-spin" /> Contando streams no Spotify…
         </div>
+      ) : !res.ok && typeof fallbackTotal === 'number' ? (
+        // o contador não respondeu, mas a música está no chart global: mostra o total que o kworb publica
+        <div className="rounded-2xl border border-slate-700/60 bg-slate-900/80 px-5 py-4 shadow-lg">
+          <span className="block text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-slate-400">Total de streams</span>
+          <strong className="mt-1 block text-4xl font-black tabular-nums tracking-tight text-emerald-400 sm:text-[2.6rem]">{fmtFull(fallbackTotal)}</strong>
+          <span className="mt-1 block text-[0.6875rem] text-slate-400">Do chart global do Spotify (kworb.net). {res.quota ? 'O histórico por dia volta quando o contador voltar.' : 'O histórico por dia está indisponível agora.'}</span>
+        </div>
       ) : !res.ok ? (
         <p className="rounded-2xl border border-slate-800 p-4 text-xs text-slate-400">{res.error}</p>
       ) : (
@@ -91,6 +101,7 @@ export function StreamCount({
               {lastDaily !== null && <span className="font-semibold text-emerald-300">+{fmtFull(lastDaily)} no último dia</span>}
               {last && <span>atualizado em {longDate(last.date)}</span>}
               <span>Spotify</span>
+              {res.stale && <span className="text-amber-300">guardado de {longDate(new Date(res.stale).toISOString().slice(0, 10))} (o contador está no limite agora)</span>}
             </span>
           </div>
 

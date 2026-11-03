@@ -147,7 +147,8 @@ export async function trackStreams(query, env, findId) {
   const [cur, hist] = await Promise.all([resolve('current', id, env), wantHistory ? resolve('history', id, env) : null]);
   if (cur.res && (cur.res.status === 401 || cur.res.status === 403))
     return out(502, { error: 'O RapidAPI recusou a chave (confira a RAPIDAPI_KEY e a assinatura do plano).', detail: cur.res.text }, false);
-  if (cur.res?.status === 429) return out(429, { error: 'Limite do plano do MyStreamCount atingido, tenta mais tarde.' }, false);
+  // cota do plano acabou: guarda a resposta por pouco tempo na borda, pra não martelar o RapidAPI a cada visita
+  if (cur.res?.status === 429) return out(429, { error: 'Limite do plano do MyStreamCount atingido, tenta mais tarde.', quota: true }, 'short');
 
   const total = toNum(cur.res?.json?.streams ?? cur.res?.json?.streamCount ?? cur.res?.json?.count);
   const history = hist?.res && hist.res.status === 200 ? normalizeHistory(hist.res.json) : [];

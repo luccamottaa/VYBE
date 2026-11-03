@@ -25,6 +25,26 @@ async function step(label, fn) {
   }
 }
 
+// Quando algo vaza pro lado, diz QUEM (sem isso o CI só dizia "vaza 24px" e eu tinha que adivinhar).
+async function offenders(root) {
+  return root.evaluate((el) => {
+    const rootRight = el === document.documentElement ? innerWidth : el.getBoundingClientRect().right;
+    const clipped = (n) => {
+      for (let a = n.parentElement; a && a !== el; a = a.parentElement) {
+        const cs = getComputedStyle(a);
+        if (cs.overflowX !== 'visible' || cs.contain.includes('paint')) return true;
+      }
+      return false;
+    };
+    const out = [];
+    for (const n of el.querySelectorAll('*')) {
+      const r = n.getBoundingClientRect();
+      if (r.width > 0 && r.right > rootRight + 1 && !clipped(n)) out.push({ tag: n.tagName.toLowerCase(), cls: String(n.getAttribute('class') ?? '').slice(0, 70), txt: (n.textContent ?? '').trim().slice(0, 24), right: Math.round(r.right), w: Math.round(r.width) });
+    }
+    return out.sort((a, b) => b.right - a.right).slice(0, 6);
+  });
+}
+
 // [nome, largura, altura, celular?, tamanho do texto em px (padrão = 16)]
 const sizes = [
   ['iPhone SE', 320, 568, true],
@@ -182,6 +202,47 @@ const sizes = [
             await c2.close();
           }
         });
+        await step('streams: cota do plano estourada não deixa o painel vazio', async () => {
+          const API = 'https://vybe-api-taupe.vercel.app';
+          let mode = 'ok';
+          const c5 = await browser.newContext(opts);
+          await c5.route((url) => !url.href.startsWith(new URL(base).origin), (r) => r.abort());
+          await c5.route(`${API}/api/health`, (r) => r.fulfill({ json: { spotify: false, streams: true }, headers: { 'access-control-allow-origin': '*' } }));
+          await c5.route(`${API}/api/streams*`, (r) =>
+            mode === 'ok'
+              ? r.fulfill({ json: { spotifyId: 'S2'.padEnd(22, 'x'), total: 111111111, history: [{ date: '2026-11-01', streams: 111000000 }, { date: '2026-11-02', streams: 111111111 }] }, headers: { 'access-control-allow-origin': '*' } })
+              : r.fulfill({ status: 429, json: { error: 'Limite do plano', quota: true }, headers: { 'access-control-allow-origin': '*' } }),
+          );
+          const url = `${base}?musica=Housewife&artista=Tate%20McRae`;
+          try {
+            const p5 = await c5.newPage();
+            await p5.goto(base, { waitUntil: 'networkidle' }); // deixa o service worker se instalar antes dos links diretos
+            await p5.waitForTimeout(1500);
+            // 1) cota estourada e nunca consultou: cai no total do chart global (kworb)
+            mode = 'quota';
+            await p5.goto(url, { waitUntil: 'networkidle' });
+            await p5.getByText('Do chart global do Spotify (kworb.net)').waitFor({ timeout: 15000 });
+            await p5.locator('section', { hasText: 'Do chart global do Spotify (kworb.net)' }).getByText(/\d{1,3}(\.\d{3}){2,}/).first().waitFor();
+            // 2) funcionou uma vez; depois a cota acaba: mostra o último valor guardado, avisando
+            mode = 'ok';
+            await p5.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith('vybe:streams:')).forEach((k) => localStorage.removeItem(k)));
+            await p5.goto(url, { waitUntil: 'networkidle' });
+            await p5.getByText('111.111.111').first().waitFor({ timeout: 15000 });
+            await p5.evaluate(() =>
+              Object.keys(localStorage).filter((k) => k.startsWith('vybe:streams:')).forEach((k) => {
+                const v = JSON.parse(localStorage.getItem(k));
+                v.at -= 10 * 3600_000; // velho o bastante pra tentar de novo
+                localStorage.setItem(k, JSON.stringify(v));
+              }),
+            );
+            mode = 'quota';
+            await p5.goto(url, { waitUntil: 'networkidle' });
+            await p5.getByText('111.111.111').first().waitFor({ timeout: 15000 });
+            await p5.getByText(/guardado de .*o contador está no limite/).waitFor({ timeout: 5000 });
+          } finally {
+            await c5.close();
+          }
+        });
         await step('estatísticas: só com consentimento, e nada sai antes disso', async () => {
           // fingimos ser gente (o teste normal é robô e nunca vê o aviso). As requisições externas viram contagem.
           const posts = [];
@@ -259,7 +320,7 @@ const sizes = [
           await page.getByText('Top 100 vybe', { exact: false }).first().waitFor({ timeout: 15000 });
           await page.waitForTimeout(400);
           const over = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
-          if (over > 1) throw new Error(`a página vaza ${over}px pro lado`);
+          if (over > 1) throw new Error(`a página vaza ${over}px pro lado: ${JSON.stringify(await offenders(page.locator('html')))}`);
           const tabs = page.locator('nav[aria-label="Seções"]');
           if (width < 1024 && !(await tabs.isVisible())) throw new Error('barra de abas sumiu no celular/tablet');
           if (width >= 1024 && (await tabs.isVisible())) throw new Error('barra de abas flutuante apareceu no desktop');
@@ -272,7 +333,7 @@ const sizes = [
           await dialog.waitFor({ timeout: 15000 });
           await page.waitForTimeout(700);
           const sheet = await dialog.evaluate((el) => ({ over: el.scrollWidth - el.clientWidth, w: el.getBoundingClientRect().width, vw: innerWidth }));
-          if (sheet.over > 1) throw new Error(`o painel do artista vaza ${sheet.over}px`);
+          if (sheet.over > 1) throw new Error(`o painel do artista vaza ${sheet.over}px: ${JSON.stringify(await offenders(dialog))}`);
           if (sheet.w > sheet.vw + 1) throw new Error('o painel do artista é mais largo que a tela');
           const broken = await dialog.evaluate((el) => [...el.querySelectorAll('img')].filter((i) => i.complete && i.naturalWidth === 0 && getComputedStyle(i).display !== 'none' && i.getBoundingClientRect().width > 0).length);
           if (broken) throw new Error(`${broken} imagem(ns) quebrada(s) à mostra no painel do artista`);
