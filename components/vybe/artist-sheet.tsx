@@ -9,7 +9,7 @@ import { buildDeepLink } from '@/lib/deep-link';
 import { artistKey } from '@/lib/follow';
 import { FollowButton } from './follow-button';
 import { ShareButton } from './share-button';
-import { catalogSongsByArtist, matchesWords, mergeSongs, songFrom, type Artist, type Song } from '@/lib/search';
+import { catalogSongsByArtist, matchesWords, mergeSongs, searchDeezerArtists, searchSpotifyArtists, songFrom, type Artist, type Song } from '@/lib/search';
 import { artwork, shortDate } from '@/lib/vybe';
 import { PreviewButton } from './preview';
 import { Cover, CrossBadges } from './ui';
@@ -19,6 +19,7 @@ type Charted = Awaited<ReturnType<typeof artistHits>>[number];
 export function ArtistSheet({ artist, onClose, onSong, onAlbum }: { artist: Artist | null; onClose: () => void; onSong: (s: Song) => void; onAlbum?: (a: Album) => void }) {
   const [albums, setAlbums] = useState<Album[] | null>(null);
   const [albumType, setAlbumType] = useState<'all' | 'album' | 'single'>('all');
+  const [photo, setPhoto] = useState<string | undefined>();
   const [charted, setCharted] = useState<Charted[]>([]);
   const [catalog, setCatalog] = useState<Song[]>([]);
   const [loading, setLoading] = useState(false);
@@ -31,6 +32,15 @@ export function ArtistSheet({ artist, onClose, onSong, onAlbum }: { artist: Arti
     setCharted([]);
     setCatalog([]);
     setAlbums(null);
+    setPhoto(artist.picture);
+    // sem foto (veio da Apple ou do ranking): pega no Spotify ou no Deezer
+    if (!artist.picture)
+      Promise.allSettled([searchSpotifyArtists(artist.name, c.signal), searchDeezerArtists(artist.name, c.signal, 5)]).then((rs) => {
+        if (c.signal.aborted) return;
+        const n = (x: string) => x.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+        const hit = rs.flatMap((r) => (r.status === 'fulfilled' ? r.value : [])).find((a) => a.picture && n(a.name) === n(artist.name));
+        if (hit?.picture) setPhoto(hit.picture);
+      });
     setAlbumType('all');
     albumsByArtist(artist, c.signal)
       .then((a) => !c.signal.aborted && setAlbums(a))
@@ -49,7 +59,7 @@ export function ArtistSheet({ artist, onClose, onSong, onAlbum }: { artist: Arti
   }, [artist]);
 
   const chartedKeys = new Set(charted.map((s) => s.key));
-  const cover = artist?.picture ?? charted.find((s) => s.artwork)?.artwork ?? catalog.find((s) => s.artwork)?.artwork;
+  const cover = photo ?? artist?.picture ?? charted.find((s) => s.artwork)?.artwork ?? catalog.find((s) => s.artwork)?.artwork;
   const rest = catalog.filter((s) => !chartedKeys.has(s.key) && (!filter.trim() || matchesWords(`${s.name} ${s.album ?? ''}`, filter)));
   const markets = new Set(charted.flatMap((s) => s.hits.map((h) => h.market)));
 
@@ -64,7 +74,7 @@ export function ArtistSheet({ artist, onClose, onSong, onAlbum }: { artist: Arti
         {artist && (
           <div className="space-y-5 px-4 pb-8">
             <div className="flex items-center gap-4">
-              <Cover src={cover ? artwork(cover, 300) : ''} alt="" className="h-20 w-20 shrink-0 rounded-full" />
+              <Cover eager src={cover ? artwork(cover, 300) : ''} alt="" className="h-20 w-20 shrink-0 rounded-full" />
               <div className="min-w-0">
                 <h2 className="text-2xl font-extrabold leading-tight text-white">{artist.name}</h2>
                 <p className="text-xs text-slate-400">
@@ -113,7 +123,7 @@ export function ArtistSheet({ artist, onClose, onSong, onAlbum }: { artist: Arti
                       onClick={() => onSong(songFrom({ name: s.name, artist: s.artist, artwork: s.artwork, appleId: s.appleId, spotifyId: s.spotifyId }))}
                       className="flex w-full items-center gap-3 rounded-2xl border border-slate-800/50 bg-slate-950/40 p-2.5 text-left transition-colors hover:border-slate-700"
                     >
-                      <Cover src={s.artwork ?? ''} alt="" className="h-10 w-10 shrink-0" />
+                      <Cover eager src={s.artwork ?? ''} alt="" className="h-10 w-10 shrink-0" />
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-bold text-white">{s.name}</p>
                         <CrossBadges hits={s.hits.map((h) => ({ label: h.label, rank: h.rank }))} max={4} />
@@ -149,7 +159,7 @@ export function ArtistSheet({ artist, onClose, onSong, onAlbum }: { artist: Arti
                         .filter((a) => albumType === 'all' || (albumType === 'album' ? albumTypeLabel(a) === 'Álbum' || albumTypeLabel(a) === 'Coletânea' : albumTypeLabel(a) === 'Single' || albumTypeLabel(a) === 'EP'))
                         .map((a) => (
                           <button key={a.key} onClick={() => onAlbum?.(a)} className="group w-32 shrink-0 snap-start text-left">
-                            <Cover src={a.artwork ? artwork(a.artwork, 300) : ''} alt="" className="aspect-square w-full rounded-2xl transition-transform group-hover:-translate-y-0.5 group-hover:border-cyan-500/40" />
+                            <Cover eager src={a.artwork ? artwork(a.artwork, 300) : ''} alt="" className="aspect-square w-full rounded-2xl transition-transform group-hover:-translate-y-0.5 group-hover:border-cyan-500/40" />
                             <p className="mt-1.5 truncate text-xs font-bold text-white group-hover:text-cyan-300">{a.name}</p>
                             <p className="truncate text-[10px] text-slate-500">
                               {albumTypeLabel(a)}
@@ -183,7 +193,7 @@ export function ArtistSheet({ artist, onClose, onSong, onAlbum }: { artist: Arti
                   {rest.map((s) => (
                       <div key={s.key} className="flex items-center gap-2 pr-2 transition-colors hover:bg-slate-800/30">
                       <button onClick={() => onSong(s)} className="flex min-w-0 flex-1 items-center gap-3 px-3 py-2 text-left">
-                        <Cover src={s.artwork ?? ''} alt="" className="h-9 w-9 shrink-0" />
+                        <Cover eager src={s.artwork ?? ''} alt="" className="h-9 w-9 shrink-0" />
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm text-white">{s.name}</p>
                           <p className="truncate text-[11px] text-slate-500">

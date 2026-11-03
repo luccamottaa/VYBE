@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { Disc3, Library, Loader2, Music2, Radar, Search, User } from 'lucide-react';
 import { albumTypeLabel, searchAlbums, type Album } from '@/lib/albums';
-import { matchesWords, mergeSongs, searchDeezerSongs, searchSpotifySongs, searchCatalogArtists, searchCatalogSongs, searchIndex, searchIndexArtists, type Artist, type Song } from '@/lib/search';
+import { matchesWords, mergeSongs, searchDeezerSongs, searchSpotifySongs, searchCatalogArtists, searchCatalogSongs, searchDeezerArtists, searchSpotifyArtists, searchIndex, searchIndexArtists, type Artist, type Song } from '@/lib/search';
 import type { ViewTrack } from '@/lib/vybe';
 import { PreviewButton } from './preview';
 import { Cover } from './ui';
@@ -85,6 +85,21 @@ export function GlobalSearch({
           searchDeezerSongs(q, 0, c.signal, 12),
           searchCatalogArtists(q, c.signal, 5),
         ]);
+        // fotos dos artistas: Spotify e Deezer têm, a Apple não manda
+        Promise.allSettled([searchSpotifyArtists(q, c.signal), searchDeezerArtists(q, c.signal, 6)]).then((rs) => {
+          if (c.signal.aborted) return;
+          const withPic = rs.flatMap((r) => (r.status === 'fulfilled' ? r.value : []));
+          setArtists((cur) => {
+            const pics = new Map(withPic.filter((a) => a.picture).map((a) => [norm(a.name), a] as const));
+            const merged = cur.map((a) => {
+              const p = pics.get(norm(a.name));
+              return p ? { ...a, picture: a.picture ?? p.picture, spotifyId: a.spotifyId ?? p.spotifyId, deezerId: a.deezerId ?? p.deezerId } : a;
+            });
+            // artista que só o Spotify/Deezer achou entra também (até 5 no total)
+            for (const a of withPic) if (merged.length < 5 && !merged.some((m) => norm(m.name) === norm(a.name))) merged.push(a);
+            return merged;
+          });
+        });
         searchAlbums(q, c.signal, 6)
           .then((a) => !c.signal.aborted && setAlbums(a.slice(0, 4)))
           .catch(() => !c.signal.aborted && setAlbums([]));
@@ -158,7 +173,7 @@ export function GlobalSearch({
           {artists.length > 0 && (
             <Group icon={<User className="h-3.5 w-3.5" />} title="Artistas">
               {artists.map((a) => (
-                <Row key={a.artistId ?? a.name} onClick={() => pick(() => onArtist(a))} title={a.name} sub={a.genre ?? 'Artista'} round />
+                <Row key={a.artistId ?? a.name} onClick={() => pick(() => onArtist(a))} cover={a.picture} title={a.name} sub={a.genre ?? 'Artista'} round />
               ))}
             </Group>
           )}
@@ -219,13 +234,7 @@ function Row({ onClick, cover, title, sub, badge, round, preview }: { onClick: (
   return (
     <div className="flex items-center gap-1 rounded-xl pr-1 transition-colors hover:bg-slate-800/50">
     <button onClick={onClick} className="flex min-w-0 flex-1 items-center gap-3 px-2 py-1.5 text-left">
-      {round ? (
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-800 bg-slate-900">
-          <User className="h-4 w-4 text-cyan-500/70" />
-        </span>
-      ) : (
-        <Cover src={cover ?? ''} alt="" className="h-9 w-9 shrink-0" />
-      )}
+      <Cover src={cover ?? ''} alt="" eager round={round} className="h-9 w-9 shrink-0" />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-sm text-white">{title}</span>
         <span className="block truncate text-[11px] text-slate-500">{sub}</span>
