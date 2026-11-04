@@ -1,4 +1,5 @@
 'use client';
+import { CardsSkeleton } from './skeletons';
 
 import { useEffect, useRef, useState } from 'react';
 import { coverDitherPalette } from './ambient-background';
@@ -207,7 +208,7 @@ export function ArtistSheet({ artist, onClose, onSong, onAlbum }: { artist: Arti
                 </div>
                 <div className="hscroll -mx-4 snap-x gap-3 pb-1 [--hs-gap:0.75rem] [--hs-pad:1rem]">
                   {albums === null
-                    ? Array.from({ length: 4 }, (_, i) => <div key={i} className="h-44 w-32 shrink-0 animate-pulse rounded-2xl bg-slate-800/50" />)
+                    ? <CardsSkeleton count={4} label="Carregando discografia" />
                     : albums
                         .filter((a) => albumType === 'all' || (albumType === 'album' ? albumTypeLabel(a) === 'Álbum' || albumTypeLabel(a) === 'Coletânea' : albumTypeLabel(a) === 'Single' || albumTypeLabel(a) === 'EP'))
                         .map((a) => (
