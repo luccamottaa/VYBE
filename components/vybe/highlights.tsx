@@ -1,4 +1,5 @@
 'use client';
+import { ListSkeleton } from './skeletons';
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ArrowUpRight, CalendarRange, Crown, Flame, Globe2, Sparkles, TrendingUp, Trophy, Users, Zap } from 'lucide-react';
@@ -115,7 +116,7 @@ export function Highlights({ onSong, onArtist }: { onSong: (s: Song) => void; on
                     <span className="hidden shrink-0 text-xs font-bold text-slate-300 sm:inline">melhor #{s.best}</span>
                   </button>
                 ))
-              : <Loading rows={5} />}
+              : <ListSkeleton rows={5} />}
           </div>
         </Panel>
 
@@ -141,7 +142,7 @@ export function Highlights({ onSong, onArtist }: { onSong: (s: Song) => void; on
                     <FollowButton compact target={{ kind: 'artist', key: artistKey(a.name), name: a.name, artwork: a.artwork }} />
                   </div>
                 ))
-              : <Loading rows={5} />}
+              : <ListSkeleton rows={5} />}
           </div>
         </Panel>
       </div>
@@ -286,7 +287,7 @@ function Recap({ names, onSong }: { names: Names; onSong: (s: Song) => void }) {
         {error ? (
           <p className="text-sm text-slate-400">{error}</p>
         ) : !recap ? (
-          <Loading rows={3} />
+          <ListSkeleton rows={3} />
         ) : (
           <>
             {recap.days < 7 && (
@@ -366,7 +367,7 @@ function RecapCard({
 }
 
 function SongList<T extends InsightSong>({ items, onSong, right, sub, empty }: { items?: T[]; onSong: (s: Song) => void; right: (s: T) => ReactNode; sub: (s: T) => string; empty: string }) {
-  if (!items) return <Loading rows={4} />;
+  if (!items) return <ListSkeleton rows={4} />;
   if (!items.length) return <p className="rounded-2xl border border-dashed border-slate-800 p-4 text-center text-xs text-slate-500">{empty}</p>;
   return (
     <div className="space-y-1">
@@ -397,13 +398,4 @@ function SectionTitle({ icon, title, hint, className }: { icon: ReactNode; title
   );
 }
 
-function Loading({ rows }: { rows: number }) {
-  return (
-    <div className="space-y-2" role="status" aria-label="Carregando">
-      {Array.from({ length: rows }, (_, i) => (
-        <div key={i} className="h-10 animate-pulse rounded-xl bg-slate-800/50" />
-      ))}
-    </div>
-  );
-}
 
