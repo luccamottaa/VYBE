@@ -75,12 +75,20 @@ export function paletteFromPixels(data: Uint8ClampedArray): RGB[] | null {
 const hex2 = (c: RGB) => `#${c.map((v) => Math.round(v).toString(16).padStart(2, '0')).join('')}`;
 
 /** Paleta de 4 cores (fundo, base, destaque, brilho) tirada da capa, pro fundo pontilhado. */
-export async function coverDitherPalette(src: string | undefined, dark: boolean): Promise<[string, string, string, string] | null> {
+export async function coverDitherPalette(src: string | undefined, dark: boolean, vivid = false): Promise<[string, string, string, string] | null> {
   if (!src) return null;
   const p = await loadPalette(src.replace(/\/\d+x\d+bb\.(jpg|png|webp)$/, '/60x60bb.$1'));
   if (!p) return null;
   const [h, s] = toHsl(p[0]);
   const deep = dark ? fromHsl(h, Math.min(1, s), 0.09) : fromHsl(h, Math.min(0.6, s * 0.6), 0.95);
+  if (vivid && dark) {
+    // painel do artista: cores mais vivas e claras, pra não ficar pastel/cinza
+    const v = (c: RGB) => {
+      const [ch, cs, cl] = toHsl(c);
+      return fromHsl(ch, Math.min(1, Math.max(0.9, cs * 1.4)), Math.min(0.6, Math.max(0.45, cl)));
+    };
+    return [hex2(fromHsl(h, Math.min(1, s * 1.2), 0.12)), ...p.map((c) => hex2(v(c)))] as [string, string, string, string];
+  }
   return [hex2(deep), ...p.map((c) => hex2(tune(c, dark)))] as [string, string, string, string];
 }
 

@@ -79,7 +79,7 @@ export function ArtistSheet({ artist, onClose, onSong, onAlbum }: { artist: Arti
   const cover = photo ?? artist?.picture ?? charted.find((s) => s.artwork)?.artwork ?? catalog.find((s) => s.artwork)?.artwork;
   useEffect(() => {
     let alive = true;
-    coverDitherPalette(cover ? artwork(cover, 300) : undefined, dark).then((p) => alive && setPal(p));
+    coverDitherPalette(cover ? artwork(cover, 300) : undefined, dark, true).then((p) => alive && setPal(p));
     return () => {
       alive = false;
     };
@@ -99,7 +99,7 @@ export function ArtistSheet({ artist, onClose, onSong, onAlbum }: { artist: Arti
           <div ref={backdrop} aria-hidden className="vy-artist-bg pointer-events-none absolute inset-0 overflow-hidden">
             {dark && pal ? (
               <>
-                <DitherField palette={pal} background={pal[0]} cell={7} quality={0.6} gain={2.6} className="absolute inset-0 h-full w-full" />
+                <DitherField palette={pal} background={pal[0]} cell={7} quality={0.6} gain={3.4} className="absolute inset-0 h-full w-full" />
               </>
             ) : (
               <div
