@@ -96,11 +96,10 @@ export function ArtistSheet({ artist, onClose, onSong, onAlbum }: { artist: Arti
       <SheetContent onScroll={onScroll} className="w-full overflow-y-auto border-slate-800 bg-popover text-slate-100 sm:max-w-lg">
         {/* fundo do artista: pontilhado animado com as cores da capa (noite) ou degradê (dia). Sem foto. */}
         {artist && cover && (
-          <div ref={backdrop} aria-hidden className="vy-artist-bg pointer-events-none absolute inset-x-0 top-0 h-[44rem] overflow-hidden">
+          <div ref={backdrop} aria-hidden className="vy-artist-bg pointer-events-none absolute inset-0 overflow-hidden">
             {dark && pal ? (
               <>
                 <DitherField palette={pal} background={pal[0]} cell={7} quality={0.6} gain={2.6} className="absolute inset-0 h-full w-full" />
-                <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, transparent 0%, transparent 35%, var(--popover) 100%)' }} />
               </>
             ) : (
               <div
