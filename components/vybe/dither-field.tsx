@@ -30,6 +30,7 @@ uniform vec2 uRes;
 uniform float uTime;
 uniform float uCell;
 uniform float uGap;
+uniform float uGain;
 uniform vec3 uC0, uC1, uC2, uC3;
 uniform vec3 uBg;
 
@@ -76,7 +77,7 @@ void main() {
 
   // Faixa diagonal suave, lembrando a luz atravessando o banner.
   float diag = smoothstep(-0.25, 0.9, sin((uv.x - uv.y * 0.9) * 1.6 + t * 2.0) * 0.5 + 0.5);
-  float lum = clamp((f - 0.2) * 2.6 * mix(0.7, 1.2, diag), 0.0, 1.0);
+  float lum = clamp((f - 0.2) * 2.6 * uGain * mix(0.7, 1.2, diag), 0.0, 1.0);
 
   vec3 col = mix(uC0, uC1, smoothstep(0.15, 0.55, f));
   col = mix(col, uC2, smoothstep(0.45, 0.85, r.x) * 0.85);
@@ -100,7 +101,7 @@ const hex = (h: string) => {
   return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
 };
 
-export function DitherField({ palette, background = '#070a11', cell = 7, className }: { palette: Palette; background?: string; cell?: number; className?: string }) {
+export function DitherField({ palette, background = '#070a11', cell = 7, quality = 1, gain = 1, className }: { palette: Palette; background?: string; cell?: number; /** resolução relativa (0,5 pra fundo de tela cheia) */ quality?: number; /** quanto da imagem acende (mais alto = mais vivo) */ gain?: number; className?: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const target = useRef(palette.map(hex));
   const bg = useRef(hex(background));
@@ -144,13 +145,15 @@ export function DitherField({ palette, background = '#070a11', cell = 7, classNa
 
     const u = (n: string) => gl.getUniformLocation(prog, n);
     const uRes = u('uRes'), uTime = u('uTime'), uCell = u('uCell'), uGap = u('uGap');
+    const uGainLoc = u('uGain');
     const uCols = [u('uC0'), u('uC1'), u('uC2'), u('uC3')];
     gl.uniform3fv(u('uBg'), bg.current);
+    gl.uniform1f(uGainLoc, gain);
 
     const current = target.current.map((c) => [...c]);
     // celular: resolução e quadros menores (o efeito é pixelado, ninguém nota; a bateria e a rolagem agradecem)
     const touch = window.matchMedia('(pointer: coarse)').matches;
-    const dpr = Math.min(window.devicePixelRatio || 1, touch ? 1.25 : 2);
+    const dpr = Math.min(window.devicePixelRatio || 1, touch ? 1.25 : 2) * quality;
     const frameMs = touch ? 1000 / 30 : 0;
     let lastFrame = 0;
 
@@ -217,7 +220,7 @@ export function DitherField({ palette, background = '#070a11', cell = 7, classNa
       document.removeEventListener('visibilitychange', onVis);
       gl.getExtension('WEBGL_lose_context')?.loseContext();
     };
-  }, [cell]);
+  }, [cell, quality, gain]);
 
   return <canvas ref={canvasRef} aria-hidden className={className} />;
 }
