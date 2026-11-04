@@ -599,6 +599,9 @@ html {
   .vy-skel::after {
     animation: none;
     display: none;
+  }
+}
+
 /* Texto cinza (slate 300-600) fica legível: preto no tema claro, branco no escuro.
  * Fica na camada de utilitários, então hover:text-cyan-400 etc. continuam funcionando. */
 @layer utilities {
