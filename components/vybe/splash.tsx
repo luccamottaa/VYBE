@@ -45,7 +45,7 @@ export function Splash() {
       data-splash={phase}
       aria-hidden
       onPointerDown={() => setPhase((p) => (p === 'in' ? 'out' : p))}
-      className={`vy-splash fixed inset-0 z-[100] flex flex-col items-center justify-center overflow-hidden bg-[#070a11] ${phase === 'out' ? 'vy-splash-out' : ''}`}
+      className={`theme-dark vy-splash fixed inset-0 z-[100] flex flex-col items-center justify-center overflow-hidden bg-[#070a11] ${phase === 'out' ? 'vy-splash-out' : ''}`}
     >
       <div className="vy-splash-glow pointer-events-none absolute left-1/2 top-1/2 h-[28rem] w-[28rem] rounded-full" />
       <div className="vy-splash-logo relative">

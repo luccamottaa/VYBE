@@ -418,7 +418,7 @@ function Dashboard() {
             <div style={sec('hero')} className={secCls('hero')}>
             {/* Hero: #1 */}
             <section className="theme-dark relative overflow-hidden rounded-3xl border border-slate-800/80 bg-gradient-to-br from-slate-900 via-[#0a1430] to-slate-950 p-6 text-slate-100 shadow-2xl lg:p-8">
-              {!safe && <DitherField palette={palettes[source]} className="pointer-events-none absolute inset-0 h-full w-full" />}
+              {!safe && <DitherField palette={palettes[source]} gain={2.6} className="pointer-events-none absolute inset-0 h-full w-full" />}
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#070a11]/85 via-[#070a11]/35 to-transparent" />
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#070a11]/60 to-transparent md:hidden" />
               <div className="relative z-10 flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
