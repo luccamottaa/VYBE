@@ -95,6 +95,8 @@
   --chart-4: #ec4899;
   --chart-5: #f59e0b;
   --logo-cutout: #0b0f17;
+  /* texto "cinza" (slate 300-600) vira essa cor: branco de noite */
+  --ink-soft: #ffffff;
 }
 
 /* Restaura a escala original dentro de .theme-dark quando a página está no claro. */
@@ -143,6 +145,8 @@
     --input: #cbd5e1;
     --ring: #0891b2;
     --logo-cutout: #f8fafc;
+    /* texto "cinza" vira preto de dia (legível em qualquer card claro) */
+    --ink-soft: #000000;
 
     --color-white: #0b1220;
     --color-slate-50: #020617;
@@ -553,4 +557,15 @@ html {
 }
 @keyframes vy-splash-out {
   to { opacity: 0; transform: scale(1.06); filter: blur(6px); }
+}
+
+/* Texto cinza (slate 300-600) fica legível: preto no tema claro, branco no escuro.
+ * Fica na camada de utilitários, então hover:text-cyan-400 etc. continuam funcionando. */
+@layer utilities {
+  .text-slate-300,
+  .text-slate-400,
+  .text-slate-500,
+  .text-slate-600 {
+    color: var(--ink-soft);
+  }
 }
