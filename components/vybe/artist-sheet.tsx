@@ -2,6 +2,7 @@
 import { CardsSkeleton } from './skeletons';
 
 import { useEffect, useRef, useState } from 'react';
+import { coverDitherPalette } from './ambient-background';
 import { Disc3, ExternalLink, Library, Radar } from 'lucide-react';
 import { albumsByArtist, albumTypeLabel, type Album } from '@/lib/albums';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -24,6 +25,16 @@ const hideBroken = (e: React.SyntheticEvent<HTMLImageElement>) => {
 
 export function ArtistSheet({ artist, onClose, onSong, onAlbum }: { artist: Artist | null; onClose: () => void; onSong: (s: Song) => void; onAlbum?: (a: Album) => void }) {
   const [albums, setAlbums] = useState<Album[] | null>(null);
+  // cores da foto pro degradê do topo (noite: fundas; dia: pastel)
+  const [tint, setTint] = useState<[string, string] | null>(null);
+  const [dark, setDark] = useState(true);
+  useEffect(() => {
+    const q = window.matchMedia('(prefers-color-scheme: dark)');
+    const on = () => setDark(q.matches);
+    on();
+    q.addEventListener('change', on);
+    return () => q.removeEventListener('change', on);
+  }, []);
   const [albumType, setAlbumType] = useState<'all' | 'album' | 'single'>('all');
   const [photo, setPhoto] = useState<string | undefined>();
   const [charted, setCharted] = useState<Charted[]>([]);
@@ -66,6 +77,13 @@ export function ArtistSheet({ artist, onClose, onSong, onAlbum }: { artist: Arti
 
   const chartedKeys = new Set(charted.map((s) => s.key));
   const cover = photo ?? artist?.picture ?? charted.find((s) => s.artwork)?.artwork ?? catalog.find((s) => s.artwork)?.artwork;
+  useEffect(() => {
+    let alive = true;
+    coverDitherPalette(cover ? artwork(cover, 300) : undefined, dark).then((p) => alive && setTint(p ? [p[0], p[1]] : null));
+    return () => {
+      alive = false;
+    };
+  }, [cover, dark]);
   const rest = catalog.filter((s) => !chartedKeys.has(s.key) && (!filter.trim() || matchesWords(`${s.name} ${s.album ?? ''}`, filter)));
   const markets = new Set(charted.flatMap((s) => s.hits.map((h) => h.market)));
 
@@ -92,17 +110,24 @@ export function ArtistSheet({ artist, onClose, onSong, onAlbum }: { artist: Arti
               style={{ maskImage: 'linear-gradient(to bottom, black 35%, transparent)', WebkitMaskImage: 'linear-gradient(to bottom, black 35%, transparent)' }}
             />
             </div>
-            <div className="absolute inset-0 bg-gradient-to-b from-[#070a11]/30 via-[#070a11]/45 to-popover" />
+            <div
+              className="absolute inset-0"
+              style={{
+                background: tint
+                  ? `linear-gradient(180deg, ${tint[1]}66 0%, ${tint[0]}b3 45%, var(--popover) 100%)`
+                  : 'linear-gradient(180deg, #070a1150 0%, #070a1199 50%, var(--popover) 100%)',
+              }}
+            />
           </div>
         )}
-        <SheetHeader className="theme-dark relative">
+        <SheetHeader className="relative">
           <SheetTitle className="text-white">Artista</SheetTitle>
           <SheetDescription className="text-slate-400">Músicas nos charts agora e catálogo completo</SheetDescription>
         </SheetHeader>
 
         {artist && (
           <div className="relative space-y-5 px-4 pb-8">
-            <div className="theme-dark flex flex-col items-center pt-24 text-center">
+            <div className="flex flex-col items-center pt-24 text-center">
               <Cover eager src={cover ? artwork(cover, 300) : ''} alt="" className="vy-pop h-28 w-28 shrink-0 rounded-full shadow-2xl shadow-black/60 ring-4 ring-white/10" />
               <div className="mt-4 min-w-0">
                 <h2 className="text-4xl font-black leading-none tracking-tight text-white drop-shadow-[0_2px_12px_rgb(0_0_0/0.5)]">{artist.name}</h2>
