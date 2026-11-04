@@ -37,6 +37,7 @@ import { useLayout, type HomeSection } from '@/lib/home-layout';
 import { TabBar } from '@/components/vybe/tab-bar';
 import { startSync } from '@/lib/sync';
 import { AmbientBackground } from '@/components/vybe/ambient-background';
+import { DitherBackground } from '@/components/vybe/dither-background';
 import { Splash } from '@/components/vybe/splash';
 import { ArtistBubbles, SpotlightTiles } from '@/components/vybe/home';
 import { VersionBadge } from '@/components/vybe/changelog';
@@ -291,7 +292,11 @@ function Dashboard() {
       {/* faixa sólida atrás do relógio/Dynamic Island: o conteúdo não passa por baixo dela */}
       <div aria-hidden className="pointer-events-none fixed inset-x-0 top-0 z-40 h-[env(safe-area-inset-top)] bg-background" />
       {/* fundo vivo com as cores da capa em destaque (música/álbum aberto ou o #1) */}
-      <AmbientBackground src={song?.artwork ?? album?.artwork ?? top?.artworkUrl100} still={safe} />
+      {safe ? (
+        <AmbientBackground src={song?.artwork ?? album?.artwork ?? top?.artworkUrl100} still={safe} />
+      ) : (
+        <DitherBackground src={song?.artwork ?? album?.artwork ?? top?.artworkUrl100} />
+      )}
 
       <div className="relative z-10 mx-auto max-w-7xl space-y-6">
         {/* Navbar */}

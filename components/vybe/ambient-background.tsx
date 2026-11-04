@@ -66,13 +66,25 @@ export function paletteFromPixels(data: Uint8ClampedArray): RGB[] | null {
   return out;
 }
 
+const hex2 = (c: RGB) => `#${c.map((v) => Math.round(v).toString(16).padStart(2, '0')).join('')}`;
+
+/** Paleta de 4 cores (fundo, base, destaque, brilho) tirada da capa, pro fundo pontilhado. */
+export async function coverDitherPalette(src: string | undefined, dark: boolean): Promise<[string, string, string, string] | null> {
+  if (!src) return null;
+  const p = await loadPalette(src.replace(/\/\d+x\d+bb\.(jpg|png|webp)$/, '/60x60bb.$1'));
+  if (!p) return null;
+  const [h, s] = toHsl(p[0]);
+  const deep = dark ? fromHsl(h, Math.min(1, s), 0.09) : fromHsl(h, Math.min(0.6, s * 0.6), 0.95);
+  return [hex2(deep), ...p.map((c) => hex2(tune(c, dark)))] as [string, string, string, string];
+}
+
 /** Ajusta pro tema: no claro, tons pastel; no escuro, cores fundas e vivas. */
 function tune(c: RGB, dark: boolean): RGB {
   const [h, s, l] = toHsl(c);
   return dark ? fromHsl(h, Math.min(1, Math.max(0.5, s * 1.15)), Math.min(0.5, Math.max(0.3, l))) : fromHsl(h, Math.min(0.9, Math.max(0.45, s)), Math.min(0.82, Math.max(0.68, l + 0.2)));
 }
 
-function loadPalette(src: string): Promise<RGB[] | null> {
+export function loadPalette(src: string): Promise<RGB[] | null> {
   return new Promise((resolve) => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
