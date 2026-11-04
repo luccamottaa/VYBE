@@ -3,8 +3,9 @@
 import { useEffect, useRef } from 'react';
 
 // Fundo vivo do vybe: manchas de cor que flutuam devagar, tiradas da capa da música em destaque
-// (o #1 do ranking ou a música/álbum aberto). Leve de propósito: desenha num canvas de 48 px que o
-// navegador estica (o desfoque sai de graça), ~20 quadros por segundo e para quando a aba some.
+// (o #1 do ranking ou a música/álbum aberto). Leve de propósito: desenha num canvas pequeno (proporcional
+// à tela, ~200 px no lado maior) que o navegador estica com suavidade, ~20 quadros por segundo, e para
+// quando a aba some.
 
 type RGB = [number, number, number];
 
@@ -15,7 +16,12 @@ const BRAND: RGB[] = [
   [16, 185, 129],
 ];
 
-const SIZE = 48;
+/** Resolução interna do canvas: proporcional à tela. 48 px (antes) esticava pixelado e fazia faixas. */
+const dims = () => {
+  const w = Math.round(Math.min(200, Math.max(120, window.innerWidth / 4)));
+  const h = Math.max(120, Math.round((w * window.innerHeight) / Math.max(1, window.innerWidth)));
+  return { w, h };
+};
 
 const toHsl = ([r, g, b]: RGB) => {
   const R = r / 255, G = g / 255, B = b / 255;
@@ -132,8 +138,18 @@ export function AmbientBackground({ src, still = false }: { src?: string; still?
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
     if (!canvas || !ctx) return;
-    canvas.width = SIZE;
-    canvas.height = SIZE;
+    let W = 0;
+    let H = 0;
+    const resize = () => {
+      const d = dims();
+      if (d.w === W && d.h === H) return;
+      W = d.w;
+      H = d.h;
+      canvas.width = W;
+      canvas.height = H;
+    };
+    resize();
+    window.addEventListener('resize', resize);
     const darkQ = window.matchMedia('(prefers-color-scheme: dark)');
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches || still;
     const current = BRAND.map((c) => [...c] as RGB);
@@ -155,21 +171,21 @@ export function AmbientBackground({ src, still = false }: { src?: string; still?
       const t = (now - t0) / 1000;
       ctx.globalCompositeOperation = 'source-over';
       ctx.fillStyle = dark ? '#070a11' : '#f4f7fb';
-      ctx.fillRect(0, 0, SIZE, SIZE);
+      ctx.fillRect(0, 0, W, H);
       ctx.globalCompositeOperation = dark ? 'lighter' : 'source-over';
       blobs.forEach((b, i) => {
         const goal = tune(target.current[i % target.current.length], dark);
         for (let j = 0; j < 3; j++) current[i][j] += (goal[j] - current[i][j]) * k;
-        const x = SIZE * (0.5 + b.ax * Math.sin(t * b.fx + b.ph));
-        const y = SIZE * (0.5 + b.ay * Math.cos(t * b.fy + b.ph * 1.3));
-        const r = SIZE * b.r * (1 + 0.08 * Math.sin(t * 0.11 + b.ph));
+        const x = W * (0.5 + b.ax * Math.sin(t * b.fx + b.ph));
+        const y = H * (0.5 + b.ay * Math.cos(t * b.fy + b.ph * 1.3));
+        const r = Math.max(W, H) * b.r * (1 + 0.08 * Math.sin(t * 0.11 + b.ph));
         const [cr, cg, cb] = current[i].map(Math.round);
         const g = ctx.createRadialGradient(x, y, 0, x, y, r);
         const a = dark ? 0.42 : 0.72;
         g.addColorStop(0, `rgba(${cr},${cg},${cb},${a})`);
         g.addColorStop(1, `rgba(${cr},${cg},${cb},0)`);
         ctx.fillStyle = g;
-        ctx.fillRect(0, 0, SIZE, SIZE);
+        ctx.fillRect(0, 0, W, H);
       });
     };
 
@@ -201,6 +217,7 @@ export function AmbientBackground({ src, still = false }: { src?: string; still?
     play();
     return () => {
       cancelAnimationFrame(raf);
+      window.removeEventListener('resize', resize);
       clearInterval(poll);
       document.removeEventListener('visibilitychange', onVis);
       darkQ.removeEventListener('change', play);
