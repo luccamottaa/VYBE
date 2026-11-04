@@ -37,7 +37,6 @@ import { useLayout, type HomeSection } from '@/lib/home-layout';
 import { TabBar } from '@/components/vybe/tab-bar';
 import { startSync } from '@/lib/sync';
 import { AmbientBackground } from '@/components/vybe/ambient-background';
-import { DitherBackground } from '@/components/vybe/dither-background';
 import { Splash } from '@/components/vybe/splash';
 import { ArtistBubbles, SpotlightTiles } from '@/components/vybe/home';
 import { VersionBadge } from '@/components/vybe/changelog';
@@ -292,11 +291,7 @@ function Dashboard() {
       {/* faixa sólida atrás do relógio/Dynamic Island: o conteúdo não passa por baixo dela */}
       <div aria-hidden className="pointer-events-none fixed inset-x-0 top-0 z-40 h-[env(safe-area-inset-top)] bg-background" />
       {/* fundo vivo com as cores da capa em destaque (música/álbum aberto ou o #1) */}
-      {safe ? (
-        <AmbientBackground src={song?.artwork ?? album?.artwork ?? top?.artworkUrl100} still={safe} />
-      ) : (
-        <DitherBackground src={song?.artwork ?? album?.artwork ?? top?.artworkUrl100} />
-      )}
+      <AmbientBackground src={song?.artwork ?? album?.artwork ?? top?.artworkUrl100} still={safe} />
 
       <div className="relative z-10 mx-auto max-w-7xl space-y-6">
         {/* Navbar */}
@@ -422,7 +417,7 @@ function Dashboard() {
             <div style={sec('hero')} className={secCls('hero')}>
             {/* Hero: #1 */}
             <section className="theme-dark relative overflow-hidden rounded-3xl border border-slate-800/80 bg-gradient-to-br from-slate-900 via-[#0a1430] to-slate-950 p-6 text-slate-100 shadow-2xl lg:p-8">
-              {!safe && <DitherField palette={palettes[source]} className="pointer-events-none absolute inset-0 h-full w-full" />}
+              {!safe && <DitherField palette={palettes[source]} gain={2.6} className="pointer-events-none absolute inset-0 h-full w-full" />}
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#070a11]/85 via-[#070a11]/35 to-transparent" />
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#070a11]/60 to-transparent md:hidden" />
               <div className="relative z-10 flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
