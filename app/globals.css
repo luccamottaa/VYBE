@@ -554,3 +554,46 @@ html {
 @keyframes vy-splash-out {
   to { opacity: 0; transform: scale(1.06); filter: blur(6px); }
 }
+
+/* ---------- Esqueletos (components/vybe/skeletons.tsx) ----------
+ * Bloco cinza com um brilho passando por cima. Fica discreto no claro e no escuro. */
+:root,
+.dark,
+.theme-dark {
+  --sk-base: rgb(30 41 59 / 0.6);
+  --sk-hi: rgb(255 255 255 / 0.08);
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --sk-base: rgb(203 213 225 / 0.6);
+    --sk-hi: rgb(255 255 255 / 0.75);
+  }
+}
+@layer utilities {
+  /* :where() zera a especificidade: classes de posição (absolute, inset-0...) continuam mandando */
+  :where(.vy-skel) {
+    position: relative;
+    display: block;
+    overflow: hidden;
+    background-color: var(--sk-base);
+  }
+}
+.vy-skel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, var(--sk-hi), transparent);
+  transform: translateX(-100%);
+  animation: vy-skel-shine 1.6s ease-in-out infinite;
+}
+@keyframes vy-skel-shine {
+  to {
+    transform: translateX(100%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vy-skel::after {
+    animation: none;
+    display: none;
+  }
+}
