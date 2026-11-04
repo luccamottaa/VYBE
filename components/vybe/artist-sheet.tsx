@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { coverDitherPalette } from './ambient-background';
+import { DitherField } from './dither-field';
 import { Disc3, ExternalLink, Library, Radar } from 'lucide-react';
 import { albumsByArtist, albumTypeLabel, type Album } from '@/lib/albums';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -17,15 +18,10 @@ import { Cover, CrossBadges } from './ui';
 
 type Charted = Awaited<ReturnType<typeof artistHits>>[number];
 
-/** Imagem que falhou some em vez de mostrar o ícone de imagem quebrada. */
-const hideBroken = (e: React.SyntheticEvent<HTMLImageElement>) => {
-  e.currentTarget.style.display = 'none';
-};
-
 export function ArtistSheet({ artist, onClose, onSong, onAlbum }: { artist: Artist | null; onClose: () => void; onSong: (s: Song) => void; onAlbum?: (a: Album) => void }) {
   const [albums, setAlbums] = useState<Album[] | null>(null);
   // cores da foto pro degradê do topo (noite: fundas; dia: pastel)
-  const [tint, setTint] = useState<[string, string] | null>(null);
+  const [pal, setPal] = useState<[string, string, string, string] | null>(null);
   const [dark, setDark] = useState(true);
   useEffect(() => {
     const q = window.matchMedia('(prefers-color-scheme: dark)');
@@ -78,7 +74,7 @@ export function ArtistSheet({ artist, onClose, onSong, onAlbum }: { artist: Arti
   const cover = photo ?? artist?.picture ?? charted.find((s) => s.artwork)?.artwork ?? catalog.find((s) => s.artwork)?.artwork;
   useEffect(() => {
     let alive = true;
-    coverDitherPalette(cover ? artwork(cover, 300) : undefined, dark).then((p) => alive && setTint(p ? [p[0], p[1]] : null));
+    coverDitherPalette(cover ? artwork(cover, 300) : undefined, dark).then((p) => alive && setPal(p));
     return () => {
       alive = false;
     };
@@ -93,30 +89,24 @@ export function ArtistSheet({ artist, onClose, onSong, onAlbum }: { artist: Arti
   return (
     <Sheet open={!!artist} onOpenChange={(o) => !o && onClose()}>
       <SheetContent onScroll={onScroll} className="w-full overflow-y-auto border-slate-800 bg-popover text-slate-100 sm:max-w-lg">
-        {/* fundo do artista: a foto grande sumindo no escuro + um banho de cor tirado dela */}
+        {/* fundo do artista: pontilhado animado com as cores da capa (noite) ou degradê (dia). Sem foto. */}
         {artist && cover && (
           <div ref={backdrop} aria-hidden className="vy-artist-bg pointer-events-none absolute inset-x-0 top-0 h-[44rem] overflow-hidden">
-            {/* manchas de cor da foto flutuando devagar (aurora) */}
-            <img src={artwork(cover, 100)} alt="" onError={hideBroken} className="vy-aurora-a absolute left-[-30%] top-[-10%] h-[70%] w-[110%] rounded-full object-cover opacity-70 blur-3xl saturate-200" />
-            <img src={artwork(cover, 100)} alt="" onError={hideBroken} className="vy-aurora-b absolute right-[-35%] top-[20%] h-[60%] w-[100%] rounded-full object-cover opacity-60 mix-blend-screen blur-3xl saturate-200 [transform:scaleX(-1)]" />
-            <img src={artwork(cover, 100)} alt="" onError={hideBroken} className="vy-aurora-c absolute bottom-[0%] left-[0%] h-[50%] w-[90%] rounded-full object-cover opacity-50 blur-3xl saturate-150 [transform:rotate(180deg)]" />
-            <div className="vy-artist-photo absolute inset-x-0 top-0 h-[26rem]">
-            <img
-              key={cover}
-              src={artwork(cover, 600)}
-              alt="" onError={hideBroken}
-              className="vy-artist-backdrop absolute inset-x-0 top-0 h-[26rem] w-full object-cover object-[50%_20%] opacity-70"
-              style={{ maskImage: 'linear-gradient(to bottom, black 35%, transparent)', WebkitMaskImage: 'linear-gradient(to bottom, black 35%, transparent)' }}
-            />
-            </div>
-            <div
-              className="absolute inset-0"
-              style={{
-                background: tint
-                  ? `linear-gradient(180deg, ${tint[1]}66 0%, ${tint[0]}b3 45%, var(--popover) 100%)`
-                  : 'linear-gradient(180deg, #070a1150 0%, #070a1199 50%, var(--popover) 100%)',
-              }}
-            />
+            {dark && pal ? (
+              <>
+                <DitherField palette={pal} background={pal[0]} cell={7} quality={0.6} gain={2.6} className="absolute inset-0 h-full w-full" />
+                <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, transparent 0%, transparent 35%, var(--popover) 100%)' }} />
+              </>
+            ) : (
+              <div
+                className="absolute inset-0"
+                style={{
+                  background: pal
+                    ? `linear-gradient(180deg, ${pal[1]}66 0%, ${pal[0]}b3 45%, var(--popover) 100%)`
+                    : 'linear-gradient(180deg, #070a1150 0%, #070a1199 50%, var(--popover) 100%)',
+                }}
+              />
+            )}
           </div>
         )}
         <SheetHeader className="relative">
