@@ -1,4 +1,5 @@
 'use client';
+import { ListSkeleton } from './skeletons';
 
 import { useEffect, useMemo, useState } from 'react';
 import { Clock3, Disc3, ExternalLink, ListMusic, Radar, User } from 'lucide-react';
@@ -152,11 +153,7 @@ export function AlbumSheet({ album, onClose, onSong, onArtist }: { album: Album 
                 )}
               </h3>
               {loading ? (
-                <div className="space-y-2" role="status" aria-label="Carregando faixas">
-                  {Array.from({ length: 8 }, (_, i) => (
-                    <div key={i} className="h-11 animate-pulse rounded-xl bg-slate-800/50" />
-                  ))}
-                </div>
+                <ListSkeleton rows={8} label="Carregando faixas" />
               ) : error ? (
                 <p className="rounded-xl border border-dashed border-slate-800 p-4 text-center text-xs text-slate-400">{error}</p>
               ) : (

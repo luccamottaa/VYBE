@@ -21,6 +21,7 @@ import { Sources } from '@/components/vybe/sources';
 import { DitherField, palettes } from '@/components/vybe/dither-field';
 import { Logo, LogoMark } from '@/components/vybe/logo';
 import { ConsentBanner, StatsToggle } from '@/components/vybe/consent';
+import { RankingSkeleton } from '@/components/vybe/skeletons';
 import { track } from '@/lib/analytics';
 import { bucket } from '@/lib/analytics-core';
 import { GlobalSearch } from '@/components/vybe/global-search';
@@ -427,7 +428,7 @@ function Dashboard() {
                       {top ? (
                         <Cover src={top.artworkUrl100 ? artwork(top.artworkUrl100, 300) : ''} alt={`Capa de ${top.name}`} className="h-full w-full rounded-[14px] border-0" />
                       ) : (
-                        <div className="flex h-full w-full items-center justify-center rounded-[14px] bg-slate-900">
+                        <div className="vy-skel flex h-full w-full items-center justify-center rounded-[14px]">
                           <Disc3 className="h-10 w-10 text-cyan-400 motion-safe:animate-[spin_8s_linear_infinite]" />
                         </div>
                       )}
@@ -444,7 +445,7 @@ function Dashboard() {
                       {top && hitsFor(top).length > 0 && <CrossBadges hits={hitsFor(top)} max={3} />}
                     </div>
                     <h2 className="truncate text-2xl font-extrabold tracking-tight text-white sm:text-4xl">
-                      {top ? top.name : loading ? 'Consultando o ranking…' : 'Ranking indisponível'}
+                      {top ? top.name : loading ? <span aria-label="Carregando" className="vy-skel block h-7 w-44 rounded-full sm:h-9 sm:w-64" /> : 'Ranking indisponível'}
                     </h2>
                     {top && (
                       <p className="text-xs text-slate-400">
@@ -512,7 +513,7 @@ function Dashboard() {
 
               {loading && !view ? (
                 <div className="px-6 pb-6">
-                  <Skeleton rows={8} />
+                  <RankingSkeleton rows={8} />
                 </div>
               ) : filtered.length ? (
                 <>
@@ -738,12 +739,3 @@ function Notice({ children }: { children: React.ReactNode }) {
   return <p className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-300">{children}</p>;
 }
 
-function Skeleton({ rows = 6 }: { rows?: number }) {
-  return (
-    <div className="flex h-full flex-col justify-center gap-3" role="status" aria-label="Carregando">
-      {Array.from({ length: rows }, (_, i) => (
-        <div key={i} className="h-6 animate-pulse rounded-lg bg-slate-800/60" style={{ width: `${90 - i * 7}%` }} />
-      ))}
-    </div>
-  );
-}

@@ -1,4 +1,5 @@
 'use client';
+import { TilesSkeleton } from './skeletons';
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ChevronRight } from 'lucide-react';
@@ -37,7 +38,7 @@ export function SpotlightTiles({ view, onOpen }: { view: ChartView | null; onOpe
     return out;
   }, [view]);
 
-  if (!view) return <TileSkeleton />;
+  if (!view) return <TilesSkeleton />;
   if (!tiles.length) return null;
   return (
     <section aria-label="Destaques de agora">
@@ -138,12 +139,3 @@ function SectionHead({ title, hint, action }: { title: string; hint?: string; ac
   );
 }
 
-function TileSkeleton() {
-  return (
-    <div className="flex gap-3 overflow-hidden" role="status" aria-label="Carregando destaques">
-      {Array.from({ length: 5 }, (_, i) => (
-        <div key={i} className="aspect-[3/4] w-[44%] shrink-0 animate-pulse rounded-3xl bg-slate-800/50 sm:w-[19%]" />
-      ))}
-    </div>
-  );
-}

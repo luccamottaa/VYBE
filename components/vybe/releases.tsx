@@ -62,7 +62,7 @@ export function FollowedReleases({ artists, onAlbum }: { artists: Extract<Follow
       {!data ? (
         <div className="hscroll -mx-5 gap-3 [--hs-gap:0.75rem] [--hs-pad:1.25rem] sm:-mx-6 sm:[--hs-pad:1.5rem]">
           {Array.from({ length: 4 }, (_, i) => (
-            <div key={i} className="h-44 w-32 shrink-0 animate-pulse rounded-2xl bg-slate-800/50" />
+            <div key={i} className="w-32 shrink-0"><span className="vy-skel block aspect-square w-full rounded-2xl" /></div>
           ))}
         </div>
       ) : items.length ? (
