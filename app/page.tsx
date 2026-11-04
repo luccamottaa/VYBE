@@ -524,17 +524,17 @@ function Dashboard() {
                       <li key={t.id}>
                         <button
                           onClick={() => openTrack(t)}
-                          className="vy-press group flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-800/30 sm:gap-4 sm:px-6"
+                          className="vy-press group flex w-full items-center gap-3.5 px-4 py-4 text-left transition-colors hover:bg-slate-800/30 sm:gap-5 sm:px-6"
                         >
-                          <span className={`w-8 shrink-0 text-center text-sm font-black tabular-nums ${t.rank <= 3 ? 'text-cyan-400' : 'text-slate-500'}`}>
+                          <span className={`w-9 shrink-0 text-center text-base font-black tabular-nums ${t.rank <= 3 ? 'text-cyan-400' : 'text-slate-500'}`}>
                             {String(t.rank).padStart(2, '0')}
                           </span>
-                          <Cover src={t.artworkUrl100} alt="" className="h-10 w-10 shrink-0" />
+                          <Cover src={t.artworkUrl100} alt="" className="h-14 w-14 shrink-0 sm:h-16 sm:w-16" />
                           <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-bold text-white group-hover:text-cyan-300">{t.name}</p>
-                            <p className="truncate text-xs text-slate-400">{t.artistName}</p>
+                            <p className="truncate text-base font-bold text-white group-hover:text-cyan-300 sm:text-lg">{t.name}</p>
+                            <p className="truncate text-sm text-slate-400 sm:text-base">{t.artistName}</p>
                             {hits.length > 0 && (
-                              <p className="mt-0.5 flex gap-2 text-[0.625rem] font-semibold lg:hidden">
+                              <p className="mt-1 flex gap-2.5 text-xs font-semibold lg:hidden">
                                 {hits.map((h) => (
                                   <span key={h.label} className={h.label.includes('Spotify') ? 'text-emerald-400' : 'text-rose-400'}>
                                     {h.label.includes('Spotify') ? 'Spotify' : 'Apple'} #{h.rank}
