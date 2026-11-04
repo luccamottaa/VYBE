@@ -13,6 +13,13 @@ import { useEffect, useRef } from 'react';
 
 export type Palette = [string, string, string, string]; // fundo profundo, base, destaque, brilho
 
+// versão mais viva (cartão do #1): mesma família de cores, mais saturada e clara
+export const vividPalettes: Record<'apple' | 'spotify' | 'all', Palette> = {
+  all: ['#1e1b4b', '#7c3aed', '#db2777', '#06b6d4'],
+  apple: ['#2e1065', '#7c3aed', '#ec4899', '#22d3ee'],
+  spotify: ['#064e3b', '#059669', '#34d399', '#a3e635'],
+};
+
 export const palettes: Record<'apple' | 'spotify' | 'all', Palette> = {
   all: ['#0b1f4d', '#2563eb', '#06b6d4', '#10b981'],
   apple: ['#172554', '#2563eb', '#06b6d4', '#a855f7'],
