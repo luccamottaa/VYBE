@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { coverDitherPalette } from './ambient-background';
 import { DitherField } from './dither-field';
-import { Disc3, ExternalLink, Library, Radar } from 'lucide-react';
+import { ChevronDown, Disc3, ExternalLink, Library, Radar } from 'lucide-react';
 import { albumsByArtist, albumTypeLabel, type Album } from '@/lib/albums';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { artistHits, loadAllCharts } from '@/lib/all-charts';
@@ -37,6 +37,9 @@ export function ArtistSheet({ artist, onClose, onSong, onAlbum }: { artist: Arti
   const [loading, setLoading] = useState(false);
   const [catalogError, setCatalogError] = useState('');
   const [filter, setFilter] = useState('');
+  // catálogo recolhido: só as principais; expande pro catálogo inteiro
+  const [showAll, setShowAll] = useState(false);
+  const TOP = 5;
 
   useEffect(() => {
     if (!artist) return;
@@ -59,6 +62,7 @@ export function ArtistSheet({ artist, onClose, onSong, onAlbum }: { artist: Arti
       .catch(() => !c.signal.aborted && setAlbums([]));
     setCatalogError('');
     setFilter('');
+    setShowAll(false);
     setLoading(true);
     loadAllCharts()
       .then((all) => !c.signal.aborted && setCharted(artistHits(all, artist.name)))
@@ -233,7 +237,7 @@ export function ArtistSheet({ artist, onClose, onSong, onAlbum }: { artist: Arti
                 <p className="text-xs text-amber-300">{catalogError}</p>
               ) : catalog.length ? (
                 <div className="divide-y divide-slate-800/60 overflow-hidden rounded-2xl border border-slate-800/60">
-                  {rest.map((s) => (
+                  {(showAll || filter.trim() ? rest : rest.slice(0, TOP)).map((s) => (
                       <div key={s.key} className="flex items-center gap-2 pr-2 transition-colors hover:bg-slate-800/30">
                       <button onClick={() => onSong(s)} className="flex min-w-0 flex-1 items-center gap-3 px-3 py-2 text-left">
                         <Cover eager src={s.artwork ?? ''} alt="" className="h-9 w-9 shrink-0" />
@@ -252,6 +256,15 @@ export function ArtistSheet({ artist, onClose, onSong, onAlbum }: { artist: Arti
                 </div>
               ) : (
                 <p className="text-xs text-slate-400">{loading ? 'Abrindo catálogo…' : 'Nada encontrado no catálogo.'}</p>
+              )}
+              {!filter.trim() && rest.length > TOP && (
+                <button
+                  onClick={() => setShowAll((v) => !v)}
+                  className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl border border-slate-700/60 py-2.5 text-xs font-bold text-cyan-300 hover:bg-slate-800/40"
+                >
+                  {showAll ? 'Mostrar só as principais' : `Ver catálogo completo (${rest.length})`}
+                  <ChevronDown className={`h-4 w-4 transition-transform ${showAll ? 'rotate-180' : ''}`} />
+                </button>
               )}
               <p className="mt-1 text-[0.625rem] text-slate-500">Catálogo via iTunes Search API e Deezer.</p>
             </section>
