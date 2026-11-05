@@ -1,9 +1,9 @@
-// Avatar do perfil: um dos 18 do vybe (public/avatars) ou a foto do Google. Com conta, fica no perfil
+// Avatar do perfil: um dos 12 do vybe (public/avatars) ou a foto do Google. Com conta, fica no perfil
 // (user_metadata, igual em todo aparelho); sem conta, só neste aparelho.
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 
-export const AVATARS = Array.from({ length: 18 }, (_, i) => `${String(i + 1).padStart(2, '0')}`);
+export const AVATARS = Array.from({ length: 12 }, (_, i) => `${String(i + 1).padStart(2, '0')}`);
 export const avatarUrl = (id: string) => `${import.meta.env.BASE_URL ?? '/'}avatars/${id}.webp`;
 
 const KEY = 'vybe:avatar';
